@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,16 +6,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, Upload, X, Check, Clock } from "lucide-react";
+import { ArrowLeft, MapPin, Upload, Clock, Crosshair } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useGeolocation } from "@/hooks/useGeolocation";
 
 const DAYS = ["M", "T", "W", "T", "F", "S", "S"];
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 const CreateEvent = () => {
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
+  const { latitude, longitude, error: geoError, isLoading: geoLoading } = useGeolocation();
+  
   const [isRecurring, setIsRecurring] = useState(false);
   const [selectedDays, setSelectedDays] = useState<number[]>([0, 2, 4]); // Mon, Wed, Fri
   const [radius, setRadius] = useState([50]);
@@ -28,8 +34,17 @@ const CreateEvent = () => {
     startTime: "09:00",
     endTime: "10:30",
     location: "",
+    locationLat: 0,
+    locationLng: 0,
     maxAttendees: "50",
   });
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate("/auth");
+    }
+  }, [user, authLoading, navigate]);
 
   const toggleDay = (index: number) => {
     setSelectedDays((prev) =>
@@ -39,16 +54,77 @@ const CreateEvent = () => {
     );
   };
 
+  const useCurrentLocation = () => {
+    if (latitude && longitude) {
+      setFormData(prev => ({
+        ...prev,
+        locationLat: latitude,
+        locationLng: longitude,
+        location: prev.location || "Current Location",
+      }));
+      toast.success("Location set to your current position");
+    } else if (geoError) {
+      toast.error(geoError);
+    } else {
+      toast.info("Getting your location...");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      toast.error("You must be logged in to create an event");
+      return;
+    }
+
+    if (!formData.locationLat || !formData.locationLng) {
+      toast.error("Please set a location for the event");
+      return;
+    }
+
+    if (!isRecurring && !formData.date) {
+      toast.error("Please select a date for the event");
+      return;
+    }
+
     setLoading(true);
 
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const { error } = await supabase.from('events').insert({
+      host_id: user.id,
+      name: formData.name,
+      description: formData.description || null,
+      is_recurring: isRecurring,
+      recurring_days: isRecurring ? selectedDays : null,
+      event_date: isRecurring ? null : formData.date,
+      start_time: formData.startTime,
+      end_time: formData.endTime,
+      location_name: formData.location,
+      location_lat: formData.locationLat,
+      location_lng: formData.locationLng,
+      radius_meters: radius[0],
+      max_attendees: parseInt(formData.maxAttendees) || 50,
+    });
+
+    if (error) {
+      console.error('Error creating event:', error);
+      toast.error("Failed to create event. Please try again.");
+      setLoading(false);
+      return;
+    }
 
     toast.success("Event created successfully!");
     navigate("/host/dashboard");
     setLoading(false);
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-8">
@@ -213,21 +289,42 @@ const CreateEvent = () => {
             <Label htmlFor="location">Venue / Address</Label>
             <Input
               id="location"
-              placeholder="Search for a location..."
+              placeholder="Enter venue name..."
               value={formData.location}
               onChange={(e) => setFormData({ ...formData, location: e.target.value })}
               required
             />
           </div>
 
-          {/* Map Placeholder */}
-          <div className="aspect-video rounded-xl bg-muted flex items-center justify-center border border-border">
-            <div className="text-center text-muted-foreground">
-              <MapPin size={32} className="mx-auto mb-2" />
-              <p className="text-sm">Map will appear here</p>
-              <p className="text-xs">Pin the exact location</p>
-            </div>
+          {/* Location Picker */}
+          <div className="aspect-video rounded-xl bg-muted flex flex-col items-center justify-center border border-border relative overflow-hidden">
+            {formData.locationLat && formData.locationLng ? (
+              <div className="text-center">
+                <MapPin size={32} className="mx-auto mb-2 text-primary" />
+                <p className="text-sm font-medium text-foreground">Location Set</p>
+                <p className="text-xs text-muted-foreground">
+                  {formData.locationLat.toFixed(6)}, {formData.locationLng.toFixed(6)}
+                </p>
+              </div>
+            ) : (
+              <div className="text-center text-muted-foreground">
+                <MapPin size={32} className="mx-auto mb-2" />
+                <p className="text-sm">No location set</p>
+                <p className="text-xs">Use button below to set location</p>
+              </div>
+            )}
           </div>
+
+          <Button 
+            type="button" 
+            variant="outline" 
+            className="w-full gap-2"
+            onClick={useCurrentLocation}
+            disabled={geoLoading}
+          >
+            <Crosshair size={18} />
+            {geoLoading ? "Getting location..." : "Use Current Location"}
+          </Button>
 
           {/* Radius Slider */}
           <div className="space-y-3">
