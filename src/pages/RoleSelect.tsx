@@ -1,16 +1,47 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/Logo";
 import { useNavigate } from "react-router-dom";
 import { Users, Presentation, Check } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
-type Role = "host" | "user" | null;
+type Role = "host" | "attendee" | null;
 
 const RoleSelect = () => {
   const navigate = useNavigate();
+  const { user, loading: authLoading, setUserRole, getUserRoles } = useAuth();
   const [selectedRole, setSelectedRole] = useState<Role>(null);
+  const [loading, setLoading] = useState(false);
+  const [checkingRoles, setCheckingRoles] = useState(true);
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate("/auth");
+    }
+  }, [user, authLoading, navigate]);
+
+  // Check if user already has roles
+  useEffect(() => {
+    const checkRoles = async () => {
+      if (!user) return;
+      
+      const { data } = await getUserRoles();
+      if (data && data.length > 0) {
+        // User already has roles, redirect based on first role
+        const hasHost = data.some(r => r.role === 'host');
+        navigate(hasHost ? "/host/dashboard" : "/user/dashboard");
+      }
+      setCheckingRoles(false);
+    };
+    
+    if (user) {
+      checkRoles();
+    }
+  }, [user, getUserRoles, navigate]);
 
   const roles = [
     {
@@ -21,7 +52,7 @@ const RoleSelect = () => {
       description: "Create events and monitor attendance in real-time",
     },
     {
-      id: "user" as Role,
+      id: "attendee" as Role,
       icon: Users,
       title: "I'm an Attendee",
       subtitle: "Student / Participant",
@@ -29,13 +60,37 @@ const RoleSelect = () => {
     },
   ];
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
+    if (!selectedRole || !user) return;
+    
+    setLoading(true);
+    
+    const { error } = await setUserRole(selectedRole);
+    
+    if (error) {
+      toast.error("Failed to set role. Please try again.");
+      setLoading(false);
+      return;
+    }
+    
+    toast.success("Role selected successfully!");
+    
     if (selectedRole === "host") {
       navigate("/host/dashboard");
     } else {
       navigate("/user/dashboard");
     }
+    
+    setLoading(false);
   };
+
+  if (authLoading || checkingRoles) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -109,10 +164,10 @@ const RoleSelect = () => {
           <Button
             className="w-full"
             size="lg"
-            disabled={!selectedRole}
+            disabled={!selectedRole || loading}
             onClick={handleContinue}
           >
-            Continue
+            {loading ? "Setting up..." : "Continue"}
           </Button>
 
           <p className="text-center text-sm text-muted-foreground mt-4">
