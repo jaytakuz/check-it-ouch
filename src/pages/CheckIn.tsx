@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import QRScanner from "@/components/QRScanner";
-import LocationMap from "@/components/LocationMap";
+import LeafletLocationMap from "@/components/LeafletLocationMap";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -476,7 +476,7 @@ const CheckIn = () => {
 
         {/* Location Preview */}
         <div className="p-6 border-t border-border">
-          <LocationMap
+          <LeafletLocationMap
             eventLocation={{ lat: 0, lng: 0 }}
             radiusMeters={50}
             onLocationVerified={(within, dist) => {

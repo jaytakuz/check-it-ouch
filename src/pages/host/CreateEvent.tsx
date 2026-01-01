@@ -6,13 +6,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, Upload, Clock, Crosshair } from "lucide-react";
+import { ArrowLeft, MapPin, Upload, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { useGeolocation } from "@/hooks/useGeolocation";
+import LeafletLocationPicker from "@/components/LeafletLocationPicker";
 
 const DAYS = ["M", "T", "W", "T", "F", "S", "S"];
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -20,7 +20,6 @@ const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const CreateEvent = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { latitude, longitude, error: geoError, isLoading: geoLoading } = useGeolocation();
   
   const [isRecurring, setIsRecurring] = useState(false);
   const [selectedDays, setSelectedDays] = useState<number[]>([0, 2, 4]); // Mon, Wed, Fri
@@ -54,20 +53,13 @@ const CreateEvent = () => {
     );
   };
 
-  const useCurrentLocation = () => {
-    if (latitude && longitude) {
-      setFormData(prev => ({
-        ...prev,
-        locationLat: latitude,
-        locationLng: longitude,
-        location: prev.location || "Current Location",
-      }));
-      toast.success("Location set to your current position");
-    } else if (geoError) {
-      toast.error(geoError);
-    } else {
-      toast.info("Getting your location...");
-    }
+  const handleLocationChange = (location: { lat: number; lng: number }) => {
+    setFormData(prev => ({
+      ...prev,
+      locationLat: location.lat,
+      locationLng: location.lng,
+      location: prev.location || "Selected Location",
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -296,35 +288,12 @@ const CreateEvent = () => {
             />
           </div>
 
-          {/* Location Picker */}
-          <div className="aspect-video rounded-xl bg-muted flex flex-col items-center justify-center border border-border relative overflow-hidden">
-            {formData.locationLat && formData.locationLng ? (
-              <div className="text-center">
-                <MapPin size={32} className="mx-auto mb-2 text-primary" />
-                <p className="text-sm font-medium text-foreground">Location Set</p>
-                <p className="text-xs text-muted-foreground">
-                  {formData.locationLat.toFixed(6)}, {formData.locationLng.toFixed(6)}
-                </p>
-              </div>
-            ) : (
-              <div className="text-center text-muted-foreground">
-                <MapPin size={32} className="mx-auto mb-2" />
-                <p className="text-sm">No location set</p>
-                <p className="text-xs">Use button below to set location</p>
-              </div>
-            )}
-          </div>
-
-          <Button 
-            type="button" 
-            variant="outline" 
-            className="w-full gap-2"
-            onClick={useCurrentLocation}
-            disabled={geoLoading}
-          >
-            <Crosshair size={18} />
-            {geoLoading ? "Getting location..." : "Use Current Location"}
-          </Button>
+          {/* Location Picker Map */}
+          <LeafletLocationPicker
+            value={formData.locationLat && formData.locationLng ? { lat: formData.locationLat, lng: formData.locationLng } : null}
+            onChange={handleLocationChange}
+            radius={radius[0]}
+          />
 
           {/* Radius Slider */}
           <div className="space-y-3">
