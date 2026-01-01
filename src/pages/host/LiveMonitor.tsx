@@ -1,41 +1,149 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Users, RefreshCw, Maximize2 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { motion } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+
+const QR_REFRESH_INTERVAL = 7000; // 7 seconds
 
 const LiveMonitor = () => {
   const navigate = useNavigate();
-  const [qrValue, setQrValue] = useState("CHECKIN-001-" + Date.now());
+  const { eventId } = useParams<{ eventId: string }>();
+  const { user, loading: authLoading } = useAuth();
+  const [qrValue, setQrValue] = useState("");
   const [timeLeft, setTimeLeft] = useState(7);
-  const [checkedIn, setCheckedIn] = useState(15);
-  const [total] = useState(50);
+  const [checkedIn, setCheckedIn] = useState(0);
+  const [maxAttendees, setMaxAttendees] = useState(50);
+  const [eventName, setEventName] = useState("Loading...");
+  const [loading, setLoading] = useState(true);
 
-  // QR refresh effect
   useEffect(() => {
-    const qrInterval = setInterval(() => {
-      setQrValue("CHECKIN-001-" + Date.now());
-      setTimeLeft(7);
-    }, 7000);
+    if (authLoading) return;
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+    if (eventId) {
+      fetchEventData();
+    }
+  }, [user, authLoading, eventId, navigate]);
+
+  const fetchEventData = async () => {
+    if (!eventId) return;
+
+    // Fetch event details
+    const { data: event, error } = await supabase
+      .from("events")
+      .select("*")
+      .eq("id", eventId)
+      .maybeSingle();
+
+    if (error || !event) {
+      console.error("Error fetching event:", error);
+      navigate("/host/dashboard");
+      return;
+    }
+
+    setEventName(event.name);
+    setMaxAttendees(event.max_attendees || 50);
+
+    // Generate initial QR code
+    generateQRCode(event.qr_secret);
+
+    // Fetch check-in count
+    fetchCheckInCount();
+
+    setLoading(false);
+  };
+
+  const generateQRCode = (qrSecret: string) => {
+    const timestamp = Date.now();
+    const qrData = `CHECKIN-${eventId}-${qrSecret}-${timestamp}`;
+    setQrValue(qrData);
+    setTimeLeft(7);
+  };
+
+  const fetchCheckInCount = async () => {
+    if (!eventId) return;
+
+    const today = new Date().toISOString().split("T")[0];
+    const { count } = await supabase
+      .from("check_ins")
+      .select("*", { count: "exact", head: true })
+      .eq("event_id", eventId)
+      .eq("session_date", today);
+
+    setCheckedIn(count || 0);
+  };
+
+  // QR refresh and countdown effect
+  useEffect(() => {
+    if (loading || !eventId) return;
+
+    const qrInterval = setInterval(async () => {
+      // Fetch fresh qr_secret each refresh
+      const { data: event } = await supabase
+        .from("events")
+        .select("qr_secret")
+        .eq("id", eventId)
+        .maybeSingle();
+
+      if (event) {
+        generateQRCode(event.qr_secret);
+      }
+    }, QR_REFRESH_INTERVAL);
 
     const countdownInterval = setInterval(() => {
       setTimeLeft((prev) => (prev > 0 ? prev - 1 : 7));
     }, 1000);
 
-    // Simulate check-ins
-    const checkinInterval = setInterval(() => {
-      setCheckedIn((prev) => Math.min(prev + 1, total));
-    }, 3000);
+    // Refresh check-in count periodically
+    const checkInInterval = setInterval(fetchCheckInCount, 3000);
 
     return () => {
       clearInterval(qrInterval);
       clearInterval(countdownInterval);
-      clearInterval(checkinInterval);
+      clearInterval(checkInInterval);
     };
-  }, [total]);
+  }, [loading, eventId]);
 
-  const progress = (checkedIn / total) * 100;
+  // Set up realtime subscription for check-ins
+  useEffect(() => {
+    if (!eventId) return;
+
+    const channel = supabase
+      .channel(`check_ins_${eventId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "check_ins",
+          filter: `event_id=eq.${eventId}`,
+        },
+        () => {
+          fetchCheckInCount();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [eventId]);
+
+  const progress = (checkedIn / maxAttendees) * 100;
+
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -46,7 +154,7 @@ const LiveMonitor = () => {
             <ArrowLeft size={20} />
           </Button>
           <div>
-            <h1 className="font-semibold text-foreground">Web Development 101</h1>
+            <h1 className="font-semibold text-foreground">{eventName}</h1>
             <p className="text-sm text-muted-foreground">Live Monitor</p>
           </div>
         </div>
@@ -68,7 +176,7 @@ const LiveMonitor = () => {
               value={qrValue}
               size={240}
               bgColor="transparent"
-              fgColor="hsl(225, 20%, 15%)"
+              fgColor="hsl(var(--foreground))"
               level="M"
               includeMargin
             />
@@ -119,7 +227,7 @@ const LiveMonitor = () => {
           <div className="flex-1">
             <div className="flex items-baseline gap-2">
               <span className="text-3xl font-bold text-foreground">{checkedIn}</span>
-              <span className="text-muted-foreground">/ {total}</span>
+              <span className="text-muted-foreground">/ {maxAttendees}</span>
             </div>
             <p className="text-sm text-muted-foreground">Checked in</p>
           </div>
@@ -130,7 +238,7 @@ const LiveMonitor = () => {
           <motion.div
             className="h-full bg-success rounded-full"
             initial={{ width: 0 }}
-            animate={{ width: `${progress}%` }}
+            animate={{ width: `${Math.min(progress, 100)}%` }}
             transition={{ duration: 0.5 }}
           />
         </div>

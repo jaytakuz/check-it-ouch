@@ -30,7 +30,7 @@ const App = () => (
           <Route path="/guest-join" element={<GuestJoin />} />
           <Route path="/host/dashboard" element={<HostDashboard />} />
           <Route path="/host/create-event" element={<CreateEvent />} />
-          <Route path="/host/monitor" element={<LiveMonitor />} />
+          <Route path="/host/monitor/:eventId" element={<LiveMonitor />} />
           <Route path="/user/dashboard" element={<UserDashboard />} />
           <Route path="/user/profile" element={<UserProfile />} />
           <Route path="/checkin" element={<CheckIn />} />
