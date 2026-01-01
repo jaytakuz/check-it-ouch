@@ -7,17 +7,29 @@ import { cn } from "@/lib/utils";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import QRScanner from "@/components/QRScanner";
 import LocationMap from "@/components/LocationMap";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 type CheckInState = "scanning" | "checking" | "ready" | "success" | "failed";
-type FailReason = "location" | "time" | "qr" | null;
+type FailReason = "location" | "time" | "qr" | "already" | null;
 
-// Demo event location (can be replaced with real data later)
-const EVENT_LOCATION = { lat: 37.7749, lng: -122.4194 };
-const EVENT_RADIUS = 100; // meters
+interface EventData {
+  id: string;
+  name: string;
+  location_name: string;
+  location_lat: number;
+  location_lng: number;
+  radius_meters: number;
+  start_time: string;
+  end_time: string;
+  qr_secret: string;
+}
 
 const CheckIn = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { user, loading: authLoading } = useAuth();
   const [state, setState] = useState<CheckInState>("scanning");
   const [failReason, setFailReason] = useState<FailReason>(null);
   const [timestamp, setTimestamp] = useState(new Date());
@@ -25,6 +37,7 @@ const CheckIn = () => {
   const [scannedCode, setScannedCode] = useState<string | null>(null);
   const [isWithinRadius, setIsWithinRadius] = useState(false);
   const [distance, setDistance] = useState<number | null>(null);
+  const [eventData, setEventData] = useState<EventData | null>(null);
 
   const { latitude, longitude, error: geoError, isLoading: geoLoading } = useGeolocation();
 
@@ -37,23 +50,32 @@ const CheckIn = () => {
     }
   }, [searchParams]);
 
+  // Parse QR code and fetch event data
+  useEffect(() => {
+    if (scannedCode && state === "checking") {
+      parseAndVerifyQRCode(scannedCode);
+    }
+  }, [scannedCode, state]);
+
   // Location verification
   useEffect(() => {
-    if (latitude && longitude && scannedCode) {
+    if (latitude && longitude && eventData) {
       const dist = calculateDistance(
-        latitude, longitude,
-        EVENT_LOCATION.lat, EVENT_LOCATION.lng
+        latitude,
+        longitude,
+        eventData.location_lat,
+        eventData.location_lng
       );
       setDistance(dist);
-      const withinRange = dist <= EVENT_RADIUS;
+      const withinRange = dist <= eventData.radius_meters;
       setIsWithinRadius(withinRange);
 
       // Auto-transition to ready once we have location
-      if (!geoLoading) {
+      if (!geoLoading && state === "checking") {
         setState(withinRange ? "ready" : "checking");
       }
     }
-  }, [latitude, longitude, scannedCode, geoLoading]);
+  }, [latitude, longitude, eventData, geoLoading, state]);
 
   // Update timestamp for success screen
   useEffect(() => {
@@ -65,44 +87,140 @@ const CheckIn = () => {
     }
   }, [state]);
 
+  const parseAndVerifyQRCode = async (code: string) => {
+    // QR format: CHECKIN-{eventId}-{qrSecret}-{timestamp}
+    const parts = code.split("-");
+    if (parts.length < 4 || parts[0] !== "CHECKIN") {
+      setState("failed");
+      setFailReason("qr");
+      return;
+    }
+
+    const eventId = parts[1];
+    const qrSecret = parts[2];
+    const qrTimestamp = parseInt(parts[3]);
+
+    // Check if QR code is not too old (valid for 10 seconds)
+    const now = Date.now();
+    if (now - qrTimestamp > 10000) {
+      setState("failed");
+      setFailReason("qr");
+      return;
+    }
+
+    // Fetch event data
+    const { data: event, error } = await supabase
+      .from("events")
+      .select("*")
+      .eq("id", eventId)
+      .maybeSingle();
+
+    if (error || !event) {
+      setState("failed");
+      setFailReason("qr");
+      return;
+    }
+
+    // Verify QR secret
+    if (event.qr_secret !== qrSecret) {
+      setState("failed");
+      setFailReason("qr");
+      return;
+    }
+
+    // Check time window
+    const currentTime = new Date().toTimeString().slice(0, 8);
+    if (currentTime < event.start_time || currentTime > event.end_time) {
+      setState("failed");
+      setFailReason("time");
+      return;
+    }
+
+    setEventData(event);
+  };
+
   const calculateDistance = (
-    lat1: number, lng1: number,
-    lat2: number, lng2: number
+    lat1: number,
+    lng1: number,
+    lat2: number,
+    lng2: number
   ): number => {
     const R = 6371000;
-    const dLat = (lat2 - lat1) * (Math.PI / 180);
-    const dLng = (lng2 - lng1) * (Math.PI / 180);
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLng = ((lng2 - lng1) * Math.PI) / 180;
     const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
-      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
 
   const handleQRScan = (data: string) => {
-    // Validate QR code format (should start with CHECKIN-)
     if (data.startsWith("CHECKIN-")) {
       setScannedCode(data);
       setShowScanner(false);
       setState("checking");
     } else {
-      // Invalid QR code
       setShowScanner(false);
       setState("failed");
       setFailReason("qr");
     }
   };
 
-  const handleCheckIn = () => {
+  const handleCheckIn = async () => {
+    if (!user) {
+      toast.error("Please log in to check in");
+      navigate("/auth");
+      return;
+    }
+
     if (!isWithinRadius) {
       setState("failed");
       setFailReason("location");
       return;
     }
 
-    // TODO: Validate QR code with backend
-    // For now, we'll just succeed if within radius
+    if (!eventData || !latitude || !longitude || !scannedCode) {
+      setState("failed");
+      setFailReason("qr");
+      return;
+    }
+
+    // Check if already checked in today
+    const today = new Date().toISOString().split("T")[0];
+    const { data: existingCheckIn } = await supabase
+      .from("check_ins")
+      .select("id")
+      .eq("event_id", eventData.id)
+      .eq("user_id", user.id)
+      .eq("session_date", today)
+      .maybeSingle();
+
+    if (existingCheckIn) {
+      setState("failed");
+      setFailReason("already");
+      return;
+    }
+
+    // Save check-in to database
+    const { error } = await supabase.from("check_ins").insert({
+      event_id: eventData.id,
+      user_id: user.id,
+      location_lat: latitude,
+      location_lng: longitude,
+      distance_meters: distance || 0,
+      qr_code_used: scannedCode,
+    });
+
+    if (error) {
+      console.error("Check-in error:", error);
+      toast.error("Failed to save check-in");
+      return;
+    }
+
     setState("success");
   };
 
@@ -119,6 +237,7 @@ const CheckIn = () => {
     setState("scanning");
     setScannedCode(null);
     setFailReason(null);
+    setEventData(null);
   };
 
   // Success Screen
@@ -206,8 +325,13 @@ const CheckIn = () => {
           transition={{ type: "spring", delay: 0.2 }}
           className="w-24 h-24 rounded-full bg-destructive-foreground/20 flex items-center justify-center mb-8"
         >
-          {failReason === "location" ? <MapPin size={48} /> : 
-           failReason === "qr" ? <QrCode size={48} /> : <Clock size={48} />}
+          {failReason === "location" ? (
+            <MapPin size={48} />
+          ) : failReason === "qr" ? (
+            <QrCode size={48} />
+          ) : (
+            <Clock size={48} />
+          )}
         </motion.div>
 
         <motion.h1
@@ -228,7 +352,9 @@ const CheckIn = () => {
           {failReason === "location"
             ? "You are outside the check-in radius"
             : failReason === "qr"
-            ? "Invalid QR code scanned"
+            ? "Invalid or expired QR code"
+            : failReason === "already"
+            ? "You have already checked in today"
             : "Check-in window has closed"}
         </motion.p>
 
@@ -243,7 +369,7 @@ const CheckIn = () => {
               <MapPin size={24} className="mx-auto mb-2" />
               <p className="text-sm">Move closer to the event location</p>
               <p className="text-xs text-destructive-foreground/70 mt-1">
-                Required: Within {EVENT_RADIUS}m of venue
+                Required: Within {eventData?.radius_meters || 50}m of venue
                 {distance && ` (Currently ${Math.round(distance)}m away)`}
               </p>
             </>
@@ -253,6 +379,14 @@ const CheckIn = () => {
               <p className="text-sm">Please scan a valid event QR code</p>
               <p className="text-xs text-destructive-foreground/70 mt-1">
                 Scan the QR displayed by your host
+              </p>
+            </>
+          ) : failReason === "already" ? (
+            <>
+              <Check size={24} className="mx-auto mb-2" />
+              <p className="text-sm">You've already checked in</p>
+              <p className="text-xs text-destructive-foreground/70 mt-1">
+                One check-in per session is allowed
               </p>
             </>
           ) : (
@@ -294,12 +428,7 @@ const CheckIn = () => {
 
   // QR Scanner overlay
   if (showScanner) {
-    return (
-      <QRScanner
-        onScan={handleQRScan}
-        onClose={() => setShowScanner(false)}
-      />
-    );
+    return <QRScanner onScan={handleQRScan} onClose={() => setShowScanner(false)} />;
   }
 
   // Scanning state - prompt to scan QR
@@ -327,9 +456,7 @@ const CheckIn = () => {
             <div className="w-24 h-24 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
               <Scan size={48} className="text-primary" />
             </div>
-            <h2 className="text-xl font-semibold text-foreground mb-2">
-              Scan Event QR Code
-            </h2>
+            <h2 className="text-xl font-semibold text-foreground mb-2">Scan Event QR Code</h2>
             <p className="text-muted-foreground">
               Point your camera at the QR code displayed by your host
             </p>
@@ -340,11 +467,7 @@ const CheckIn = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <Button
-              size="lg"
-              className="gap-2 px-8"
-              onClick={() => setShowScanner(true)}
-            >
+            <Button size="lg" className="gap-2 px-8" onClick={() => setShowScanner(true)}>
               <QrCode size={20} />
               Open Scanner
             </Button>
@@ -354,8 +477,8 @@ const CheckIn = () => {
         {/* Location Preview */}
         <div className="p-6 border-t border-border">
           <LocationMap
-            eventLocation={EVENT_LOCATION}
-            radiusMeters={EVENT_RADIUS}
+            eventLocation={{ lat: 0, lng: 0 }}
+            radiusMeters={50}
             onLocationVerified={(within, dist) => {
               setIsWithinRadius(within);
               setDistance(dist);
@@ -375,8 +498,8 @@ const CheckIn = () => {
           <ArrowLeft size={20} />
         </Button>
         <div>
-          <h1 className="font-semibold text-foreground">Web Development 101</h1>
-          <p className="text-sm text-muted-foreground">Room 301, Tech Building</p>
+          <h1 className="font-semibold text-foreground">{eventData?.name || "Loading..."}</h1>
+          <p className="text-sm text-muted-foreground">{eventData?.location_name || ""}</p>
         </div>
       </header>
 
@@ -445,7 +568,17 @@ const CheckIn = () => {
             </div>
             <div className="flex-1">
               <p className="font-medium text-foreground">Time Window</p>
-              <p className="text-sm text-muted-foreground">Active until 10:30 AM</p>
+              <p className="text-sm text-muted-foreground">
+                Active until{" "}
+                {eventData?.end_time
+                  ? (() => {
+                      const [h, m] = eventData.end_time.split(":");
+                      const hour = parseInt(h);
+                      const ampm = hour >= 12 ? "PM" : "AM";
+                      return `${hour % 12 || 12}:${m} ${ampm}`;
+                    })()
+                  : "..."}
+              </p>
             </div>
           </motion.div>
 
@@ -492,7 +625,7 @@ const CheckIn = () => {
 
           <motion.button
             whileTap={{ scale: 0.95 }}
-            disabled={state === "checking" || geoLoading}
+            disabled={state === "checking" || geoLoading || !isWithinRadius}
             onClick={handleCheckIn}
             className={cn(
               "relative w-48 h-48 rounded-full flex flex-col items-center justify-center shadow-lg transition-all",
@@ -500,40 +633,15 @@ const CheckIn = () => {
                 ? "bg-muted text-muted-foreground"
                 : isWithinRadius
                 ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                : "bg-destructive/80 text-destructive-foreground"
+                : "bg-muted text-muted-foreground"
             )}
           >
-            {state === "checking" || geoLoading ? (
-              <>
-                <div className="w-8 h-8 border-3 border-current border-t-transparent rounded-full animate-spin mb-2" />
-                <span className="text-sm font-medium">Verifying...</span>
-              </>
-            ) : isWithinRadius ? (
-              <>
-                <Check size={48} className="mb-2" />
-                <span className="text-lg font-bold">CHECK IN</span>
-              </>
-            ) : (
-              <>
-                <MapPin size={48} className="mb-2" />
-                <span className="text-sm font-medium text-center px-4">
-                  Move closer to venue
-                </span>
-              </>
-            )}
+            <Check size={48} className="mb-2" />
+            <span className="text-lg font-semibold">
+              {geoLoading ? "Locating..." : isWithinRadius ? "Check In" : "Too Far"}
+            </span>
           </motion.button>
         </motion.div>
-      </div>
-
-      {/* Bottom hint */}
-      <div className="p-6 text-center">
-        <p className="text-sm text-muted-foreground">
-          {geoLoading
-            ? "Verifying your location..."
-            : isWithinRadius
-            ? "Tap the button above to check in"
-            : `You need to be within ${EVENT_RADIUS}m of the venue`}
-        </p>
       </div>
     </div>
   );

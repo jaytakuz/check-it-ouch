@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/Logo";
 import { useNavigate } from "react-router-dom";
@@ -15,60 +15,125 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { format, isToday, parseISO } from "date-fns";
 
 interface Event {
   id: string;
   name: string;
-  type: "one-time" | "recurring";
-  date: string;
-  time: string;
-  location: string;
-  attendees: number;
-  maxAttendees: number;
-  status: "upcoming" | "live" | "completed";
+  is_recurring: boolean;
+  event_date: string | null;
+  recurring_days: number[] | null;
+  start_time: string;
+  end_time: string;
+  location_name: string;
+  max_attendees: number | null;
+  is_active: boolean;
+  check_in_count?: number;
 }
-
-const mockEvents: Event[] = [
-  {
-    id: "1",
-    name: "Web Development 101",
-    type: "recurring",
-    date: "Every Mon, Wed, Fri",
-    time: "09:00 AM - 10:30 AM",
-    location: "Room 301, Tech Building",
-    attendees: 28,
-    maxAttendees: 35,
-    status: "live",
-  },
-  {
-    id: "2",
-    name: "UI/UX Workshop",
-    type: "one-time",
-    date: "Dec 28, 2024",
-    time: "02:00 PM - 05:00 PM",
-    location: "Conference Hall A",
-    attendees: 0,
-    maxAttendees: 50,
-    status: "upcoming",
-  },
-  {
-    id: "3",
-    name: "Data Science Bootcamp",
-    type: "recurring",
-    date: "Every Tuesday",
-    time: "06:00 PM - 08:00 PM",
-    location: "Online + Lab 201",
-    attendees: 42,
-    maxAttendees: 45,
-    status: "completed",
-  },
-];
 
 const HostDashboard = () => {
   const navigate = useNavigate();
-  const [events] = useState<Event[]>(mockEvents);
+  const { user, loading: authLoading } = useAuth();
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [totalCheckIns, setTotalCheckIns] = useState(0);
 
-  const getStatusStyles = (status: Event["status"]) => {
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+    fetchEvents();
+  }, [user, authLoading, navigate]);
+
+  const fetchEvents = async () => {
+    if (!user) return;
+
+    // Fetch events created by this host
+    const { data: eventsData, error: eventsError } = await supabase
+      .from("events")
+      .select("*")
+      .eq("host_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (eventsError) {
+      console.error("Error fetching events:", eventsError);
+      setLoading(false);
+      return;
+    }
+
+    // Fetch check-in counts for each event
+    const eventsWithCounts = await Promise.all(
+      (eventsData || []).map(async (event) => {
+        const { count } = await supabase
+          .from("check_ins")
+          .select("*", { count: "exact", head: true })
+          .eq("event_id", event.id);
+        return { ...event, check_in_count: count || 0 };
+      })
+    );
+
+    setEvents(eventsWithCounts);
+    setTotalCheckIns(eventsWithCounts.reduce((sum, e) => sum + (e.check_in_count || 0), 0));
+    setLoading(false);
+  };
+
+  const getEventStatus = (event: Event): "live" | "upcoming" | "completed" => {
+    if (!event.is_active) return "completed";
+    
+    const now = new Date();
+    const currentTime = format(now, "HH:mm:ss");
+    
+    if (event.is_recurring) {
+      const currentDay = now.getDay();
+      if (event.recurring_days?.includes(currentDay)) {
+        if (currentTime >= event.start_time && currentTime <= event.end_time) {
+          return "live";
+        }
+      }
+      return "upcoming";
+    } else if (event.event_date) {
+      const eventDate = parseISO(event.event_date);
+      if (isToday(eventDate)) {
+        if (currentTime >= event.start_time && currentTime <= event.end_time) {
+          return "live";
+        }
+        if (currentTime > event.end_time) return "completed";
+      }
+      if (eventDate < now) return "completed";
+    }
+    return "upcoming";
+  };
+
+  const formatEventDate = (event: Event): string => {
+    if (event.is_recurring && event.recurring_days) {
+      const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      const dayNames = event.recurring_days.map((d) => days[d]).join(", ");
+      return `Every ${dayNames}`;
+    }
+    if (event.event_date) {
+      const date = parseISO(event.event_date);
+      if (isToday(date)) return "Today";
+      return format(date, "MMM d, yyyy");
+    }
+    return "No date set";
+  };
+
+  const formatTime = (start: string, end: string): string => {
+    const formatTimeStr = (t: string) => {
+      const [h, m] = t.split(":");
+      const hour = parseInt(h);
+      const ampm = hour >= 12 ? "PM" : "AM";
+      const hour12 = hour % 12 || 12;
+      return `${hour12}:${m} ${ampm}`;
+    };
+    return `${formatTimeStr(start)} - ${formatTimeStr(end)}`;
+  };
+
+  const getStatusStyles = (status: "live" | "upcoming" | "completed") => {
     switch (status) {
       case "live":
         return "bg-success/10 text-success border-success/20";
@@ -79,7 +144,7 @@ const HostDashboard = () => {
     }
   };
 
-  const getStatusLabel = (status: Event["status"]) => {
+  const getStatusLabel = (status: "live" | "upcoming" | "completed") => {
     switch (status) {
       case "live":
         return "● Live Now";
@@ -89,6 +154,16 @@ const HostDashboard = () => {
         return "Completed";
     }
   };
+
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
+  const activeEventsCount = events.filter((e) => e.is_active).length;
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -100,7 +175,6 @@ const HostDashboard = () => {
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="icon" className="relative">
                 <Bell size={20} />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
               </Button>
               <Button variant="ghost" size="icon" onClick={() => navigate("/settings")}>
                 <Settings size={20} />
@@ -118,11 +192,11 @@ const HostDashboard = () => {
           className="grid grid-cols-2 gap-4"
         >
           <div className="bg-card rounded-2xl p-4 border border-border">
-            <div className="text-2xl font-bold text-foreground">12</div>
+            <div className="text-2xl font-bold text-foreground">{activeEventsCount}</div>
             <div className="text-sm text-muted-foreground">Active Events</div>
           </div>
           <div className="bg-card rounded-2xl p-4 border border-border">
-            <div className="text-2xl font-bold text-foreground">847</div>
+            <div className="text-2xl font-bold text-foreground">{totalCheckIns}</div>
             <div className="text-sm text-muted-foreground">Total Check-ins</div>
           </div>
         </motion.div>
@@ -138,69 +212,88 @@ const HostDashboard = () => {
           </Button>
         </div>
 
-        <div className="space-y-3">
-          {events.map((event, index) => (
-            <motion.div
-              key={event.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: index * 0.1 }}
-              onClick={() => navigate(`/host/event/${event.id}`)}
-              className="bg-card rounded-2xl p-4 border border-border cursor-pointer hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold text-foreground">{event.name}</h3>
-                    <span
-                      className={cn(
-                        "text-xs px-2 py-0.5 rounded-full border",
-                        getStatusStyles(event.status)
-                      )}
-                    >
-                      {getStatusLabel(event.status)}
-                    </span>
+        {events.length === 0 ? (
+          <div className="text-center py-12">
+            <Calendar className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-muted-foreground">No events yet</p>
+            <Button className="mt-4" onClick={() => navigate("/host/create-event")}>
+              Create Your First Event
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {events.map((event, index) => {
+              const status = getEventStatus(event);
+              return (
+                <motion.div
+                  key={event.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: index * 0.1 }}
+                  onClick={() => navigate(`/host/event/${event.id}`)}
+                  className="bg-card rounded-2xl p-4 border border-border cursor-pointer hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-semibold text-foreground">{event.name}</h3>
+                        <span
+                          className={cn(
+                            "text-xs px-2 py-0.5 rounded-full border",
+                            getStatusStyles(status)
+                          )}
+                        >
+                          {getStatusLabel(status)}
+                        </span>
+                      </div>
+                      <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                        {event.is_recurring ? "Recurring" : "One-time"}
+                      </span>
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <MoreVertical size={16} />
+                    </Button>
                   </div>
-                  <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                    {event.type === "recurring" ? "Recurring" : "One-time"}
-                  </span>
-                </div>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <MoreVertical size={16} />
-                </Button>
-              </div>
 
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <Calendar size={14} />
-                  <span>{event.date}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock size={14} />
-                  <span>{event.time}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <MapPin size={14} />
-                  <span>{event.location}</span>
-                </div>
-              </div>
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <Calendar size={14} />
+                      <span>{formatEventDate(event)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock size={14} />
+                      <span>{formatTime(event.start_time, event.end_time)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin size={14} />
+                      <span>{event.location_name}</span>
+                    </div>
+                  </div>
 
-              <div className="mt-4 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Users size={16} className="text-muted-foreground" />
-                  <span className="text-sm font-medium text-foreground">
-                    {event.attendees}/{event.maxAttendees}
-                  </span>
-                </div>
-                {event.status === "live" && (
-                  <Button size="sm" onClick={(e) => { e.stopPropagation(); navigate("/host/monitor"); }}>
-                    Open Monitor
-                  </Button>
-                )}
-              </div>
-            </motion.div>
-          ))}
-        </div>
+                  <div className="mt-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Users size={16} className="text-muted-foreground" />
+                      <span className="text-sm font-medium text-foreground">
+                        {event.check_in_count}/{event.max_attendees || "∞"}
+                      </span>
+                    </div>
+                    {status === "live" && (
+                      <Button
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/host/monitor/${event.id}`);
+                        }}
+                      >
+                        Open Monitor
+                      </Button>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* FAB */}
