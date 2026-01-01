@@ -3,10 +3,8 @@ import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   Settings,
-  Award,
   Calendar,
   CheckCircle2,
-  Download,
   ChevronRight,
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -73,11 +71,6 @@ const UserProfile = () => {
                 <span className="text-foreground font-medium">142</span>
                 <span className="text-muted-foreground">Check-ins</span>
               </div>
-              <div className="flex items-center gap-1 text-sm">
-                <Award size={14} className="text-primary" />
-                <span className="text-foreground font-medium">12</span>
-                <span className="text-muted-foreground">Certificates</span>
-              </div>
             </div>
           </div>
         </motion.div>
@@ -112,41 +105,10 @@ const UserProfile = () => {
             </ResponsiveContainer>
           </div>
           <p className="text-sm text-muted-foreground text-center mt-2">
-            Based on attended events and completed certificates
+            Based on attended events and participation
           </p>
         </div>
       </motion.div>
-
-      {/* Certificates Section */}
-      <div className="px-4 mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-foreground">My Certificates</h3>
-          <Button variant="ghost" size="sm" className="text-primary">
-            View All
-            <ChevronRight size={16} className="ml-1" />
-          </Button>
-        </div>
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-card rounded-2xl p-4 border border-border"
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-primary/20 to-success/20 flex items-center justify-center">
-              <Award size={28} className="text-primary" />
-            </div>
-            <div className="flex-1">
-              <h4 className="font-medium text-foreground">React Masterclass</h4>
-              <p className="text-sm text-muted-foreground">Completed Dec 20, 2024</p>
-            </div>
-            <Button variant="outline" size="sm">
-              <Download size={14} className="mr-1" />
-              PDF
-            </Button>
-          </div>
-        </motion.div>
-      </div>
 
       {/* Recent History */}
       <div className="px-4">

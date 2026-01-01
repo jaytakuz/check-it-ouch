@@ -345,6 +345,27 @@ const CreateEvent = () => {
           </div>
         </motion.div>
 
+        {/* XLSX Import for Recurring Events */}
+        {isRecurring && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+            className="bg-card rounded-2xl p-4 border border-border space-y-4"
+          >
+            <h3 className="font-medium text-foreground">Import Attendees (Optional)</h3>
+            <p className="text-sm text-muted-foreground">
+              Upload an Excel file with participant data for recurring events
+            </p>
+            <div className="border-2 border-dashed border-border rounded-xl p-6 text-center hover:border-primary/50 transition-colors cursor-pointer">
+              <Upload size={28} className="mx-auto mb-2 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                Drag & drop or click to upload .xlsx
+              </p>
+            </div>
+          </motion.div>
+        )}
+
         {/* Certificate Upload */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
