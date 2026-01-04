@@ -98,12 +98,12 @@ const QRScanner = ({ onScan, onClose }: QRScannerProps) => {
 
       {/* Scanner Area */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 bg-muted/50">
-        <div className="relative w-full max-w-sm aspect-square rounded-2xl overflow-hidden bg-background shadow-lg">
+        <div className="relative w-72 h-72 sm:w-80 sm:h-80 rounded-2xl overflow-hidden bg-background shadow-lg">
           {/* QR Reader Container */}
           <div 
             id="qr-reader" 
             ref={containerRef}
-            className="w-full h-full"
+            className="w-full h-full [&>video]:object-cover [&>video]:w-full [&>video]:h-full"
           />
 
           {/* Scanning overlay */}
