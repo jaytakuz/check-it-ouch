@@ -5,6 +5,8 @@ import "leaflet/dist/leaflet.css";
 import { Crosshair } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { MapErrorBoundary } from "@/components/MapErrorBoundary";
+import MockLocationPicker from "@/components/MockLocationPicker";
 
 // Fix for default marker icons in Leaflet with Vite
 const defaultIcon = L.icon({
@@ -46,7 +48,6 @@ function RecenterMap({ center }: { center: [number, number] | null }) {
   }, [center, map]);
   return null;
 }
-
 
 const LeafletLocationPicker = ({ value, onChange, radius = 50, className }: LocationPickerProps) => {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -90,68 +91,73 @@ const LeafletLocationPicker = ({ value, onChange, radius = 50, className }: Loca
   }, []);
 
   return (
-    <div className={cn("space-y-3", className)}>
-      <div className="aspect-video rounded-xl overflow-hidden border border-border relative bg-muted">
-        {mapReady ? (
-          <MapContainer
-            key="location-picker-map"
-            center={defaultCenter}
-            zoom={16}
-            scrollWheelZoom={true}
-            style={{ height: "100%", width: "100%" }}
-          >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <MapClickHandler onClick={handleMapClick} />
-            <RecenterMap center={value ? [value.lat, value.lng] : null} />
-            {value && (
-              <>
-                <Marker position={[value.lat, value.lng]} />
-                <Circle
-                  center={[value.lat, value.lng]}
-                  radius={radius}
-                  pathOptions={{
-                    color: "hsl(var(--primary))",
-                    fillColor: "hsl(var(--primary))",
-                    fillOpacity: 0.2,
-                  }}
-                />
-              </>
-            )}
-          </MapContainer>
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <p className="text-sm text-muted-foreground">Loading map...</p>
-          </div>
-        )}
+    <MapErrorBoundary
+      fallback={<MockLocationPicker value={value} onChange={onChange} radius={radius} className={className} />}
+    >
+      <div className={cn("space-y-3", className)}>
+        <div className="aspect-video rounded-xl overflow-hidden border border-border relative bg-muted">
+          {mapReady ? (
+            <MapContainer
+              key="location-picker-map"
+              center={defaultCenter}
+              zoom={16}
+              scrollWheelZoom={true}
+              style={{ height: "100%", width: "100%" }}
+            >
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              <MapClickHandler onClick={handleMapClick} />
+              <RecenterMap center={value ? [value.lat, value.lng] : null} />
+              {value && (
+                <>
+                  <Marker position={[value.lat, value.lng]} />
+                  <Circle
+                    center={[value.lat, value.lng]}
+                    radius={radius}
+                    pathOptions={{
+                      color: "hsl(var(--primary))",
+                      fillColor: "hsl(var(--primary))",
+                      fillOpacity: 0.2,
+                    }}
+                  />
+                </>
+              )}
+            </MapContainer>
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <p className="text-sm text-muted-foreground">Loading map...</p>
+            </div>
+          )}
 
-        {!value && mapReady && (
-          <div className="absolute inset-0 flex items-center justify-center bg-background/50 pointer-events-none">
-            <p className="text-sm text-muted-foreground">Click on the map to set location</p>
-          </div>
+          {!value && mapReady && (
+            <div className="absolute inset-0 flex items-center justify-center bg-background/50 pointer-events-none">
+              <p className="text-sm text-muted-foreground">Click on the map to set location</p>
+            </div>
+          )}
+        </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full gap-2"
+          onClick={handleUseCurrentLocation}
+          disabled={isGettingLocation}
+        >
+          <Crosshair size={18} />
+          {isGettingLocation ? "Getting location..." : "Use Current Location"}
+        </Button>
+
+        {value && (
+          <p className="text-xs text-muted-foreground text-center">
+            {value.lat.toFixed(6)}, {value.lng.toFixed(6)}
+          </p>
         )}
       </div>
-
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full gap-2"
-        onClick={handleUseCurrentLocation}
-        disabled={isGettingLocation}
-      >
-        <Crosshair size={18} />
-        {isGettingLocation ? "Getting location..." : "Use Current Location"}
-      </Button>
-
-      {value && (
-        <p className="text-xs text-muted-foreground text-center">
-          {value.lat.toFixed(6)}, {value.lng.toFixed(6)}
-        </p>
-      )}
-    </div>
+    </MapErrorBoundary>
   );
 };
 
 export default LeafletLocationPicker;
+

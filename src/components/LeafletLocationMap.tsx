@@ -5,6 +5,7 @@ import "leaflet/dist/leaflet.css";
 import { MapPin, AlertCircle, Loader2, Navigation } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { MapErrorBoundary } from "@/components/MapErrorBoundary";
 
 // Fix for default marker icons
 const eventIcon = L.divIcon({
@@ -70,38 +71,43 @@ function MockMapFallback({
       <div className="h-48 relative bg-muted">
         {/* Mock map background */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-primary/10">
-          <div 
+          <div
             className="absolute inset-0 opacity-20"
             style={{
               backgroundImage: `
                 linear-gradient(to right, hsl(var(--border)) 1px, transparent 1px),
                 linear-gradient(to bottom, hsl(var(--border)) 1px, transparent 1px)
               `,
-              backgroundSize: '40px 40px'
+              backgroundSize: "40px 40px",
             }}
           />
         </div>
 
         {/* Event marker and radius */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <div 
+          <div
             className={cn(
               "absolute rounded-full border-2",
-              isWithinRadius 
-                ? "bg-success/20 border-success/40" 
+              isWithinRadius
+                ? "bg-success/20 border-success/40"
                 : "bg-destructive/20 border-destructive/40"
             )}
-            style={{ width: `${Math.min(radiusMeters * 1.5, 150)}px`, height: `${Math.min(radiusMeters * 1.5, 150)}px` }}
+            style={{
+              width: `${Math.min(radiusMeters * 1.5, 150)}px`,
+              height: `${Math.min(radiusMeters * 1.5, 150)}px`,
+            }}
           />
           <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-lg z-10">
             <MapPin size={20} className="text-primary-foreground" />
           </div>
-          
+
           {/* User marker */}
-          <div 
+          <div
             className={cn(
               "absolute w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-lg",
-              isWithinRadius ? "translate-x-6 translate-y-4" : "translate-x-24 translate-y-16"
+              isWithinRadius
+                ? "translate-x-6 translate-y-4"
+                : "translate-x-24 translate-y-16"
             )}
           >
             <div className="absolute inset-0 w-4 h-4 bg-blue-500/50 rounded-full animate-ping" />
@@ -135,7 +141,9 @@ function MockMapFallback({
         <div
           className={cn(
             "w-10 h-10 rounded-lg flex items-center justify-center",
-            isWithinRadius ? "bg-success/20 text-success" : "bg-destructive/20 text-destructive"
+            isWithinRadius
+              ? "bg-success/20 text-success"
+              : "bg-destructive/20 text-destructive"
           )}
         >
           <MapPin size={20} />
@@ -145,10 +153,9 @@ function MockMapFallback({
             {isWithinRadius ? "Within range ✓ (Demo)" : "Outside range (Demo)"}
           </p>
           <p className="text-xs text-muted-foreground">
-            {isWithinRadius 
+            {isWithinRadius
               ? `~${Math.round(radiusMeters * 0.5)}m from venue`
-              : `~${Math.round(radiusMeters * 2)}m from venue`
-            }
+              : `~${Math.round(radiusMeters * 2)}m from venue`}
             {` • Required: within ${radiusMeters}m`}
           </p>
         </div>
@@ -219,9 +226,7 @@ const LeafletLocationMap = ({
           );
           setDistance(dist);
 
-          if (onLocationVerified) {
-            onLocationVerified(dist <= radiusMeters, dist);
-          }
+          onLocationVerified?.(dist <= radiusMeters, dist);
         }
       },
       (error) => {
@@ -299,85 +304,99 @@ const LeafletLocationMap = ({
   }
 
   return (
-    <div className={cn("rounded-xl overflow-hidden bg-card border border-border", className)}>
-      <div className="h-48 relative bg-muted">
-        {mapReady ? (
-          <MapContainer
-            key="location-map"
-            center={mapCenter}
-            zoom={17}
-            scrollWheelZoom={false}
-            zoomControl={false}
-            style={{ height: "100%", width: "100%" }}
-          >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <MapUpdater center={mapCenter} zoom={17} />
-            
-            {hasValidEventLocation && (
-              <>
-                <Circle
-                  center={[eventLocation.lat, eventLocation.lng]}
-                  radius={radiusMeters}
-                  pathOptions={{
-                    color: isWithinRadius ? "hsl(142, 76%, 36%)" : "hsl(0, 84%, 60%)",
-                    fillColor: isWithinRadius ? "hsl(142, 76%, 36%)" : "hsl(0, 84%, 60%)",
-                    fillOpacity: 0.15,
-                    weight: 2,
-                  }}
-                />
-                <Marker position={[eventLocation.lat, eventLocation.lng]} icon={eventIcon} />
-              </>
-            )}
+    <MapErrorBoundary
+      fallback={
+        <MockMapFallback
+          eventLocation={eventLocation}
+          radiusMeters={radiusMeters}
+          onLocationVerified={onLocationVerified}
+          className={className}
+        />
+      }
+    >
+      <div className={cn("rounded-xl overflow-hidden bg-card border border-border", className)}>
+        <div className="h-48 relative bg-muted">
+          {mapReady ? (
+            <MapContainer
+              key="location-map"
+              center={mapCenter}
+              zoom={17}
+              scrollWheelZoom={false}
+              zoomControl={false}
+              style={{ height: "100%", width: "100%" }}
+            >
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              <MapUpdater center={mapCenter} zoom={17} />
 
-            {userLocation && (
-              <Marker position={[userLocation.lat, userLocation.lng]} icon={userIcon} />
-            )}
-          </MapContainer>
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Loader2 className="w-6 h-6 text-primary animate-spin" />
-          </div>
-        )}
-      </div>
+              {hasValidEventLocation && (
+                <>
+                  <Circle
+                    center={[eventLocation.lat, eventLocation.lng]}
+                    radius={radiusMeters}
+                    pathOptions={{
+                      color: isWithinRadius
+                        ? "hsl(142, 76%, 36%)"
+                        : "hsl(0, 84%, 60%)",
+                      fillColor: isWithinRadius
+                        ? "hsl(142, 76%, 36%)"
+                        : "hsl(0, 84%, 60%)",
+                      fillOpacity: 0.15,
+                      weight: 2,
+                    }}
+                  />
+                  <Marker position={[eventLocation.lat, eventLocation.lng]} icon={eventIcon} />
+                </>
+              )}
 
-      {/* Status bar */}
-      <div
-        className={cn(
-          "p-3 flex items-center gap-3",
-          isWithinRadius ? "bg-success/10" : "bg-muted"
-        )}
-      >
+              {userLocation && <Marker position={[userLocation.lat, userLocation.lng]} icon={userIcon} />}
+            </MapContainer>
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Loader2 className="w-6 h-6 text-primary animate-spin" />
+            </div>
+          )}
+        </div>
+
+        {/* Status bar */}
         <div
           className={cn(
-            "w-10 h-10 rounded-lg flex items-center justify-center",
-            isWithinRadius ? "bg-success/20 text-success" : "bg-muted text-muted-foreground"
+            "p-3 flex items-center gap-3",
+            isWithinRadius ? "bg-success/10" : "bg-muted"
           )}
         >
-          <MapPin size={20} />
-        </div>
-        <div className="flex-1">
-          <p className="text-sm font-medium text-foreground">
-            {!hasValidEventLocation
-              ? "Waiting for event location..."
-              : isWithinRadius
-              ? "Within range ✓"
-              : "Outside range"}
-          </p>
-          {distance !== null && hasValidEventLocation && (
-            <p className="text-xs text-muted-foreground">
-              {distance < 1000
-                ? `${Math.round(distance)}m from venue`
-                : `${(distance / 1000).toFixed(1)}km from venue`}
-              {` • Required: within ${radiusMeters}m`}
+          <div
+            className={cn(
+              "w-10 h-10 rounded-lg flex items-center justify-center",
+              isWithinRadius ? "bg-success/20 text-success" : "bg-muted text-muted-foreground"
+            )}
+          >
+            <MapPin size={20} />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-foreground">
+              {!hasValidEventLocation
+                ? "Waiting for event location..."
+                : isWithinRadius
+                ? "Within range ✓"
+                : "Outside range"}
             </p>
-          )}
+            {distance !== null && hasValidEventLocation && (
+              <p className="text-xs text-muted-foreground">
+                {distance < 1000
+                  ? `${Math.round(distance)}m from venue`
+                  : `${(distance / 1000).toFixed(1)}km from venue`}
+                {` • Required: within ${radiusMeters}m`}
+              </p>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </MapErrorBoundary>
   );
 };
 
 export default LeafletLocationMap;
+
