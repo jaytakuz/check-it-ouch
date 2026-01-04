@@ -8,12 +8,13 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
-type Role = "host" | "attendee" | null;
+type Role = "host" | "attendee";
 
 const RoleSelect = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading, setUserRole, getUserRoles } = useAuth();
-  const [selectedRole, setSelectedRole] = useState<Role>(null);
+  const [selectedRoles, setSelectedRoles] = useState<Role[]>([]);
+  const [primaryRole, setPrimaryRole] = useState<Role | null>(null);
   const [loading, setLoading] = useState(false);
   const [checkingRoles, setCheckingRoles] = useState(true);
 
@@ -31,9 +32,8 @@ const RoleSelect = () => {
       
       const { data } = await getUserRoles();
       if (data && data.length > 0) {
-        // User already has roles, redirect based on first role
-        const hasHost = data.some(r => r.role === 'host');
-        navigate(hasHost ? "/host/dashboard" : "/user/dashboard");
+        // User already has roles, redirect to unified dashboard
+        navigate("/dashboard");
       }
       setCheckingRoles(false);
     };
@@ -47,39 +47,61 @@ const RoleSelect = () => {
     {
       id: "host" as Role,
       icon: Presentation,
-      title: "I'm a Host",
+      title: "Host Events",
       subtitle: "Teacher / Organizer",
       description: "Create events and monitor attendance in real-time",
     },
     {
       id: "attendee" as Role,
       icon: Users,
-      title: "I'm an Attendee",
+      title: "Join Events",
       subtitle: "Student / Participant",
       description: "Check in to events and build your attendance portfolio",
     },
   ];
 
+  const toggleRole = (role: Role) => {
+    setSelectedRoles((prev) => {
+      const newRoles = prev.includes(role)
+        ? prev.filter((r) => r !== role)
+        : [...prev, role];
+      
+      // If deselecting the primary role, reset it
+      if (primaryRole === role && !newRoles.includes(role)) {
+        setPrimaryRole(newRoles[0] || null);
+      }
+      
+      // If only one role selected, make it primary
+      if (newRoles.length === 1) {
+        setPrimaryRole(newRoles[0]);
+      }
+      
+      return newRoles;
+    });
+  };
+
   const handleContinue = async () => {
-    if (!selectedRole || !user) return;
+    if (selectedRoles.length === 0 || !user) return;
     
     setLoading(true);
     
-    const { error } = await setUserRole(selectedRole);
-    
-    if (error) {
-      toast.error("Failed to set role. Please try again.");
-      setLoading(false);
-      return;
+    // Add all selected roles
+    for (const role of selectedRoles) {
+      const { error } = await setUserRole(role);
+      if (error) {
+        // Check if it's a duplicate key error (role already exists)
+        if (!error.message?.includes("duplicate")) {
+          toast.error(`Failed to set ${role} role. Please try again.`);
+          setLoading(false);
+          return;
+        }
+      }
     }
     
-    toast.success("Role selected successfully!");
+    toast.success("Roles set successfully!");
     
-    if (selectedRole === "host") {
-      navigate("/host/dashboard");
-    } else {
-      navigate("/user/dashboard");
-    }
+    // Navigate to unified dashboard
+    navigate("/dashboard");
     
     setLoading(false);
   };
@@ -109,69 +131,104 @@ const RoleSelect = () => {
               How will you use Check-in?
             </h1>
             <p className="text-muted-foreground">
-              Select your primary role to get started
+              Select one or both roles — you can always switch views later
             </p>
           </div>
 
-          <div className="space-y-4 mb-8">
-            {roles.map((role, index) => (
-              <motion.button
-                key={role.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.4, delay: index * 0.1 }}
-                onClick={() => setSelectedRole(role.id)}
-                className={cn(
-                  "w-full p-5 rounded-2xl border-2 text-left transition-all duration-200",
-                  "hover:border-primary/50 hover:shadow-md",
-                  selectedRole === role.id
-                    ? "border-primary bg-primary/5 shadow-md"
-                    : "border-border bg-card"
-                )}
-              >
-                <div className="flex items-start gap-4">
-                  <div
+          <div className="space-y-4 mb-6">
+            {roles.map((role, index) => {
+              const isSelected = selectedRoles.includes(role.id);
+              const isPrimary = primaryRole === role.id;
+              
+              return (
+                <motion.button
+                  key={role.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.4, delay: index * 0.1 }}
+                  onClick={() => toggleRole(role.id)}
+                  className={cn(
+                    "w-full p-5 rounded-2xl border-2 text-left transition-all duration-200",
+                    "hover:border-primary/50 hover:shadow-md",
+                    isSelected
+                      ? "border-primary bg-primary/5 shadow-md"
+                      : "border-border bg-card"
+                  )}
+                >
+                  <div className="flex items-start gap-4">
+                    <div
+                      className={cn(
+                        "w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors",
+                        isSelected
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground"
+                      )}
+                    >
+                      <role.icon size={24} />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-semibold text-foreground">{role.title}</h3>
+                          <p className="text-sm text-primary font-medium">{role.subtitle}</p>
+                        </div>
+                        {isSelected && (
+                          <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                            <Check size={14} className="text-primary-foreground" />
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        {role.description}
+                      </p>
+                    </div>
+                  </div>
+                </motion.button>
+              );
+            })}
+          </div>
+
+          {/* Primary role selector - only show if both roles selected */}
+          {selectedRoles.length === 2 && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              className="mb-6 p-4 bg-muted/50 rounded-xl"
+            >
+              <p className="text-sm font-medium text-foreground mb-3">
+                Which view do you prefer to start with?
+              </p>
+              <div className="flex gap-2">
+                {roles.map((role) => (
+                  <button
+                    key={role.id}
+                    onClick={() => setPrimaryRole(role.id)}
                     className={cn(
-                      "w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors",
-                      selectedRole === role.id
+                      "flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2",
+                      primaryRole === role.id
                         ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground"
+                        : "bg-card border border-border text-foreground hover:bg-accent"
                     )}
                   >
-                    <role.icon size={24} />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-semibold text-foreground">{role.title}</h3>
-                        <p className="text-sm text-primary font-medium">{role.subtitle}</p>
-                      </div>
-                      {selectedRole === role.id && (
-                        <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
-                          <Check size={14} className="text-primary-foreground" />
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      {role.description}
-                    </p>
-                  </div>
-                </div>
-              </motion.button>
-            ))}
-          </div>
+                    <role.icon size={16} />
+                    {role.id === "host" ? "Host" : "Attendee"}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
 
           <Button
             className="w-full"
             size="lg"
-            disabled={!selectedRole || loading}
+            disabled={selectedRoles.length === 0 || loading}
             onClick={handleContinue}
           >
             {loading ? "Setting up..." : "Continue"}
           </Button>
 
           <p className="text-center text-sm text-muted-foreground mt-4">
-            You can switch roles anytime from settings
+            You can switch between roles anytime from the dashboard
           </p>
         </motion.div>
       </div>

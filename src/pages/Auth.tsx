@@ -18,7 +18,7 @@ const authSchema = z.object({
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { user, loading: authLoading, signUp, signIn } = useAuth();
+  const { user, loading: authLoading, signUp, signIn, getUserRoles } = useAuth();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -32,10 +32,21 @@ const Auth = () => {
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (!authLoading && user) {
-      navigate("/role-select");
-    }
-  }, [user, authLoading, navigate]);
+    const checkAuthAndRedirect = async () => {
+      if (!authLoading && user) {
+        // Check if user has roles
+        const { data: roles } = await getUserRoles();
+        if (roles && roles.length > 0) {
+          // User has roles, go to dashboard
+          navigate("/dashboard");
+        } else {
+          // New user, go to role selection
+          navigate("/role-select");
+        }
+      }
+    };
+    checkAuthAndRedirect();
+  }, [user, authLoading, navigate, getUserRoles]);
 
   const validateForm = () => {
     try {
@@ -80,6 +91,7 @@ const Auth = () => {
           return;
         }
         toast.success("Account created successfully!");
+        // New users go to role selection
         navigate("/role-select");
       } else {
         const { error } = await signIn(formData.email, formData.password);
@@ -93,7 +105,8 @@ const Auth = () => {
           return;
         }
         toast.success("Welcome back!");
-        navigate("/role-select");
+        // Existing users go to dashboard (Auth useEffect will handle redirect)
+        navigate("/dashboard");
       }
     } catch (err) {
       toast.error("An unexpected error occurred. Please try again.");
