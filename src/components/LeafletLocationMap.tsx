@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Circle, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { MapPin, AlertCircle, Loader2 } from "lucide-react";
+import { MapPin, AlertCircle, Loader2, Navigation } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 // Fix for default marker icons
 const eventIcon = L.divIcon({
@@ -41,50 +42,118 @@ function MapUpdater({ center, zoom }: { center: [number, number]; zoom: number }
   return null;
 }
 
-// Inner map content component
-function MapContent({
+// Demo/Mock Map component for fallback
+function MockMapFallback({
   eventLocation,
   radiusMeters,
-  userLocation,
-  isWithinRadius,
-  hasValidEventLocation,
-  mapCenter,
-}: {
-  eventLocation: { lat: number; lng: number };
-  radiusMeters: number;
-  userLocation: { lat: number; lng: number } | null;
-  isWithinRadius: boolean;
-  hasValidEventLocation: boolean;
-  mapCenter: [number, number];
-}) {
+  onLocationVerified,
+  className,
+}: LocationMapProps) {
+  const [demoState, setDemoState] = useState<"in_range" | "out_of_range">("in_range");
+
+  const toggleDemoState = () => {
+    const newState = demoState === "in_range" ? "out_of_range" : "in_range";
+    setDemoState(newState);
+    const dist = newState === "in_range" ? radiusMeters * 0.5 : radiusMeters * 2;
+    onLocationVerified?.(newState === "in_range", dist);
+  };
+
+  useEffect(() => {
+    // Initialize as in-range for demo
+    onLocationVerified?.(true, radiusMeters * 0.5);
+  }, [onLocationVerified, radiusMeters]);
+
+  const isWithinRadius = demoState === "in_range";
+
   return (
-    <>
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-      <MapUpdater center={mapCenter} zoom={17} />
-      
-      {hasValidEventLocation && (
-        <>
-          <Circle
-            center={[eventLocation.lat, eventLocation.lng]}
-            radius={radiusMeters}
-            pathOptions={{
-              color: isWithinRadius ? "hsl(var(--success))" : "hsl(var(--destructive))",
-              fillColor: isWithinRadius ? "hsl(var(--success))" : "hsl(var(--destructive))",
-              fillOpacity: 0.15,
-              weight: 2,
+    <div className={cn("rounded-xl overflow-hidden bg-card border border-border", className)}>
+      <div className="h-48 relative bg-muted">
+        {/* Mock map background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-primary/10">
+          <div 
+            className="absolute inset-0 opacity-20"
+            style={{
+              backgroundImage: `
+                linear-gradient(to right, hsl(var(--border)) 1px, transparent 1px),
+                linear-gradient(to bottom, hsl(var(--border)) 1px, transparent 1px)
+              `,
+              backgroundSize: '40px 40px'
             }}
           />
-          <Marker position={[eventLocation.lat, eventLocation.lng]} icon={eventIcon} />
-        </>
-      )}
+        </div>
 
-      {userLocation && (
-        <Marker position={[userLocation.lat, userLocation.lng]} icon={userIcon} />
-      )}
-    </>
+        {/* Event marker and radius */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div 
+            className={cn(
+              "absolute rounded-full border-2",
+              isWithinRadius 
+                ? "bg-success/20 border-success/40" 
+                : "bg-destructive/20 border-destructive/40"
+            )}
+            style={{ width: `${Math.min(radiusMeters * 1.5, 150)}px`, height: `${Math.min(radiusMeters * 1.5, 150)}px` }}
+          />
+          <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center shadow-lg z-10">
+            <MapPin size={20} className="text-primary-foreground" />
+          </div>
+          
+          {/* User marker */}
+          <div 
+            className={cn(
+              "absolute w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-lg",
+              isWithinRadius ? "translate-x-6 translate-y-4" : "translate-x-24 translate-y-16"
+            )}
+          >
+            <div className="absolute inset-0 w-4 h-4 bg-blue-500/50 rounded-full animate-ping" />
+          </div>
+        </div>
+
+        {/* Demo mode badge */}
+        <div className="absolute top-3 left-3 bg-background/80 backdrop-blur-sm rounded-lg px-3 py-1.5 text-xs text-muted-foreground border border-border">
+          📍 Demo Mode
+        </div>
+
+        {/* Toggle button */}
+        <Button
+          variant="outline"
+          size="sm"
+          className="absolute bottom-3 right-3"
+          onClick={toggleDemoState}
+        >
+          <Navigation size={14} className="mr-1" />
+          Toggle Position
+        </Button>
+      </div>
+
+      {/* Status bar */}
+      <div
+        className={cn(
+          "p-3 flex items-center gap-3",
+          isWithinRadius ? "bg-success/10" : "bg-destructive/10"
+        )}
+      >
+        <div
+          className={cn(
+            "w-10 h-10 rounded-lg flex items-center justify-center",
+            isWithinRadius ? "bg-success/20 text-success" : "bg-destructive/20 text-destructive"
+          )}
+        >
+          <MapPin size={20} />
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-medium text-foreground">
+            {isWithinRadius ? "Within range ✓ (Demo)" : "Outside range (Demo)"}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {isWithinRadius 
+              ? `~${Math.round(radiusMeters * 0.5)}m from venue`
+              : `~${Math.round(radiusMeters * 2)}m from venue`
+            }
+            {` • Required: within ${radiusMeters}m`}
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -99,6 +168,7 @@ const LeafletLocationMap = ({
   const [isLoading, setIsLoading] = useState(true);
   const [distance, setDistance] = useState<number | null>(null);
   const [mapReady, setMapReady] = useState(false);
+  const [useDemoMode, setUseDemoMode] = useState(false);
 
   // Calculate distance between two coordinates in meters (Haversine formula)
   const calculateDistance = (
@@ -122,7 +192,7 @@ const LeafletLocationMap = ({
 
   // Delay map render to avoid React 18 strict mode issues
   useEffect(() => {
-    const timer = setTimeout(() => setMapReady(true), 0);
+    const timer = setTimeout(() => setMapReady(true), 100);
     return () => clearTimeout(timer);
   }, []);
 
@@ -203,15 +273,27 @@ const LeafletLocationMap = ({
     );
   }
 
-  if (locationError) {
+  // Show demo mode fallback if there's an error or user chooses demo mode
+  if (locationError || useDemoMode) {
     return (
-      <div className={cn("rounded-xl overflow-hidden bg-card border border-border", className)}>
-        <div className="h-48 flex items-center justify-center bg-muted">
-          <div className="text-center p-4">
-            <AlertCircle className="w-8 h-8 text-destructive mx-auto mb-2" />
-            <p className="text-sm text-destructive">{locationError}</p>
+      <div className="space-y-2">
+        <MockMapFallback
+          eventLocation={eventLocation}
+          radiusMeters={radiusMeters}
+          onLocationVerified={onLocationVerified}
+          className={className}
+        />
+        {locationError && !useDemoMode && (
+          <div className="flex items-center justify-between p-3 rounded-lg bg-muted border border-border">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <AlertCircle size={16} className="text-destructive" />
+              {locationError}
+            </div>
+            <Button size="sm" variant="outline" onClick={() => setUseDemoMode(true)}>
+              Use Demo Mode
+            </Button>
           </div>
-        </div>
+        )}
       </div>
     );
   }
@@ -219,25 +301,42 @@ const LeafletLocationMap = ({
   return (
     <div className={cn("rounded-xl overflow-hidden bg-card border border-border", className)}>
       <div className="h-48 relative bg-muted">
-        {mapReady && (
+        {mapReady ? (
           <MapContainer
+            key="location-map"
             center={mapCenter}
             zoom={17}
             scrollWheelZoom={false}
             zoomControl={false}
             style={{ height: "100%", width: "100%" }}
           >
-            <MapContent
-              eventLocation={eventLocation}
-              radiusMeters={radiusMeters}
-              userLocation={userLocation}
-              isWithinRadius={isWithinRadius}
-              hasValidEventLocation={hasValidEventLocation}
-              mapCenter={mapCenter}
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
+            <MapUpdater center={mapCenter} zoom={17} />
+            
+            {hasValidEventLocation && (
+              <>
+                <Circle
+                  center={[eventLocation.lat, eventLocation.lng]}
+                  radius={radiusMeters}
+                  pathOptions={{
+                    color: isWithinRadius ? "hsl(142, 76%, 36%)" : "hsl(0, 84%, 60%)",
+                    fillColor: isWithinRadius ? "hsl(142, 76%, 36%)" : "hsl(0, 84%, 60%)",
+                    fillOpacity: 0.15,
+                    weight: 2,
+                  }}
+                />
+                <Marker position={[eventLocation.lat, eventLocation.lng]} icon={eventIcon} />
+              </>
+            )}
+
+            {userLocation && (
+              <Marker position={[userLocation.lat, userLocation.lng]} icon={userIcon} />
+            )}
           </MapContainer>
-        )}
-        {!mapReady && (
+        ) : (
           <div className="absolute inset-0 flex items-center justify-center">
             <Loader2 className="w-6 h-6 text-primary animate-spin" />
           </div>
@@ -248,7 +347,7 @@ const LeafletLocationMap = ({
       <div
         className={cn(
           "p-3 flex items-center gap-3",
-          isWithinRadius ? "bg-success/10" : locationError ? "bg-destructive/10" : "bg-muted"
+          isWithinRadius ? "bg-success/10" : "bg-muted"
         )}
       >
         <div
