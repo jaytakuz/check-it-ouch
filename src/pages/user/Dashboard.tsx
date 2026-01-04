@@ -299,7 +299,8 @@ const UserDashboard = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: index * 0.05 }}
-                  className="bg-card rounded-2xl p-4 border border-border hover:shadow-md transition-all"
+                  onClick={() => navigate(`/event/${event.id}`)}
+                  className="bg-card rounded-2xl p-4 border border-border hover:shadow-md transition-all cursor-pointer"
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
@@ -339,14 +340,20 @@ const UserDashboard = () => {
                       <Button 
                         variant="outline" 
                         className="flex-1"
-                        onClick={() => navigate("/checkin")}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate("/checkin");
+                        }}
                       >
                         <QrCode size={16} className="mr-2" />
                         Scan QR
                       </Button>
                       <Button 
                         className="flex-1"
-                        onClick={() => handleQuickCheckIn(event)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleQuickCheckIn(event);
+                        }}
                         disabled={event.checked_in}
                       >
                         <MousePointerClick size={16} className="mr-2" />
