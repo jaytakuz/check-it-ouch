@@ -16,6 +16,7 @@ import {
   TrendingUp,
   MousePointerClick,
   CheckCircle2,
+  FileText,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -566,48 +567,62 @@ const UnifiedDashboard = () => {
                   )}
 
                   {/* Action buttons */}
-                  {status === "live" && (
-                    <div className="flex gap-2">
-                      {isHost ? (
+                  <div className="flex gap-2">
+                    {isHost ? (
+                      <>
+                        {status === "live" ? (
+                          <Button
+                            size="sm"
+                            className="flex-1"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/host/monitor/${event.id}`);
+                            }}
+                          >
+                            <BarChart3 size={14} className="mr-2" />
+                            Live Monitor
+                          </Button>
+                        ) : null}
                         <Button
                           size="sm"
-                          className="w-full"
+                          variant={status === "live" ? "outline" : "default"}
+                          className="flex-1"
                           onClick={(e) => {
                             e.stopPropagation();
-                            navigate(`/host/monitor/${event.id}`);
+                            navigate(`/host/attendance/${event.id}`);
                           }}
                         >
-                          <BarChart3 size={14} className="mr-2" />
-                          Open Live Monitor
+                          <FileText size={14} className="mr-2" />
+                          View Logs
                         </Button>
-                      ) : (
-                        <>
-                          <Button 
-                            variant="outline" 
-                            className="flex-1"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate("/checkin");
-                            }}
-                          >
-                            <QrCode size={16} className="mr-2" />
-                            Scan QR
-                          </Button>
-                          <Button 
-                            className="flex-1"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleQuickCheckIn(event);
-                            }}
-                            disabled={event.user_checked_in}
-                          >
-                            <MousePointerClick size={16} className="mr-2" />
-                            {event.user_checked_in ? "Done" : "Check-in"}
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  )}
+                      </>
+                    ) : status === "live" ? (
+                      <>
+                        <Button 
+                          variant="outline" 
+                          className="flex-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate("/checkin");
+                          }}
+                        >
+                          <QrCode size={16} className="mr-2" />
+                          Scan QR
+                        </Button>
+                        <Button 
+                          className="flex-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleQuickCheckIn(event);
+                          }}
+                          disabled={event.user_checked_in}
+                        >
+                          <MousePointerClick size={16} className="mr-2" />
+                          {event.user_checked_in ? "Done" : "Check-in"}
+                        </Button>
+                      </>
+                    ) : null}
+                  </div>
                 </motion.div>
               );
             })}
