@@ -36,17 +36,19 @@ function MapClickHandler({ onClick }: { onClick: (lat: number, lng: number) => v
   return null;
 }
 
-// Component to recenter map
-function RecenterMap({ center }: { center: [number, number] }) {
+// Component to recenter map - always mounted, conditionally executes
+function RecenterMap({ center }: { center: [number, number] | null }) {
   const map = useMap();
   useEffect(() => {
-    map.setView(center, map.getZoom());
+    if (center) {
+      map.setView(center, map.getZoom());
+    }
   }, [center, map]);
   return null;
 }
 
-// Inner map component to isolate react-leaflet context
-function MapInner({ 
+// Inner map component to isolate react-leaflet context - must be a separate component
+function MapContent({ 
   value, 
   radius, 
   onClick 
@@ -62,6 +64,7 @@ function MapInner({
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <MapClickHandler onClick={onClick} />
+      <RecenterMap center={value ? [value.lat, value.lng] : null} />
       {value && (
         <>
           <Marker position={[value.lat, value.lng]} />
@@ -74,7 +77,6 @@ function MapInner({
               fillOpacity: 0.2,
             }}
           />
-          <RecenterMap center={[value.lat, value.lng]} />
         </>
       )}
     </>
@@ -132,7 +134,7 @@ const LeafletLocationPicker = ({ value, onChange, radius = 50, className }: Loca
             scrollWheelZoom={true}
             style={{ height: "100%", width: "100%" }}
           >
-            <MapInner value={value} radius={radius} onClick={handleMapClick} />
+            <MapContent value={value} radius={radius} onClick={handleMapClick} />
           </MapContainer>
         )}
 
