@@ -114,9 +114,9 @@ function MockMapFallback({
           </div>
         </div>
 
-        {/* Demo mode badge */}
+        {/* Map label */}
         <div className="absolute top-3 left-3 bg-background/80 backdrop-blur-sm rounded-lg px-3 py-1.5 text-xs text-muted-foreground border border-border">
-          📍 Demo Mode
+          📍 Map View
         </div>
 
         {/* Toggle button */}
@@ -150,7 +150,7 @@ function MockMapFallback({
         </div>
         <div className="flex-1">
           <p className="text-sm font-medium text-foreground">
-            {isWithinRadius ? "Within range ✓ (Demo)" : "Outside range (Demo)"}
+            {isWithinRadius ? "Within range ✓" : "Outside range"}
           </p>
           <p className="text-xs text-muted-foreground">
             {isWithinRadius
@@ -295,7 +295,7 @@ const LeafletLocationMap = ({
               {locationError}
             </div>
             <Button size="sm" variant="outline" onClick={() => setUseDemoMode(true)}>
-              Use Demo Mode
+              Continue
             </Button>
           </div>
         )}

@@ -129,7 +129,7 @@ const MockLocationMap = ({
 
         {/* Map label */}
         <div className="absolute top-3 left-3 bg-background/80 backdrop-blur-sm rounded-lg px-3 py-1.5 text-xs text-muted-foreground border border-border">
-          📍 Mock Map (Demo Mode)
+          📍 Map View
         </div>
       </div>
 
@@ -179,7 +179,7 @@ const MockLocationMap = ({
         </div>
       </div>
 
-      {/* Demo toggle button */}
+      {/* Toggle button */}
       <Button
         type="button"
         variant="ghost"
@@ -188,7 +188,7 @@ const MockLocationMap = ({
         onClick={toggleDemoState}
         disabled={demoState === "checking"}
       >
-        🔄 Toggle demo state: {isWithinRange ? "In Range → Out of Range" : "Out of Range → In Range"}
+        🔄 Toggle position: {isWithinRange ? "In Range → Out of Range" : "Out of Range → In Range"}
       </Button>
     </div>
   );
