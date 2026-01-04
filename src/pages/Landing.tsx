@@ -43,14 +43,55 @@ const Landing = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/10">
-        <div className="container mx-auto max-w-4xl text-center">
+      <section className="pt-32 pb-20 px-4 relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-secondary/5">
+        {/* Animated gradient blobs */}
+        <motion.div
+          className="absolute top-10 -left-20 w-72 h-72 bg-primary/20 rounded-full blur-3xl"
+          animate={{
+            x: [0, 30, 0],
+            y: [0, -20, 0],
+            scale: [1, 1.1, 1],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+        <motion.div
+          className="absolute top-40 -right-20 w-96 h-96 bg-secondary/25 rounded-full blur-3xl"
+          animate={{
+            x: [0, -40, 0],
+            y: [0, 30, 0],
+            scale: [1, 1.15, 1],
+          }}
+          transition={{
+            duration: 10,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+        <motion.div
+          className="absolute -bottom-20 left-1/3 w-80 h-80 bg-accent/20 rounded-full blur-3xl"
+          animate={{
+            x: [0, 20, 0],
+            y: [0, -30, 0],
+            scale: [1, 1.08, 1],
+          }}
+          transition={{
+            duration: 12,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+        
+        <div className="container mx-auto max-w-4xl text-center relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6 backdrop-blur-sm">
               <Zap size={16} />
               <span>Presence Verification Made Simple</span>
             </div>
@@ -78,7 +119,7 @@ const Landing = () => {
               <Button
                 size="lg"
                 variant="outline"
-                className="text-lg px-8 py-6"
+                className="text-lg px-8 py-6 backdrop-blur-sm"
                 onClick={() => navigate("/auth")}
               >
                 Login / Sign up
