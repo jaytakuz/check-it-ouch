@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Circle, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { MapPin, AlertCircle, Loader2, Navigation } from "lucide-react";
-import { motion } from "framer-motion";
+import { MapPin, AlertCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Fix for default marker icons
@@ -42,6 +41,53 @@ function MapUpdater({ center, zoom }: { center: [number, number]; zoom: number }
   return null;
 }
 
+// Inner map content component
+function MapContent({
+  eventLocation,
+  radiusMeters,
+  userLocation,
+  isWithinRadius,
+  hasValidEventLocation,
+  mapCenter,
+}: {
+  eventLocation: { lat: number; lng: number };
+  radiusMeters: number;
+  userLocation: { lat: number; lng: number } | null;
+  isWithinRadius: boolean;
+  hasValidEventLocation: boolean;
+  mapCenter: [number, number];
+}) {
+  return (
+    <>
+      <TileLayer
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      />
+      <MapUpdater center={mapCenter} zoom={17} />
+      
+      {hasValidEventLocation && (
+        <>
+          <Circle
+            center={[eventLocation.lat, eventLocation.lng]}
+            radius={radiusMeters}
+            pathOptions={{
+              color: isWithinRadius ? "hsl(var(--success))" : "hsl(var(--destructive))",
+              fillColor: isWithinRadius ? "hsl(var(--success))" : "hsl(var(--destructive))",
+              fillOpacity: 0.15,
+              weight: 2,
+            }}
+          />
+          <Marker position={[eventLocation.lat, eventLocation.lng]} icon={eventIcon} />
+        </>
+      )}
+
+      {userLocation && (
+        <Marker position={[userLocation.lat, userLocation.lng]} icon={userIcon} />
+      )}
+    </>
+  );
+}
+
 const LeafletLocationMap = ({
   eventLocation,
   radiusMeters,
@@ -52,6 +98,7 @@ const LeafletLocationMap = ({
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [distance, setDistance] = useState<number | null>(null);
+  const [mapReady, setMapReady] = useState(false);
 
   // Calculate distance between two coordinates in meters (Haversine formula)
   const calculateDistance = (
@@ -72,6 +119,12 @@ const LeafletLocationMap = ({
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
+
+  // Delay map render to avoid React 18 strict mode issues
+  useEffect(() => {
+    const timer = setTimeout(() => setMapReady(true), 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -165,40 +218,30 @@ const LeafletLocationMap = ({
 
   return (
     <div className={cn("rounded-xl overflow-hidden bg-card border border-border", className)}>
-      <div className="h-48 relative">
-        <MapContainer
-          center={mapCenter}
-          zoom={17}
-          scrollWheelZoom={false}
-          zoomControl={false}
-          style={{ height: "100%", width: "100%" }}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          <MapUpdater center={mapCenter} zoom={17} />
-          
-          {hasValidEventLocation && (
-            <>
-              <Circle
-                center={[eventLocation.lat, eventLocation.lng]}
-                radius={radiusMeters}
-                pathOptions={{
-                  color: isWithinRadius ? "hsl(var(--success))" : "hsl(var(--destructive))",
-                  fillColor: isWithinRadius ? "hsl(var(--success))" : "hsl(var(--destructive))",
-                  fillOpacity: 0.15,
-                  weight: 2,
-                }}
-              />
-              <Marker position={[eventLocation.lat, eventLocation.lng]} icon={eventIcon} />
-            </>
-          )}
-
-          {userLocation && (
-            <Marker position={[userLocation.lat, userLocation.lng]} icon={userIcon} />
-          )}
-        </MapContainer>
+      <div className="h-48 relative bg-muted">
+        {mapReady && (
+          <MapContainer
+            center={mapCenter}
+            zoom={17}
+            scrollWheelZoom={false}
+            zoomControl={false}
+            style={{ height: "100%", width: "100%" }}
+          >
+            <MapContent
+              eventLocation={eventLocation}
+              radiusMeters={radiusMeters}
+              userLocation={userLocation}
+              isWithinRadius={isWithinRadius}
+              hasValidEventLocation={hasValidEventLocation}
+              mapCenter={mapCenter}
+            />
+          </MapContainer>
+        )}
+        {!mapReady && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Loader2 className="w-6 h-6 text-primary animate-spin" />
+          </div>
+        )}
       </div>
 
       {/* Status bar */}
