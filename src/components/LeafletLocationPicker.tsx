@@ -47,41 +47,6 @@ function RecenterMap({ center }: { center: [number, number] | null }) {
   return null;
 }
 
-// Inner map component to isolate react-leaflet context - must be a separate component
-function MapContent({ 
-  value, 
-  radius, 
-  onClick 
-}: { 
-  value: { lat: number; lng: number } | null;
-  radius: number;
-  onClick: (lat: number, lng: number) => void;
-}) {
-  return (
-    <>
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-      <MapClickHandler onClick={onClick} />
-      <RecenterMap center={value ? [value.lat, value.lng] : null} />
-      {value && (
-        <>
-          <Marker position={[value.lat, value.lng]} />
-          <Circle
-            center={[value.lat, value.lng]}
-            radius={radius}
-            pathOptions={{
-              color: "hsl(var(--primary))",
-              fillColor: "hsl(var(--primary))",
-              fillOpacity: 0.2,
-            }}
-          />
-        </>
-      )}
-    </>
-  );
-}
 
 const LeafletLocationPicker = ({ value, onChange, radius = 50, className }: LocationPickerProps) => {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -127,26 +92,44 @@ const LeafletLocationPicker = ({ value, onChange, radius = 50, className }: Loca
   return (
     <div className={cn("space-y-3", className)}>
       <div className="aspect-video rounded-xl overflow-hidden border border-border relative bg-muted">
-        {mapReady && (
+        {mapReady ? (
           <MapContainer
+            key="location-picker-map"
             center={defaultCenter}
             zoom={16}
             scrollWheelZoom={true}
             style={{ height: "100%", width: "100%" }}
           >
-            <MapContent value={value} radius={radius} onClick={handleMapClick} />
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            <MapClickHandler onClick={handleMapClick} />
+            <RecenterMap center={value ? [value.lat, value.lng] : null} />
+            {value && (
+              <>
+                <Marker position={[value.lat, value.lng]} />
+                <Circle
+                  center={[value.lat, value.lng]}
+                  radius={radius}
+                  pathOptions={{
+                    color: "hsl(var(--primary))",
+                    fillColor: "hsl(var(--primary))",
+                    fillOpacity: 0.2,
+                  }}
+                />
+              </>
+            )}
           </MapContainer>
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <p className="text-sm text-muted-foreground">Loading map...</p>
+          </div>
         )}
 
         {!value && mapReady && (
           <div className="absolute inset-0 flex items-center justify-center bg-background/50 pointer-events-none">
             <p className="text-sm text-muted-foreground">Click on the map to set location</p>
-          </div>
-        )}
-
-        {!mapReady && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <p className="text-sm text-muted-foreground">Loading map...</p>
           </div>
         )}
       </div>
