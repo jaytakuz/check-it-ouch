@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import MockLocationPicker from "@/components/MockLocationPicker";
+import LeafletLocationPicker from "@/components/LeafletLocationPicker";
 
 const DAYS = ["M", "T", "W", "T", "F", "S", "S"];
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -288,8 +288,8 @@ const CreateEvent = () => {
             />
           </div>
 
-          {/* Location Picker Map (Mock Mode) */}
-          <MockLocationPicker
+          {/* Location Picker Map */}
+          <LeafletLocationPicker
             value={formData.locationLat && formData.locationLng ? { lat: formData.locationLat, lng: formData.locationLng } : null}
             onChange={handleLocationChange}
             radius={radius[0]}
