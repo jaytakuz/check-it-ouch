@@ -5,7 +5,7 @@ import { ArrowLeft, MapPin, Wifi, Clock, Check, QrCode, Scan } from "lucide-reac
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import QRScanner from "@/components/QRScanner";
-import MockLocationMap from "@/components/MockLocationMap";
+import LeafletLocationMap from "@/components/LeafletLocationMap";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -453,9 +453,9 @@ const CheckIn = () => {
           </motion.div>
         </div>
 
-        {/* Location Preview (Mock) */}
+        {/* Location Preview */}
         <div className="p-6 border-t border-border">
-          <MockLocationMap
+          <LeafletLocationMap
             eventLocation={{ lat: 13.7563, lng: 100.5018 }}
             radiusMeters={50}
             onLocationVerified={(within, dist) => {
@@ -568,6 +568,18 @@ const CheckIn = () => {
             </div>
           </motion.div>
         </div>
+      </div>
+
+      {/* Map */}
+      <div className="px-6">
+        <LeafletLocationMap
+          eventLocation={{ lat: eventData?.location_lat || 0, lng: eventData?.location_lng || 0 }}
+          radiusMeters={eventData?.radius_meters || 50}
+          onLocationVerified={(within, dist) => {
+            setIsWithinRadius(within);
+            setDistance(dist);
+          }}
+        />
       </div>
 
       {/* Big Check-in Button */}

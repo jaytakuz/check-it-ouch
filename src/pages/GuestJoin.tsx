@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import QRScanner from "@/components/QRScanner";
-import MockLocationMap from "@/components/MockLocationMap";
+import LeafletLocationMap from "@/components/LeafletLocationMap";
 import { cn } from "@/lib/utils";
 
 type GuestState = "join" | "scanning" | "checking" | "ready" | "success" | "failed";
@@ -466,9 +466,9 @@ const GuestJoin = () => {
               </motion.div>
             </div>
 
-            {/* Map (Mock) */}
+            {/* Map */}
             <div className="px-6">
-              <MockLocationMap
+              <LeafletLocationMap
                 eventLocation={{ lat: eventData?.location_lat || 13.7563, lng: eventData?.location_lng || 100.5018 }}
                 radiusMeters={eventData?.radius_meters || 50}
                 onLocationVerified={(within, dist) => {
