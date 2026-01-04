@@ -13,6 +13,7 @@ import LiveMonitor from "./pages/host/LiveMonitor";
 import UserDashboard from "./pages/user/Dashboard";
 import UserProfile from "./pages/user/Profile";
 import CheckIn from "./pages/CheckIn";
+import EventDetails from "./pages/EventDetails";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,8 +32,10 @@ const App = () => (
           <Route path="/host/dashboard" element={<HostDashboard />} />
           <Route path="/host/create-event" element={<CreateEvent />} />
           <Route path="/host/monitor/:eventId" element={<LiveMonitor />} />
+          <Route path="/host/event/:eventId" element={<EventDetails />} />
           <Route path="/user/dashboard" element={<UserDashboard />} />
           <Route path="/user/profile" element={<UserProfile />} />
+          <Route path="/event/:eventId" element={<EventDetails />} />
           <Route path="/checkin" element={<CheckIn />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
