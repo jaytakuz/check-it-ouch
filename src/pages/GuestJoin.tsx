@@ -8,9 +8,8 @@ import { ArrowLeft, Hash, User, MapPin, QrCode, Check, Clock, Scan } from "lucid
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useGeolocation } from "@/hooks/useGeolocation";
 import QRScanner from "@/components/QRScanner";
-import LeafletLocationMap from "@/components/LeafletLocationMap";
+import MockLocationMap from "@/components/MockLocationMap";
 import { cn } from "@/lib/utils";
 
 type GuestState = "join" | "scanning" | "checking" | "ready" | "success" | "failed";
@@ -46,7 +45,7 @@ const GuestJoin = () => {
     eventCode: "",
   });
 
-  const { latitude, longitude, error: geoError, isLoading: geoLoading } = useGeolocation();
+  // Mock mode: location verification is handled by MockLocationMap component
 
   // Check if coming from QR scan (via URL parameter)
   useEffect(() => {
@@ -63,25 +62,6 @@ const GuestJoin = () => {
       parseAndVerifyQRCode(scannedCode);
     }
   }, [scannedCode, state]);
-
-  // Location verification
-  useEffect(() => {
-    if (latitude && longitude && eventData) {
-      const dist = calculateDistance(
-        latitude,
-        longitude,
-        eventData.location_lat,
-        eventData.location_lng
-      );
-      setDistance(dist);
-      const withinRange = dist <= eventData.radius_meters;
-      setIsWithinRadius(withinRange);
-
-      if (!geoLoading && state === "checking") {
-        setState(withinRange ? "ready" : "checking");
-      }
-    }
-  }, [latitude, longitude, eventData, geoLoading, state]);
 
   // Update timestamp for success screen
   useEffect(() => {
@@ -215,7 +195,7 @@ const GuestJoin = () => {
       return;
     }
 
-    if (!eventData || !latitude || !longitude || !scannedCode) {
+    if (!eventData || !scannedCode) {
       setState("failed");
       setFailReason("qr");
       return;
@@ -227,8 +207,8 @@ const GuestJoin = () => {
       eventName: eventData.name,
       guestName: formData.name,
       checkedInAt: new Date().toISOString(),
-      locationLat: latitude,
-      locationLng: longitude,
+      locationLat: eventData.location_lat, // Using event location as mock
+      locationLng: eventData.location_lng,
       distance: distance || 0,
     };
 
@@ -468,9 +448,7 @@ const GuestJoin = () => {
                 <div
                   className={cn(
                     "w-10 h-10 rounded-lg flex items-center justify-center",
-                    geoLoading
-                      ? "bg-muted text-muted-foreground"
-                      : isWithinRadius
+                    isWithinRadius
                       ? "bg-success/10 text-success"
                       : "bg-destructive/10 text-destructive"
                   )}
@@ -480,11 +458,7 @@ const GuestJoin = () => {
                 <div className="flex-1">
                   <p className="font-medium text-foreground">GPS Location</p>
                   <p className="text-sm text-muted-foreground">
-                    {geoLoading
-                      ? "Checking..."
-                      : geoError
-                      ? geoError
-                      : isWithinRadius
+                    {isWithinRadius
                       ? "Within range ✓"
                       : `Outside range (${distance ? Math.round(distance) : "?"}m away)`}
                   </p>
@@ -492,10 +466,10 @@ const GuestJoin = () => {
               </motion.div>
             </div>
 
-            {/* Map */}
+            {/* Map (Mock) */}
             <div className="px-6">
-              <LeafletLocationMap
-                eventLocation={{ lat: eventData?.location_lat || 0, lng: eventData?.location_lng || 0 }}
+              <MockLocationMap
+                eventLocation={{ lat: eventData?.location_lat || 13.7563, lng: eventData?.location_lng || 100.5018 }}
                 radiusMeters={eventData?.radius_meters || 50}
                 onLocationVerified={(within, dist) => {
                   setIsWithinRadius(within);
@@ -522,20 +496,18 @@ const GuestJoin = () => {
 
                 <motion.button
                   whileTap={{ scale: 0.95 }}
-                  disabled={geoLoading || !isWithinRadius}
+                  disabled={!isWithinRadius}
                   onClick={handleGuestCheckIn}
                   className={cn(
                     "relative w-40 h-40 rounded-full flex flex-col items-center justify-center shadow-lg transition-all",
-                    geoLoading
-                      ? "bg-muted text-muted-foreground"
-                      : isWithinRadius
+                    isWithinRadius
                       ? "bg-primary text-primary-foreground hover:bg-primary/90"
                       : "bg-muted text-muted-foreground"
                   )}
                 >
                   <Check size={40} className="mb-2" />
                   <span className="text-lg font-semibold">
-                    {geoLoading ? "Locating..." : isWithinRadius ? "Check In" : "Too Far"}
+                    {isWithinRadius ? "Check In" : "Too Far"}
                   </span>
                 </motion.button>
               </motion.div>
