@@ -1,6 +1,6 @@
 import * as React from "react";
-import { MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
+import logoImage from "@/assets/logo.png";
 
 interface LogoProps {
   size?: "sm" | "md" | "lg";
@@ -11,9 +11,9 @@ interface LogoProps {
 export const Logo = React.forwardRef<HTMLDivElement, LogoProps>(
   ({ size = "md", showText = true, className }, ref) => {
     const sizeClasses = {
-      sm: "w-8 h-8",
-      md: "w-10 h-10",
-      lg: "w-14 h-14",
+      sm: "h-8 w-8",
+      md: "h-10 w-10",
+      lg: "h-12 w-12",
     };
 
     const textClasses = {
@@ -24,17 +24,11 @@ export const Logo = React.forwardRef<HTMLDivElement, LogoProps>(
 
     return (
       <div ref={ref} className={cn("flex items-center gap-2", className)}>
-        <div
-          className={cn(
-            sizeClasses[size],
-            "rounded-xl bg-primary flex items-center justify-center shadow-md"
-          )}
-        >
-          <MapPin
-            className="text-primary-foreground"
-            size={size === "lg" ? 28 : size === "md" ? 20 : 16}
-          />
-        </div>
+        <img
+          src={logoImage}
+          alt="Check-in Logo"
+          className={cn(sizeClasses[size], "object-contain")}
+        />
         {showText && (
           <span className={cn("font-semibold text-foreground", textClasses[size])}>
             Check-in
