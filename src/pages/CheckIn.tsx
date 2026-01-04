@@ -4,9 +4,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, MapPin, Wifi, Clock, Check, QrCode, Scan } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { useGeolocation } from "@/hooks/useGeolocation";
 import QRScanner from "@/components/QRScanner";
-import LeafletLocationMap from "@/components/LeafletLocationMap";
+import MockLocationMap from "@/components/MockLocationMap";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -39,7 +38,7 @@ const CheckIn = () => {
   const [distance, setDistance] = useState<number | null>(null);
   const [eventData, setEventData] = useState<EventData | null>(null);
 
-  const { latitude, longitude, error: geoError, isLoading: geoLoading } = useGeolocation();
+  // Mock mode: location verification is handled by MockLocationMap component
 
   // Check if coming from QR scan (via URL parameter)
   useEffect(() => {
@@ -56,26 +55,6 @@ const CheckIn = () => {
       parseAndVerifyQRCode(scannedCode);
     }
   }, [scannedCode, state]);
-
-  // Location verification
-  useEffect(() => {
-    if (latitude && longitude && eventData) {
-      const dist = calculateDistance(
-        latitude,
-        longitude,
-        eventData.location_lat,
-        eventData.location_lng
-      );
-      setDistance(dist);
-      const withinRange = dist <= eventData.radius_meters;
-      setIsWithinRadius(withinRange);
-
-      // Auto-transition to ready once we have location
-      if (!geoLoading && state === "checking") {
-        setState(withinRange ? "ready" : "checking");
-      }
-    }
-  }, [latitude, longitude, eventData, geoLoading, state]);
 
   // Update timestamp for success screen
   useEffect(() => {
@@ -183,7 +162,7 @@ const CheckIn = () => {
       return;
     }
 
-    if (!eventData || !latitude || !longitude || !scannedCode) {
+    if (!eventData || !scannedCode) {
       setState("failed");
       setFailReason("qr");
       return;
@@ -205,12 +184,12 @@ const CheckIn = () => {
       return;
     }
 
-    // Save check-in to database
+    // Save check-in to database (using mock location data)
     const { error } = await supabase.from("check_ins").insert({
       event_id: eventData.id,
       user_id: user.id,
-      location_lat: latitude,
-      location_lng: longitude,
+      location_lat: eventData.location_lat, // Using event location as mock
+      location_lng: eventData.location_lng,
       distance_meters: distance || 0,
       qr_code_used: scannedCode,
     });
@@ -474,10 +453,10 @@ const CheckIn = () => {
           </motion.div>
         </div>
 
-        {/* Location Preview */}
+        {/* Location Preview (Mock) */}
         <div className="p-6 border-t border-border">
-          <LeafletLocationMap
-            eventLocation={{ lat: 0, lng: 0 }}
+          <MockLocationMap
+            eventLocation={{ lat: 13.7563, lng: 100.5018 }}
             radiusMeters={50}
             onLocationVerified={(within, dist) => {
               setIsWithinRadius(within);
@@ -521,7 +500,7 @@ const CheckIn = () => {
             </div>
           </motion.div>
 
-          {/* GPS Location */}
+          {/* GPS Location - Mock status */}
           <motion.div
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
@@ -530,9 +509,7 @@ const CheckIn = () => {
             <div
               className={cn(
                 "w-10 h-10 rounded-lg flex items-center justify-center",
-                geoLoading
-                  ? "bg-muted text-muted-foreground"
-                  : isWithinRadius
+                isWithinRadius
                   ? "bg-success/10 text-success"
                   : "bg-destructive/10 text-destructive"
               )}
@@ -542,18 +519,11 @@ const CheckIn = () => {
             <div className="flex-1">
               <p className="font-medium text-foreground">GPS Location</p>
               <p className="text-sm text-muted-foreground">
-                {geoLoading
-                  ? "Checking..."
-                  : geoError
-                  ? geoError
-                  : isWithinRadius
+                {isWithinRadius
                   ? "Within range ✓"
                   : `Outside range (${distance ? Math.round(distance) : "?"}m away)`}
               </p>
             </div>
-            {geoLoading && (
-              <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            )}
           </motion.div>
 
           {/* Time Window */}
@@ -625,11 +595,11 @@ const CheckIn = () => {
 
           <motion.button
             whileTap={{ scale: 0.95 }}
-            disabled={state === "checking" || geoLoading || !isWithinRadius}
+            disabled={state === "checking" || !isWithinRadius}
             onClick={handleCheckIn}
             className={cn(
               "relative w-48 h-48 rounded-full flex flex-col items-center justify-center shadow-lg transition-all",
-              state === "checking" || geoLoading
+              state === "checking"
                 ? "bg-muted text-muted-foreground"
                 : isWithinRadius
                 ? "bg-primary text-primary-foreground hover:bg-primary/90"
@@ -638,7 +608,7 @@ const CheckIn = () => {
           >
             <Check size={48} className="mb-2" />
             <span className="text-lg font-semibold">
-              {geoLoading ? "Locating..." : isWithinRadius ? "Check In" : "Too Far"}
+              {state === "checking" ? "Checking..." : isWithinRadius ? "Check In" : "Too Far"}
             </span>
           </motion.button>
         </motion.div>
