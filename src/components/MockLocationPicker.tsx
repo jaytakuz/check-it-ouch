@@ -72,7 +72,7 @@ const MockLocationPicker = ({ value, onChange, radius = 50, className }: MockLoc
 
         {/* Map label */}
         <div className="absolute top-3 left-3 bg-background/80 backdrop-blur-sm rounded-lg px-3 py-1.5 text-xs text-muted-foreground border border-border">
-          📍 Mock Map (Demo Mode)
+          📍 Map View
         </div>
       </div>
 
@@ -92,7 +92,6 @@ const MockLocationPicker = ({ value, onChange, radius = 50, className }: MockLoc
       {currentLocation && (
         <p className="text-xs text-muted-foreground text-center">
           {currentLocation.lat.toFixed(6)}, {currentLocation.lng.toFixed(6)}
-          <span className="ml-2 text-primary">(Demo coordinates)</span>
         </p>
       )}
     </div>
