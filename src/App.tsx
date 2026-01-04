@@ -2,11 +2,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import RoleSelect from "./pages/RoleSelect";
 import GuestJoin from "./pages/GuestJoin";
+import UnifiedDashboard from "./pages/UnifiedDashboard";
 import HostDashboard from "./pages/host/Dashboard";
 import CreateEvent from "./pages/host/CreateEvent";
 import LiveMonitor from "./pages/host/LiveMonitor";
@@ -29,14 +30,26 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/role-select" element={<RoleSelect />} />
           <Route path="/guest-join" element={<GuestJoin />} />
-          <Route path="/host/dashboard" element={<HostDashboard />} />
+          
+          {/* Unified Dashboard - main entry point */}
+          <Route path="/dashboard" element={<UnifiedDashboard />} />
+          
+          {/* Legacy routes - redirect to unified dashboard */}
+          <Route path="/host/dashboard" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/user/dashboard" element={<Navigate to="/dashboard" replace />} />
+          
+          {/* Host-specific pages */}
           <Route path="/host/create-event" element={<CreateEvent />} />
           <Route path="/host/monitor/:eventId" element={<LiveMonitor />} />
           <Route path="/host/event/:eventId" element={<EventDetails />} />
-          <Route path="/user/dashboard" element={<UserDashboard />} />
+          
+          {/* User-specific pages */}
           <Route path="/user/profile" element={<UserProfile />} />
+          
+          {/* Shared pages */}
           <Route path="/event/:eventId" element={<EventDetails />} />
           <Route path="/checkin" element={<CheckIn />} />
+          
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
