@@ -100,6 +100,14 @@ const CheckIn = () => {
       return;
     }
 
+    // Prevent host from checking into their own event
+    if (user && event.host_id === user.id) {
+      toast.error("Hosts cannot check into their own events");
+      setState("failed");
+      setFailReason("qr");
+      return;
+    }
+
     // Verify QR secret
     if (event.qr_secret !== qrSecret) {
       setState("failed");
