@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { MapContainer, TileLayer, Marker, Circle, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -45,15 +45,52 @@ function RecenterMap({ center }: { center: [number, number] }) {
   return null;
 }
 
+// Inner map component to isolate react-leaflet context
+function MapInner({ 
+  value, 
+  radius, 
+  onClick 
+}: { 
+  value: { lat: number; lng: number } | null;
+  radius: number;
+  onClick: (lat: number, lng: number) => void;
+}) {
+  return (
+    <>
+      <TileLayer
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      />
+      <MapClickHandler onClick={onClick} />
+      {value && (
+        <>
+          <Marker position={[value.lat, value.lng]} />
+          <Circle
+            center={[value.lat, value.lng]}
+            radius={radius}
+            pathOptions={{
+              color: "hsl(var(--primary))",
+              fillColor: "hsl(var(--primary))",
+              fillOpacity: 0.2,
+            }}
+          />
+          <RecenterMap center={[value.lat, value.lng]} />
+        </>
+      )}
+    </>
+  );
+}
+
 const LeafletLocationPicker = ({ value, onChange, radius = 50, className }: LocationPickerProps) => {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
 
-  const defaultCenter: [number, number] = value 
-    ? [value.lat, value.lng] 
-    : userLocation 
-    ? [userLocation.lat, userLocation.lng]
-    : [13.7563, 100.5018]; // Bangkok default
+  const defaultCenter: [number, number] = useMemo(() => {
+    if (value) return [value.lat, value.lng];
+    if (userLocation) return [userLocation.lat, userLocation.lng];
+    return [13.7563, 100.5018]; // Bangkok default
+  }, [value, userLocation]);
 
   const handleMapClick = (lat: number, lng: number) => {
     onChange({ lat, lng });
@@ -79,40 +116,35 @@ const LeafletLocationPicker = ({ value, onChange, radius = 50, className }: Loca
     );
   };
 
+  // Delay map render to avoid strict mode issues
+  useEffect(() => {
+    const timer = setTimeout(() => setMapReady(true), 0);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <div className={cn("space-y-3", className)}>
-      <div className="aspect-video rounded-xl overflow-hidden border border-border relative">
-        <MapContainer
-          center={defaultCenter}
-          zoom={16}
-          scrollWheelZoom={true}
-          style={{ height: "100%", width: "100%" }}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          <MapClickHandler onClick={handleMapClick} />
-          {value && (
-            <>
-              <Marker position={[value.lat, value.lng]} />
-              <Circle
-                center={[value.lat, value.lng]}
-                radius={radius}
-                pathOptions={{
-                  color: "hsl(var(--primary))",
-                  fillColor: "hsl(var(--primary))",
-                  fillOpacity: 0.2,
-                }}
-              />
-              <RecenterMap center={[value.lat, value.lng]} />
-            </>
-          )}
-        </MapContainer>
+      <div className="aspect-video rounded-xl overflow-hidden border border-border relative bg-muted">
+        {mapReady && (
+          <MapContainer
+            center={defaultCenter}
+            zoom={16}
+            scrollWheelZoom={true}
+            style={{ height: "100%", width: "100%" }}
+          >
+            <MapInner value={value} radius={radius} onClick={handleMapClick} />
+          </MapContainer>
+        )}
 
-        {!value && (
+        {!value && mapReady && (
           <div className="absolute inset-0 flex items-center justify-center bg-background/50 pointer-events-none">
             <p className="text-sm text-muted-foreground">Click on the map to set location</p>
+          </div>
+        )}
+
+        {!mapReady && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <p className="text-sm text-muted-foreground">Loading map...</p>
           </div>
         )}
       </div>
