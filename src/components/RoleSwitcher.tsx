@@ -71,20 +71,20 @@ export const RoleSwitcher = React.forwardRef<HTMLDivElement, RoleSwitcherProps>(
           <DropdownMenuTrigger asChild>
             <Button
               variant="outline"
-              className="flex items-center gap-2 h-9 px-3 bg-card border-border"
+              className="flex items-center gap-2 h-9 px-3 bg-card border-border max-w-[120px] sm:max-w-none"
             >
               {currentView === "host" ? (
                 <>
-                  <Presentation size={16} className="text-primary" />
-                  <span className="text-sm font-medium">Host</span>
+                  <Presentation size={16} className="text-primary shrink-0" />
+                  <span className="text-sm font-medium truncate">Host</span>
                 </>
               ) : (
                 <>
-                  <Users size={16} className="text-primary" />
-                  <span className="text-sm font-medium">Attendee</span>
+                  <Users size={16} className="text-primary shrink-0" />
+                  <span className="text-sm font-medium truncate">Attendee</span>
                 </>
               )}
-              <ChevronDown size={14} className="text-muted-foreground ml-1" />
+              <ChevronDown size={14} className="text-muted-foreground ml-1 shrink-0" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-48">
