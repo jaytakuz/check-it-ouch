@@ -25,8 +25,8 @@ export const useGeolocation = (options: UseGeolocationOptions = {}) => {
 
   const {
     enableHighAccuracy = true,
-    timeout = 10000,
-    maximumAge = 0,
+    timeout = 30000,
+    maximumAge = 5000,
   } = options;
 
   const onSuccess = useCallback((position: GeolocationPosition) => {
