@@ -310,7 +310,7 @@ const UserProfile = () => {
                 <div className="flex-1">
                   <h4 className="font-medium text-foreground text-sm">{checkIn.event_name}</h4>
                   <p className="text-xs text-muted-foreground">
-                    {format(parseISO(checkIn.session_date), "MMM d, yyyy")}
+                    {format(parseISO(checkIn.session_date), "MMM d, yyyy")} • {format(parseISO(checkIn.checked_in_at), "h:mm a")}
                   </p>
                 </div>
                 <span className="text-xs px-2 py-1 rounded-full bg-success/10 text-success">
