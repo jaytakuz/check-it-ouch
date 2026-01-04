@@ -281,7 +281,7 @@ const CheckIn = () => {
           <Button
             variant="ghost"
             className="w-full text-success-foreground/80 hover:bg-success-foreground/10"
-            onClick={() => navigate("/user/dashboard")}
+            onClick={() => navigate("/dashboard")}
           >
             Go to Dashboard
           </Button>

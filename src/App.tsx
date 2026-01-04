@@ -8,10 +8,8 @@ import Auth from "./pages/Auth";
 import RoleSelect from "./pages/RoleSelect";
 import GuestJoin from "./pages/GuestJoin";
 import UnifiedDashboard from "./pages/UnifiedDashboard";
-import HostDashboard from "./pages/host/Dashboard";
 import CreateEvent from "./pages/host/CreateEvent";
 import LiveMonitor from "./pages/host/LiveMonitor";
-import UserDashboard from "./pages/user/Dashboard";
 import UserProfile from "./pages/user/Profile";
 import CheckIn from "./pages/CheckIn";
 import EventDetails from "./pages/EventDetails";
@@ -31,7 +29,7 @@ const App = () => (
           <Route path="/role-select" element={<RoleSelect />} />
           <Route path="/guest-join" element={<GuestJoin />} />
           
-          {/* Unified Dashboard - main entry point */}
+          {/* Main Dashboard */}
           <Route path="/dashboard" element={<UnifiedDashboard />} />
           
           {/* Legacy routes - redirect to unified dashboard */}
@@ -50,7 +48,6 @@ const App = () => (
           <Route path="/event/:eventId" element={<EventDetails />} />
           <Route path="/checkin" element={<CheckIn />} />
           
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

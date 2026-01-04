@@ -6,7 +6,6 @@ import {
   QrCode,
   Calendar,
   Users,
-  ChevronRight,
   Clock,
   MapPin,
   Bell,
@@ -457,14 +456,10 @@ const UnifiedDashboard = () => {
 
       {/* Events Section */}
       <div className="px-4">
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4">
           <h2 className="text-lg font-semibold text-foreground">
             {viewMode === "host" ? "Your Events" : "Available Events"}
           </h2>
-          <Button variant="ghost" size="sm" className="text-primary">
-            View All
-            <ChevronRight size={16} className="ml-1" />
-          </Button>
         </div>
 
         {displayEvents.length === 0 ? (
