@@ -373,35 +373,12 @@ const UnifiedDashboard = () => {
           </p>
         </motion.div>
 
-        {/* Host Stats (only in host mode) */}
-        {viewMode === "host" && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="grid grid-cols-3 gap-3 mb-6"
-          >
-            <div className="bg-card rounded-xl p-3 border border-border text-center">
-              <div className="text-2xl font-bold text-foreground">{activeEventsCount}</div>
-              <div className="text-xs text-muted-foreground">Active</div>
-            </div>
-            <div className="bg-card rounded-xl p-3 border border-border text-center">
-              <div className="text-2xl font-bold text-foreground">{totalCheckIns}</div>
-              <div className="text-xs text-muted-foreground">Check-ins</div>
-            </div>
-            <div className="bg-card rounded-xl p-3 border border-border text-center">
-              <div className="text-2xl font-bold text-foreground">{avgAttendance}%</div>
-              <div className="text-xs text-muted-foreground">Avg Rate</div>
-            </div>
-          </motion.div>
-        )}
-
         {/* Quick Actions */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: viewMode === "host" ? 0.2 : 0.1 }}
-          className="grid grid-cols-2 gap-3"
+          transition={{ delay: 0.1 }}
+          className="grid grid-cols-2 gap-3 mb-6"
         >
           {viewMode === "host" ? (
             // Host: Show QR Code button - navigates to live event or shows "no live event" state
@@ -468,6 +445,29 @@ const UnifiedDashboard = () => {
             </Button>
           )}
         </motion.div>
+
+        {/* Host Stats (only in host mode) */}
+        {viewMode === "host" && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="grid grid-cols-3 gap-3"
+          >
+            <div className="bg-card rounded-xl p-3 border border-border text-center">
+              <div className="text-2xl font-bold text-foreground">{activeEventsCount}</div>
+              <div className="text-xs text-muted-foreground">Active</div>
+            </div>
+            <div className="bg-card rounded-xl p-3 border border-border text-center">
+              <div className="text-2xl font-bold text-foreground">{totalCheckIns}</div>
+              <div className="text-xs text-muted-foreground">Check-ins</div>
+            </div>
+            <div className="bg-card rounded-xl p-3 border border-border text-center">
+              <div className="text-2xl font-bold text-foreground">{avgAttendance}%</div>
+              <div className="text-xs text-muted-foreground">Avg Rate</div>
+            </div>
+          </motion.div>
+        )}
       </div>
 
       {/* Live Events Alert (host mode) */}
