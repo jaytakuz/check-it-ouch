@@ -148,7 +148,7 @@ const CreateEvent = () => {
     <div className="min-h-screen bg-background pb-8">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
-        <div className="px-4 py-4 flex items-center gap-3">
+        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={handleBack}>
             <ArrowLeft size={20} />
           </Button>
@@ -158,7 +158,7 @@ const CreateEvent = () => {
           </div>
         </div>
         {/* Progress bar */}
-        <div className="h-1 bg-muted">
+        <div className="h-1 bg-muted max-w-2xl mx-auto">
           <motion.div
             className="h-full bg-primary"
             initial={{ width: "0%" }}
@@ -168,7 +168,7 @@ const CreateEvent = () => {
         </div>
       </header>
 
-      <div className="px-4 py-6">
+      <div className="max-w-2xl mx-auto px-4 py-6">
         <AnimatePresence mode="wait">
           {/* Step 1: Event Type */}
           {currentStep === 1 && (

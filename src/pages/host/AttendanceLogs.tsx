@@ -273,7 +273,7 @@ const AttendanceLogs = () => {
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
-        <div className="px-4 py-3">
+        <div className="max-w-2xl mx-auto px-4 py-3">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft size={20} />
@@ -299,7 +299,7 @@ const AttendanceLogs = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="px-4 py-6"
+        className="max-w-2xl mx-auto px-4 py-6"
       >
         <div className="grid grid-cols-2 gap-3 mb-6">
           <div className="bg-card rounded-xl p-4 border border-border">
@@ -388,7 +388,7 @@ const AttendanceLogs = () => {
       <Tabs
         value={selectedSession || ""}
         onValueChange={setSelectedSession}
-        className="px-4"
+        className="max-w-2xl mx-auto px-4"
       >
         <TabsList className="w-full flex overflow-x-auto gap-2 bg-transparent p-0 mb-4">
           {sessionLogs.slice(0, 7).map((session) => (

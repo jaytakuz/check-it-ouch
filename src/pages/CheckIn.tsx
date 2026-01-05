@@ -423,18 +423,20 @@ const CheckIn = () => {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         {/* Header */}
-        <header className="p-4 flex items-center gap-3 border-b border-border">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft size={20} />
-          </Button>
-          <div>
-            <h1 className="font-semibold text-foreground">Check In</h1>
-            <p className="text-sm text-muted-foreground">Scan to verify your presence</p>
+        <header className="border-b border-border">
+          <div className="max-w-2xl mx-auto p-4 flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft size={20} />
+            </Button>
+            <div>
+              <h1 className="font-semibold text-foreground">Check In</h1>
+              <p className="text-sm text-muted-foreground">Scan to verify your presence</p>
+            </div>
           </div>
         </header>
 
         {/* Scanner prompt */}
-        <div className="flex-1 flex flex-col items-center justify-center p-6">
+        <div className="flex-1 flex flex-col items-center justify-center p-6 max-w-2xl mx-auto w-full">
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -462,7 +464,7 @@ const CheckIn = () => {
         </div>
 
         {/* Location Preview */}
-        <div className="p-6 border-t border-border">
+        <div className="max-w-2xl mx-auto w-full p-6 border-t border-border">
           <LeafletLocationMap
             eventLocation={{ lat: 13.7563, lng: 100.5018 }}
             radiusMeters={50}
@@ -480,18 +482,20 @@ const CheckIn = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="p-4 flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={resetCheckIn}>
-          <ArrowLeft size={20} />
-        </Button>
-        <div>
-          <h1 className="font-semibold text-foreground">{eventData?.name || "Loading..."}</h1>
-          <p className="text-sm text-muted-foreground">{eventData?.location_name || ""}</p>
+      <header className="border-b border-border">
+        <div className="max-w-2xl mx-auto p-4 flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={resetCheckIn}>
+            <ArrowLeft size={20} />
+          </Button>
+          <div>
+            <h1 className="font-semibold text-foreground">{eventData?.name || "Loading..."}</h1>
+            <p className="text-sm text-muted-foreground">{eventData?.location_name || ""}</p>
+          </div>
         </div>
       </header>
 
       {/* Status Indicators */}
-      <div className="px-6 py-4">
+      <div className="max-w-2xl mx-auto w-full px-6 py-4">
         <div className="space-y-3">
           {/* QR Status */}
           <motion.div
