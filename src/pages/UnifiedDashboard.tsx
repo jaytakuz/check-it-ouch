@@ -403,24 +403,55 @@ const UnifiedDashboard = () => {
           transition={{ delay: viewMode === "host" ? 0.2 : 0.1 }}
           className="grid grid-cols-2 gap-3"
         >
-          <Button
-            variant="outline"
-            className="h-auto flex-col gap-2 p-4 bg-card border-border hover:bg-accent/50 transition-all"
-            onClick={() => navigate("/checkin")}
-          >
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <QrCode size={20} className="text-primary" />
-            </div>
-            <span className="font-medium text-sm">Scan QR Code</span>
-          </Button>
+          {viewMode === "host" ? (
+            // Host: Show QR Code button - navigates to live event or shows "no live event" state
+            liveEvents.length > 0 ? (
+              <Button
+                variant="outline"
+                className="h-auto flex-col gap-2 p-4 bg-success/5 border-success/20 hover:bg-success/10 transition-all"
+                onClick={() => navigate(`/event/${liveEvents[0].id}`)}
+              >
+                <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center relative">
+                  <QrCode size={20} className="text-success" />
+                  <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-success animate-pulse" />
+                </div>
+                <span className="font-medium text-sm text-success">Show QR Code</span>
+                <span className="text-xs text-success/70 truncate max-w-full">{liveEvents[0].name}</span>
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                className="h-auto flex-col gap-2 p-4 bg-card border-border hover:bg-accent/50 transition-all opacity-70"
+                disabled
+              >
+                <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
+                  <QrCode size={20} className="text-muted-foreground" />
+                </div>
+                <span className="font-medium text-sm text-muted-foreground">No Live Event</span>
+                <span className="text-xs text-muted-foreground">Schedule one to show QR</span>
+              </Button>
+            )
+          ) : (
+            // Attendee: Scan QR Code button
+            <Button
+              variant="outline"
+              className="h-auto flex-col gap-2 p-4 bg-card border-border hover:bg-accent/50 transition-all"
+              onClick={() => navigate("/checkin")}
+            >
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <QrCode size={20} className="text-primary" />
+              </div>
+              <span className="font-medium text-sm">Scan QR Code</span>
+            </Button>
+          )}
           {viewMode === "host" ? (
             <Button
               variant="outline"
               className="h-auto flex-col gap-2 p-4 bg-card border-border hover:bg-accent/50 transition-all"
               onClick={() => navigate("/host/create-event")}
             >
-              <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center">
-                <Plus size={20} className="text-success" />
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Plus size={20} className="text-primary" />
               </div>
               <span className="font-medium text-sm">Create Event</span>
             </Button>
