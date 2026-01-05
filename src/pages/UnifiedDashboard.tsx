@@ -52,7 +52,10 @@ const UnifiedDashboard = () => {
   const { user, loading: authLoading, getUserRoles } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<ViewMode>("attendee");
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    const saved = localStorage.getItem("dashboard-view-mode");
+    return (saved === "host" || saved === "attendee") ? saved : "attendee";
+  });
   const [hasHostRole, setHasHostRole] = useState(false);
   const [hasAttendeeRole, setHasAttendeeRole] = useState(false);
   const [totalCheckIns, setTotalCheckIns] = useState(0);
@@ -66,6 +69,11 @@ const UnifiedDashboard = () => {
     checkRolesAndFetch();
   }, [user, authLoading, navigate]);
 
+  // Persist viewMode to localStorage
+  useEffect(() => {
+    localStorage.setItem("dashboard-view-mode", viewMode);
+  }, [viewMode]);
+
   const checkRolesAndFetch = async () => {
     if (!user) return;
     
@@ -76,13 +84,22 @@ const UnifiedDashboard = () => {
       setHasHostRole(isHost);
       setHasAttendeeRole(isAttendee);
       
-      // Set default view based on roles
-      if (isHost && !isAttendee) {
-        setViewMode("host");
-      } else if (!isHost && isAttendee) {
-        setViewMode("attendee");
+      // Only set default view if no saved preference exists
+      const savedView = localStorage.getItem("dashboard-view-mode");
+      if (!savedView) {
+        if (isHost && !isAttendee) {
+          setViewMode("host");
+        } else if (!isHost && isAttendee) {
+          setViewMode("attendee");
+        }
+      } else {
+        // Validate saved view matches user's roles
+        if (savedView === "host" && !isHost) {
+          setViewMode("attendee");
+        } else if (savedView === "attendee" && !isAttendee && isHost) {
+          setViewMode("host");
+        }
       }
-      // If both or neither, default to attendee (already set)
     }
     
     await fetchData();
