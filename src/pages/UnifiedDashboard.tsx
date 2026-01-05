@@ -339,7 +339,7 @@ const UnifiedDashboard = () => {
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
-        <div className="max-w-2xl mx-auto px-4 py-4">
+        <div className="px-4 py-4">
           <div className="flex items-center justify-between">
             <Logo size="sm" />
             <div className="flex items-center gap-2">
@@ -472,7 +472,7 @@ const UnifiedDashboard = () => {
 
       {/* Live Events Alert (host mode) */}
       {viewMode === "host" && liveEvents.length > 0 && (
-        <div className="px-4 mb-4">
+        <div className="max-w-2xl mx-auto px-4 mb-4">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -504,7 +504,7 @@ const UnifiedDashboard = () => {
       )}
 
       {/* Events Section */}
-      <div className="px-4">
+      <div className="max-w-2xl mx-auto px-4">
         <div className="mb-4">
           <h2 className="text-lg font-semibold text-foreground">
             {viewMode === "host" ? "Your Events" : "Available Events"}
