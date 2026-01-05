@@ -147,7 +147,7 @@ const UserProfile = () => {
     <div className="min-h-screen bg-background pb-8">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
-        <div className="px-4 py-4 flex items-center justify-between">
+        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
               <ArrowLeft size={20} />
@@ -161,7 +161,7 @@ const UserProfile = () => {
       </header>
 
       {/* Profile Header */}
-      <div className="px-4 py-6">
+      <div className="max-w-2xl mx-auto px-4 py-6">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -191,7 +191,7 @@ const UserProfile = () => {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="px-4 mb-6"
+        className="max-w-2xl mx-auto px-4 mb-6"
       >
         <div className="bg-card rounded-2xl p-4 border border-border">
           <h3 className="font-semibold text-foreground mb-4">Your Roles</h3>
@@ -250,7 +250,7 @@ const UserProfile = () => {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="px-4 mb-6"
+        className="max-w-2xl mx-auto px-4 mb-6"
       >
         <div className="bg-card rounded-2xl p-4 border border-border">
           <h3 className="font-semibold text-foreground mb-4">Skill Portfolio</h3>
@@ -280,7 +280,7 @@ const UserProfile = () => {
       </motion.div>
 
       {/* Recent History */}
-      <div className="px-4 mb-6">
+      <div className="max-w-2xl mx-auto px-4 mb-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-foreground">Recent Check-ins</h3>
           <Button variant="ghost" size="sm" className="text-primary">
@@ -323,7 +323,7 @@ const UserProfile = () => {
       </div>
 
       {/* Sign Out */}
-      <div className="px-4">
+      <div className="max-w-2xl mx-auto px-4">
         <Button
           variant="outline"
           className="w-full text-destructive border-destructive/20 hover:bg-destructive/10"

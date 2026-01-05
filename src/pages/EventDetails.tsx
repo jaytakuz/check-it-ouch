@@ -234,7 +234,7 @@ const EventDetails = () => {
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
-        <div className="px-4 py-3">
+        <div className="max-w-2xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft size={20} />
@@ -252,7 +252,7 @@ const EventDetails = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="px-4 pt-4"
+        className="max-w-2xl mx-auto px-4 pt-4"
       >
         {/* Event Banner */}
         <div className="relative rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-background border border-border overflow-hidden mb-4">
@@ -346,7 +346,7 @@ const EventDetails = () => {
       </motion.div>
 
       {/* Tabs */}
-      <Tabs defaultValue="about" className="px-4">
+      <Tabs defaultValue="about" className="max-w-2xl mx-auto px-4">
         <TabsList className="w-full grid grid-cols-3 mb-4">
           <TabsTrigger value="about">About</TabsTrigger>
           <TabsTrigger value="schedule">Schedule</TabsTrigger>

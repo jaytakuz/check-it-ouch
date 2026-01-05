@@ -186,32 +186,34 @@ const LiveMonitor = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="p-4 flex items-center justify-between border-b border-border">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft size={20} />
-          </Button>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-semibold text-foreground">{eventName}</h1>
-              <Badge variant={trackingMode === "full_tracking" ? "default" : "secondary"} className="text-xs">
-                {trackingMode === "full_tracking" ? (
-                  <><UserCheck size={10} className="mr-1" /> Full Tracking</>
-                ) : (
-                  <><UsersRound size={10} className="mr-1" /> Count Only</>
-                )}
-              </Badge>
+      <header className="border-b border-border">
+        <div className="max-w-2xl mx-auto p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft size={20} />
+            </Button>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="font-semibold text-foreground">{eventName}</h1>
+                <Badge variant={trackingMode === "full_tracking" ? "default" : "secondary"} className="text-xs">
+                  {trackingMode === "full_tracking" ? (
+                    <><UserCheck size={10} className="mr-1" /> Full Tracking</>
+                  ) : (
+                    <><UsersRound size={10} className="mr-1" /> Count Only</>
+                  )}
+                </Badge>
+              </div>
+              <p className="text-sm text-muted-foreground">Live Monitor</p>
             </div>
-            <p className="text-sm text-muted-foreground">Live Monitor</p>
           </div>
+          <Button variant="outline" size="icon">
+            <Maximize2 size={18} />
+          </Button>
         </div>
-        <Button variant="outline" size="icon">
-          <Maximize2 size={18} />
-        </Button>
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center p-6 gap-8">
+      <div className="flex-1 flex flex-col items-center justify-center p-6 gap-8 max-w-2xl mx-auto w-full">
         {/* QR Code */}
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
@@ -268,46 +270,48 @@ const LiveMonitor = () => {
       </div>
 
       {/* Bottom Stats */}
-      <div className="p-6 border-t border-border bg-card">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center">
-            <Users size={24} className="text-success" />
-          </div>
-          <div className="flex-1">
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold text-foreground">{totalCheckedIn}</span>
-              <span className="text-muted-foreground">/ {maxAttendees}</span>
+      <div className="border-t border-border bg-card">
+        <div className="max-w-2xl mx-auto p-6">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center">
+              <Users size={24} className="text-success" />
             </div>
-            <p className="text-sm text-muted-foreground">Checked in</p>
-          </div>
-        </div>
-
-        {/* Breakdown for both modes */}
-        {(checkedIn > 0 || guestCount > 0) && (
-          <div className="flex gap-4 mb-4 text-sm">
-            {checkedIn > 0 && (
-              <div className="flex items-center gap-2">
-                <UserCheck size={14} className="text-primary" />
-                <span className="text-muted-foreground">{checkedIn} registered</span>
+            <div className="flex-1">
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-bold text-foreground">{totalCheckedIn}</span>
+                <span className="text-muted-foreground">/ {maxAttendees}</span>
               </div>
-            )}
-            {guestCount > 0 && (
-              <div className="flex items-center gap-2">
-                <UsersRound size={14} className="text-muted-foreground" />
-                <span className="text-muted-foreground">{guestCount} guests</span>
-              </div>
-            )}
+              <p className="text-sm text-muted-foreground">Checked in</p>
+            </div>
           </div>
-        )}
 
-        {/* Progress Bar */}
-        <div className="h-3 bg-muted rounded-full overflow-hidden">
-          <motion.div
-            className="h-full bg-success rounded-full"
-            initial={{ width: 0 }}
-            animate={{ width: `${Math.min(progress, 100)}%` }}
-            transition={{ duration: 0.5 }}
-          />
+          {/* Breakdown for both modes */}
+          {(checkedIn > 0 || guestCount > 0) && (
+            <div className="flex gap-4 mb-4 text-sm">
+              {checkedIn > 0 && (
+                <div className="flex items-center gap-2">
+                  <UserCheck size={14} className="text-primary" />
+                  <span className="text-muted-foreground">{checkedIn} registered</span>
+                </div>
+              )}
+              {guestCount > 0 && (
+                <div className="flex items-center gap-2">
+                  <UsersRound size={14} className="text-muted-foreground" />
+                  <span className="text-muted-foreground">{guestCount} guests</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Progress Bar */}
+          <div className="h-3 bg-muted rounded-full overflow-hidden">
+            <motion.div
+              className="h-full bg-success rounded-full"
+              initial={{ width: 0 }}
+              animate={{ width: `${Math.min(progress, 100)}%` }}
+              transition={{ duration: 0.5 }}
+            />
+          </div>
         </div>
       </div>
     </div>

@@ -339,7 +339,7 @@ const UnifiedDashboard = () => {
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
-        <div className="px-4 py-4">
+        <div className="max-w-2xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Logo size="sm" />
             <div className="flex items-center gap-2">
@@ -359,7 +359,7 @@ const UnifiedDashboard = () => {
       </header>
 
       {/* Welcome Section */}
-      <div className="px-4 py-6">
+      <div className="max-w-2xl mx-auto px-4 py-6">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
