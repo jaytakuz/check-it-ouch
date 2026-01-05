@@ -73,6 +73,9 @@ const EventDetails = () => {
   const [loading, setLoading] = useState(true);
   const [isEnrolled, setIsEnrolled] = useState(false);
 
+  // Detect if viewing as host (from /host/event/... route)
+  const isHostView = window.location.pathname.startsWith("/host/event");
+
   useEffect(() => {
     if (!eventId) {
       navigate("/");
@@ -323,8 +326,8 @@ const EventDetails = () => {
           </div>
         </div>
 
-        {/* Enrollment Progress (Coursera style) */}
-        {isEnrolled && (
+        {/* Enrollment Progress (Coursera style) - only show for attendees */}
+        {isEnrolled && !isHostView && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -508,25 +511,27 @@ const EventDetails = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Fixed Bottom CTA */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-lg border-t border-border">
-        <div className="flex gap-3">
-          <Button
-            className="flex-1"
-            size="lg"
-            onClick={handleCheckIn}
-            disabled={!isLive && !event.is_recurring}
-          >
-            <QrCode size={18} className="mr-2" />
-            {isLive ? "Check In Now" : "Scan QR Code"}
-          </Button>
+      {/* Fixed Bottom CTA - only show for attendees */}
+      {!isHostView && (
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-lg border-t border-border">
+          <div className="flex gap-3">
+            <Button
+              className="flex-1"
+              size="lg"
+              onClick={handleCheckIn}
+              disabled={!isLive && !event.is_recurring}
+            >
+              <QrCode size={18} className="mr-2" />
+              {isLive ? "Check In Now" : "Scan QR Code"}
+            </Button>
+          </div>
+          {!isLive && !event.is_recurring && (
+            <p className="text-xs text-center text-muted-foreground mt-2">
+              Check-in available when the event is live
+            </p>
+          )}
         </div>
-        {!isLive && !event.is_recurring && (
-          <p className="text-xs text-center text-muted-foreground mt-2">
-            Check-in available when the event is live
-          </p>
-        )}
-      </div>
+      )}
     </div>
   );
 };
