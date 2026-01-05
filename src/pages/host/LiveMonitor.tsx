@@ -1,13 +1,16 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Users, RefreshCw, Maximize2 } from "lucide-react";
+import { ArrowLeft, Users, RefreshCw, Maximize2, UserCheck, UsersRound } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
 const QR_REFRESH_INTERVAL = 7000; // 7 seconds
+
+type TrackingMode = "count_only" | "full_tracking";
 
 const LiveMonitor = () => {
   const navigate = useNavigate();
@@ -16,8 +19,10 @@ const LiveMonitor = () => {
   const [qrValue, setQrValue] = useState("");
   const [timeLeft, setTimeLeft] = useState(7);
   const [checkedIn, setCheckedIn] = useState(0);
+  const [guestCount, setGuestCount] = useState(0);
   const [maxAttendees, setMaxAttendees] = useState(50);
   const [eventName, setEventName] = useState("Loading...");
+  const [trackingMode, setTrackingMode] = useState<TrackingMode>("count_only");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -49,12 +54,16 @@ const LiveMonitor = () => {
 
     setEventName(event.name);
     setMaxAttendees(event.max_attendees || 50);
+    setTrackingMode((event.tracking_mode === "full_tracking" ? "full_tracking" : "count_only") as TrackingMode);
 
     // Generate initial QR code
     generateQRCode(event.qr_secret);
 
     // Fetch check-in count
     fetchCheckInCount();
+
+    // Fetch guest check-ins from localStorage
+    fetchGuestCount();
 
     setLoading(false);
   };
@@ -79,6 +88,18 @@ const LiveMonitor = () => {
     setCheckedIn(count || 0);
   };
 
+  const fetchGuestCount = () => {
+    if (!eventId) return;
+
+    const today = new Date().toISOString().split("T")[0];
+    const guestCheckIns = JSON.parse(localStorage.getItem("guestCheckIns") || "[]");
+    const todayGuests = guestCheckIns.filter((g: any) => {
+      const checkInDate = new Date(g.checkedInAt).toISOString().split("T")[0];
+      return g.eventId === eventId && checkInDate === today;
+    });
+    setGuestCount(todayGuests.length);
+  };
+
   // QR refresh and countdown effect
   useEffect(() => {
     if (loading || !eventId) return;
@@ -101,7 +122,10 @@ const LiveMonitor = () => {
     }, 1000);
 
     // Refresh check-in count periodically
-    const checkInInterval = setInterval(fetchCheckInCount, 3000);
+    const checkInInterval = setInterval(() => {
+      fetchCheckInCount();
+      fetchGuestCount();
+    }, 3000);
 
     return () => {
       clearInterval(qrInterval);
@@ -135,7 +159,8 @@ const LiveMonitor = () => {
     };
   }, [eventId]);
 
-  const progress = (checkedIn / maxAttendees) * 100;
+  const totalCheckedIn = checkedIn + guestCount;
+  const progress = (totalCheckedIn / maxAttendees) * 100;
 
   if (authLoading || loading) {
     return (
@@ -154,7 +179,16 @@ const LiveMonitor = () => {
             <ArrowLeft size={20} />
           </Button>
           <div>
-            <h1 className="font-semibold text-foreground">{eventName}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="font-semibold text-foreground">{eventName}</h1>
+              <Badge variant={trackingMode === "full_tracking" ? "default" : "secondary"} className="text-xs">
+                {trackingMode === "full_tracking" ? (
+                  <><UserCheck size={10} className="mr-1" /> Full Tracking</>
+                ) : (
+                  <><UsersRound size={10} className="mr-1" /> Count Only</>
+                )}
+              </Badge>
+            </div>
             <p className="text-sm text-muted-foreground">Live Monitor</p>
           </div>
         </div>
@@ -213,7 +247,9 @@ const LiveMonitor = () => {
         <div className="text-center">
           <p className="text-lg font-medium text-foreground">Scan to Check In</p>
           <p className="text-sm text-muted-foreground">
-            Open Check-in app and scan this QR code
+            {trackingMode === "full_tracking" 
+              ? "Attendees will register and verify location"
+              : "Quick scan - no registration required"}
           </p>
         </div>
       </div>
@@ -226,12 +262,30 @@ const LiveMonitor = () => {
           </div>
           <div className="flex-1">
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold text-foreground">{checkedIn}</span>
+              <span className="text-3xl font-bold text-foreground">{totalCheckedIn}</span>
               <span className="text-muted-foreground">/ {maxAttendees}</span>
             </div>
             <p className="text-sm text-muted-foreground">Checked in</p>
           </div>
         </div>
+
+        {/* Breakdown for both modes */}
+        {(checkedIn > 0 || guestCount > 0) && (
+          <div className="flex gap-4 mb-4 text-sm">
+            {checkedIn > 0 && (
+              <div className="flex items-center gap-2">
+                <UserCheck size={14} className="text-primary" />
+                <span className="text-muted-foreground">{checkedIn} registered</span>
+              </div>
+            )}
+            {guestCount > 0 && (
+              <div className="flex items-center gap-2">
+                <UsersRound size={14} className="text-muted-foreground" />
+                <span className="text-muted-foreground">{guestCount} guests</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Progress Bar */}
         <div className="h-3 bg-muted rounded-full overflow-hidden">
