@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/ui/Logo";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Hash, User, MapPin, QrCode, Check, Clock, Scan } from "lucide-react";
+import { ArrowLeft, MapPin, QrCode, Check, Clock, Scan, User, Mail, ChevronRight, UserPlus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,8 +12,9 @@ import QRScanner from "@/components/QRScanner";
 import LeafletLocationMap from "@/components/LeafletLocationMap";
 import { cn } from "@/lib/utils";
 
-type GuestState = "join" | "scanning" | "checking" | "ready" | "success" | "failed";
+type GuestState = "initial" | "scanning" | "checking" | "ready" | "register" | "success" | "failed";
 type FailReason = "location" | "time" | "qr" | "event" | null;
+type TrackingMode = "count_only" | "full_tracking";
 
 interface EventData {
   id: string;
@@ -25,12 +26,13 @@ interface EventData {
   start_time: string;
   end_time: string;
   qr_secret: string;
+  tracking_mode: TrackingMode;
 }
 
 const GuestJoin = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [state, setState] = useState<GuestState>("join");
+  const [state, setState] = useState<GuestState>("initial");
   const [failReason, setFailReason] = useState<FailReason>(null);
   const [timestamp, setTimestamp] = useState(new Date());
   const [showScanner, setShowScanner] = useState(false);
@@ -40,12 +42,14 @@ const GuestJoin = () => {
   const [eventData, setEventData] = useState<EventData | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const [formData, setFormData] = useState({
+  // For registration (full tracking mode)
+  const [registrationData, setRegistrationData] = useState({
     name: "",
-    eventCode: "",
+    email: "",
   });
 
-  // Mock mode: location verification is handled by MockLocationMap component
+  // For count-only mode (just a display name)
+  const [guestName, setGuestName] = useState("");
 
   // Check if coming from QR scan (via URL parameter)
   useEffect(() => {
@@ -137,43 +141,20 @@ const GuestJoin = () => {
       return;
     }
 
-    setEventData(event);
-  };
+    // Set event data with tracking mode
+    const trackingMode = (event.tracking_mode === "full_tracking" ? "full_tracking" : "count_only") as TrackingMode;
+    
+    setEventData({
+      ...event,
+      tracking_mode: trackingMode,
+    });
 
-  const handleFindEvent = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.name.trim() || !formData.eventCode.trim()) {
-      toast.error("Please fill in all fields");
-      return;
+    // Transition to next state based on tracking mode
+    if (trackingMode === "full_tracking") {
+      setState("register");
+    } else {
+      setState("ready");
     }
-    setLoading(true);
-
-    // Look up event by a short code (first 6 chars of event ID)
-    const { data: events, error } = await supabase
-      .from("events")
-      .select("*")
-      .eq("is_active", true);
-
-    if (error) {
-      toast.error("Failed to find event");
-      setLoading(false);
-      return;
-    }
-
-    const matchingEvent = events?.find(
-      (e) => e.id.substring(0, 6).toUpperCase() === formData.eventCode.toUpperCase()
-    );
-
-    if (!matchingEvent) {
-      toast.error("Event not found. Check the code and try again.");
-      setLoading(false);
-      return;
-    }
-
-    setEventData(matchingEvent);
-    setState("scanning");
-    setLoading(false);
-    toast.success(`Found event: ${matchingEvent.name}`);
   };
 
   const handleQRScan = (data: string) => {
@@ -188,7 +169,7 @@ const GuestJoin = () => {
     }
   };
 
-  const handleGuestCheckIn = async () => {
+  const handleCountOnlyCheckIn = async () => {
     if (!isWithinRadius) {
       setState("failed");
       setFailReason("location");
@@ -201,24 +182,74 @@ const GuestJoin = () => {
       return;
     }
 
-    // For guest check-ins, store locally since they don't have a user account
+    // For count-only, store anonymously in localStorage
     const guestCheckIn = {
       eventId: eventData.id,
       eventName: eventData.name,
-      guestName: formData.name,
+      guestName: guestName || "Anonymous Guest",
       checkedInAt: new Date().toISOString(),
-      locationLat: eventData.location_lat, // Using event location as mock
+      locationLat: eventData.location_lat,
       locationLng: eventData.location_lng,
       distance: distance || 0,
+      trackingMode: "count_only",
     };
 
-    // Store in localStorage
     const existingCheckIns = JSON.parse(localStorage.getItem("guestCheckIns") || "[]");
     existingCheckIns.push(guestCheckIn);
     localStorage.setItem("guestCheckIns", JSON.stringify(existingCheckIns));
 
     setState("success");
     toast.success("Check-in successful!");
+  };
+
+  const handleFullTrackingCheckIn = async () => {
+    if (!isWithinRadius) {
+      setState("failed");
+      setFailReason("location");
+      return;
+    }
+
+    if (!eventData || !scannedCode) {
+      setState("failed");
+      setFailReason("qr");
+      return;
+    }
+
+    if (!registrationData.name.trim() || !registrationData.email.trim()) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(registrationData.email)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    setLoading(true);
+
+    // For full tracking, we need to register the guest
+    // Store in localStorage for now (in production, would create account or store in DB)
+    const guestCheckIn = {
+      eventId: eventData.id,
+      eventName: eventData.name,
+      guestName: registrationData.name,
+      guestEmail: registrationData.email,
+      checkedInAt: new Date().toISOString(),
+      locationLat: eventData.location_lat,
+      locationLng: eventData.location_lng,
+      distance: distance || 0,
+      trackingMode: "full_tracking",
+    };
+
+    const existingCheckIns = JSON.parse(localStorage.getItem("guestCheckIns") || "[]");
+    existingCheckIns.push(guestCheckIn);
+    localStorage.setItem("guestCheckIns", JSON.stringify(existingCheckIns));
+
+    setLoading(false);
+    setState("success");
+    toast.success("Registration and check-in successful!");
   };
 
   const formatTime = (date: Date) => {
@@ -231,11 +262,12 @@ const GuestJoin = () => {
   };
 
   const resetCheckIn = () => {
-    setState("join");
+    setState("initial");
     setScannedCode(null);
     setFailReason(null);
     setEventData(null);
-    setFormData({ name: "", eventCode: "" });
+    setGuestName("");
+    setRegistrationData({ name: "", email: "" });
   };
 
   // Success Screen
@@ -270,7 +302,9 @@ const GuestJoin = () => {
           transition={{ delay: 0.4 }}
           className="text-success-foreground/80 mb-2"
         >
-          Welcome, {formData.name}!
+          {eventData?.tracking_mode === "full_tracking" 
+            ? `Welcome, ${registrationData.name}!`
+            : guestName ? `Welcome, ${guestName}!` : "Welcome!"}
         </motion.p>
 
         <motion.p
@@ -291,6 +325,17 @@ const GuestJoin = () => {
           <p className="text-sm text-success-foreground/70 text-center mb-1">Check-in time</p>
           <p className="text-3xl font-mono font-bold">{formatTime(timestamp)}</p>
         </motion.div>
+
+        {eventData?.tracking_mode === "full_tracking" && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.55 }}
+            className="text-success-foreground/60 text-sm mb-4"
+          >
+            A confirmation has been sent to {registrationData.email}
+          </motion.p>
+        )}
 
         <motion.div
           initial={{ opacity: 0 }}
@@ -387,8 +432,117 @@ const GuestJoin = () => {
     return <QRScanner onScan={handleQRScan} onClose={() => setShowScanner(false)} />;
   }
 
-  // Scanning state - after finding event, scan QR
-  if (state === "scanning" || state === "checking" || state === "ready") {
+  // Registration screen for full tracking mode
+  if (state === "register" && eventData) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <header className="p-4 flex items-center gap-3 border-b border-border">
+          <Button variant="ghost" size="icon" onClick={resetCheckIn}>
+            <ArrowLeft size={20} />
+          </Button>
+          <div>
+            <h1 className="font-semibold text-foreground">{eventData.name}</h1>
+            <p className="text-sm text-muted-foreground">Complete Registration</p>
+          </div>
+        </header>
+
+        <div className="flex-1 p-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            {/* Step indicator */}
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium">
+                  <Check size={16} />
+                </div>
+                <span className="text-sm text-muted-foreground">Scan QR</span>
+              </div>
+              <div className="w-8 h-px bg-border" />
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium">
+                  2
+                </div>
+                <span className="text-sm font-medium text-foreground">Register</span>
+              </div>
+              <div className="w-8 h-px bg-border" />
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-sm font-medium">
+                  3
+                </div>
+                <span className="text-sm text-muted-foreground">Verify</span>
+              </div>
+            </div>
+
+            {/* Registration info */}
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                <UserPlus size={32} className="text-primary" />
+              </div>
+              <h2 className="text-xl font-semibold text-foreground mb-2">Quick Registration</h2>
+              <p className="text-muted-foreground text-sm">
+                This event requires registration for attendance tracking and certificates.
+              </p>
+            </div>
+
+            {/* Registration form */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Full Name</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+                  <Input
+                    id="name"
+                    placeholder="Enter your full name"
+                    value={registrationData.name}
+                    onChange={(e) => setRegistrationData({ ...registrationData, name: e.target.value })}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="your@email.com"
+                    value={registrationData.email}
+                    onChange={(e) => setRegistrationData({ ...registrationData, email: e.target.value })}
+                    className="pl-10"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  We'll send your attendance confirmation and certificate here.
+                </p>
+              </div>
+            </div>
+
+            <Button
+              size="lg"
+              className="w-full gap-2"
+              onClick={() => setState("ready")}
+              disabled={!registrationData.name.trim() || !registrationData.email.trim()}
+            >
+              Continue to Location Check
+              <ChevronRight size={18} />
+            </Button>
+
+            <p className="text-xs text-center text-muted-foreground">
+              By continuing, you agree to have your attendance recorded for this event.
+            </p>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+  // Ready state - location verification (for both modes)
+  if (state === "ready" || state === "checking") {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <header className="p-4 flex items-center gap-3 border-b border-border">
@@ -397,30 +551,18 @@ const GuestJoin = () => {
           </Button>
           <div>
             <h1 className="font-semibold text-foreground">{eventData?.name || "Check In"}</h1>
-            <p className="text-sm text-muted-foreground">Guest: {formData.name}</p>
+            <p className="text-sm text-muted-foreground">
+              {eventData?.tracking_mode === "full_tracking" 
+                ? registrationData.name 
+                : "Guest Check-in"}
+            </p>
           </div>
         </header>
 
-        {state === "scanning" ? (
+        {state === "checking" ? (
           <div className="flex-1 flex flex-col items-center justify-center p-6">
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="text-center mb-8"
-            >
-              <div className="w-24 h-24 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
-                <Scan size={48} className="text-primary" />
-              </div>
-              <h2 className="text-xl font-semibold text-foreground mb-2">Scan Event QR Code</h2>
-              <p className="text-muted-foreground">
-                Point your camera at the QR code displayed by the host
-              </p>
-            </motion.div>
-
-            <Button size="lg" className="gap-2 px-8" onClick={() => setShowScanner(true)}>
-              <QrCode size={20} />
-              Open Scanner
-            </Button>
+            <div className="w-12 h-12 border-2 border-primary border-t-transparent rounded-full animate-spin mb-4" />
+            <p className="text-muted-foreground">Verifying event...</p>
           </div>
         ) : (
           <>
@@ -440,9 +582,27 @@ const GuestJoin = () => {
                 </div>
               </motion.div>
 
+              {eventData?.tracking_mode === "full_tracking" && (
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center text-success">
+                    <User size={20} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground">Registration</p>
+                    <p className="text-sm text-muted-foreground">{registrationData.email} ✓</p>
+                  </div>
+                </motion.div>
+              )}
+
               <motion.div
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: eventData?.tracking_mode === "full_tracking" ? 0.2 : 0.1 }}
                 className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border"
               >
                 <div
@@ -478,11 +638,26 @@ const GuestJoin = () => {
               />
             </div>
 
+            {/* Optional name for count-only mode */}
+            {eventData?.tracking_mode === "count_only" && (
+              <div className="px-6 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="guestName" className="text-sm">Your Name (Optional)</Label>
+                  <Input
+                    id="guestName"
+                    placeholder="Enter your name"
+                    value={guestName}
+                    onChange={(e) => setGuestName(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Check-in Button */}
             <div className="flex-1 flex items-center justify-center p-6">
               <motion.div className="relative">
                 <AnimatePresence>
-                  {state === "ready" && isWithinRadius && (
+                  {isWithinRadius && (
                     <>
                       <motion.div
                         initial={{ scale: 1, opacity: 0.6 }}
@@ -496,19 +671,25 @@ const GuestJoin = () => {
 
                 <motion.button
                   whileTap={{ scale: 0.95 }}
-                  disabled={!isWithinRadius}
-                  onClick={handleGuestCheckIn}
+                  disabled={!isWithinRadius || loading}
+                  onClick={eventData?.tracking_mode === "full_tracking" 
+                    ? handleFullTrackingCheckIn 
+                    : handleCountOnlyCheckIn}
                   className={cn(
-                    "relative w-40 h-40 rounded-full flex flex-col items-center justify-center shadow-lg transition-all",
+                    "relative w-32 h-32 rounded-full flex flex-col items-center justify-center text-lg font-bold shadow-xl transition-all",
                     isWithinRadius
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                      : "bg-muted text-muted-foreground"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground cursor-not-allowed"
                   )}
                 >
-                  <Check size={40} className="mb-2" />
-                  <span className="text-lg font-semibold">
-                    {isWithinRadius ? "Check In" : "Too Far"}
-                  </span>
+                  {loading ? (
+                    <div className="w-6 h-6 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <Check size={32} className="mb-1" />
+                      <span>CHECK IN</span>
+                    </>
+                  )}
                 </motion.button>
               </motion.div>
             </div>
@@ -518,84 +699,75 @@ const GuestJoin = () => {
     );
   }
 
-  // Initial Join Form
+  // Initial state - just show scanner
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <header className="p-4">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/")}>
-          <ArrowLeft size={18} className="mr-2" />
-          Back
+      <header className="p-4 flex items-center gap-3 border-b border-border">
+        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+          <ArrowLeft size={20} />
         </Button>
+        <div>
+          <h1 className="font-semibold text-foreground">Join Event</h1>
+          <p className="text-sm text-muted-foreground">Scan QR to check in</p>
+        </div>
       </header>
 
-      <div className="flex-1 flex items-center justify-center px-4 pb-8">
+      <div className="flex-1 flex flex-col items-center justify-center p-6">
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="text-center mb-8"
+        >
+          <div className="w-24 h-24 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
+            <Scan size={48} className="text-primary" />
+          </div>
+          <h2 className="text-xl font-semibold text-foreground mb-2">Scan Event QR Code</h2>
+          <p className="text-muted-foreground max-w-xs">
+            Point your camera at the QR code displayed by the host to join the event.
+          </p>
+        </motion.div>
+
+        <Button size="lg" className="gap-2 px-8" onClick={() => setShowScanner(true)}>
+          <QrCode size={20} />
+          Open Scanner
+        </Button>
+
+        {/* How it works */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="w-full max-w-sm"
+          transition={{ delay: 0.3 }}
+          className="mt-12 w-full max-w-sm"
         >
-          <div className="text-center mb-8">
-            <div className="flex justify-center mb-4">
-              <Logo size="lg" showText={false} />
-            </div>
-            <h1 className="text-2xl font-bold text-foreground mb-2">Join as Guest</h1>
-            <p className="text-muted-foreground">
-              Enter your details and event code to check in
-            </p>
-          </div>
-
-          <form onSubmit={handleFindEvent} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Your Name</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="Enter your full name"
-                  className="pl-10"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
+          <h3 className="text-sm font-medium text-muted-foreground text-center mb-4">How it works</h3>
+          <div className="space-y-3">
+            <div className="flex items-start gap-3 p-3 rounded-xl bg-card border border-border">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-sm font-bold shrink-0">
+                1
+              </div>
+              <div>
+                <p className="font-medium text-foreground text-sm">Scan QR Code</p>
+                <p className="text-xs text-muted-foreground">Point your camera at the host's QR</p>
               </div>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="eventCode">Event Code</Label>
-              <div className="relative">
-                <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-                <Input
-                  id="eventCode"
-                  type="text"
-                  placeholder="e.g., ABC123"
-                  className="pl-10 uppercase"
-                  value={formData.eventCode}
-                  onChange={(e) => setFormData({ ...formData, eventCode: e.target.value.toUpperCase() })}
-                  required
-                />
+            <div className="flex items-start gap-3 p-3 rounded-xl bg-card border border-border">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-sm font-bold shrink-0">
+                2
               </div>
-              <p className="text-xs text-muted-foreground">
-                Ask your host for the 6-character event code
-              </p>
+              <div>
+                <p className="font-medium text-foreground text-sm">Verify Location</p>
+                <p className="text-xs text-muted-foreground">Confirm you're at the event venue</p>
+              </div>
             </div>
-
-            <Button type="submit" className="w-full" size="lg" disabled={loading}>
-              {loading ? "Finding event..." : "Join Event"}
-            </Button>
-          </form>
-
-          <div className="mt-6 p-4 rounded-xl bg-muted/50 border border-border">
-            <p className="text-sm text-muted-foreground text-center">
-              <strong className="text-foreground">Note:</strong> As a guest, your check-in will be stored locally on this device.
-            </p>
-          </div>
-
-          <div className="mt-4 text-center">
-            <Button variant="link" onClick={() => navigate("/auth")}>
-              Have an account? Sign in instead
-            </Button>
+            <div className="flex items-start gap-3 p-3 rounded-xl bg-card border border-border">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-sm font-bold shrink-0">
+                3
+              </div>
+              <div>
+                <p className="font-medium text-foreground text-sm">Check In</p>
+                <p className="text-xs text-muted-foreground">Your attendance is recorded</p>
+              </div>
+            </div>
           </div>
         </motion.div>
       </div>

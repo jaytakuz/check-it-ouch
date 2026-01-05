@@ -102,6 +102,7 @@ const CreateEvent = () => {
       location_lng: formData.locationLng,
       radius_meters: radius[0],
       max_attendees: parseInt(formData.maxAttendees) || 50,
+      tracking_mode: trackingMode === "full-tracking" ? "full_tracking" : "count_only",
     });
 
     if (error) {

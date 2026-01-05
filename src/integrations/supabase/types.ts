@@ -78,6 +78,7 @@ export type Database = {
           radius_meters: number
           recurring_days: number[] | null
           start_time: string
+          tracking_mode: string
           updated_at: string
         }
         Insert: {
@@ -99,6 +100,7 @@ export type Database = {
           radius_meters?: number
           recurring_days?: number[] | null
           start_time: string
+          tracking_mode?: string
           updated_at?: string
         }
         Update: {
@@ -120,6 +122,7 @@ export type Database = {
           radius_meters?: number
           recurring_days?: number[] | null
           start_time?: string
+          tracking_mode?: string
           updated_at?: string
         }
         Relationships: []
