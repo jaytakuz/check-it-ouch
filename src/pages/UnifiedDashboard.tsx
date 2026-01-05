@@ -396,7 +396,7 @@ const UnifiedDashboard = () => {
             </div>
             <span className="font-medium text-sm">Scan QR Code</span>
           </Button>
-          {viewMode === "host" || hasHostRole ? (
+          {viewMode === "host" ? (
             <Button
               variant="outline"
               className="h-auto flex-col gap-2 p-4 bg-card border-border hover:bg-accent/50 transition-all"
