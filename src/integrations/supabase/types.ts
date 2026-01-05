@@ -127,6 +127,56 @@ export type Database = {
         }
         Relationships: []
       }
+      guest_check_ins: {
+        Row: {
+          checked_in_at: string
+          created_at: string
+          distance_meters: number
+          event_id: string
+          guest_email: string | null
+          guest_name: string
+          id: string
+          location_lat: number
+          location_lng: number
+          session_date: string
+          tracking_mode: string
+        }
+        Insert: {
+          checked_in_at?: string
+          created_at?: string
+          distance_meters: number
+          event_id: string
+          guest_email?: string | null
+          guest_name?: string
+          id?: string
+          location_lat: number
+          location_lng: number
+          session_date?: string
+          tracking_mode?: string
+        }
+        Update: {
+          checked_in_at?: string
+          created_at?: string
+          distance_meters?: number
+          event_id?: string
+          guest_email?: string | null
+          guest_name?: string
+          id?: string
+          location_lat?: number
+          location_lng?: number
+          session_date?: string
+          tracking_mode?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_check_ins_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null

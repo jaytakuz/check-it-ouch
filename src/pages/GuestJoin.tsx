@@ -182,22 +182,27 @@ const GuestJoin = () => {
       return;
     }
 
-    // For count-only, store anonymously in localStorage
-    const guestCheckIn = {
-      eventId: eventData.id,
-      eventName: eventData.name,
-      guestName: guestName || "Anonymous Guest",
-      checkedInAt: new Date().toISOString(),
-      locationLat: eventData.location_lat,
-      locationLng: eventData.location_lng,
-      distance: distance || 0,
-      trackingMode: "count_only",
-    };
+    setLoading(true);
 
-    const existingCheckIns = JSON.parse(localStorage.getItem("guestCheckIns") || "[]");
-    existingCheckIns.push(guestCheckIn);
-    localStorage.setItem("guestCheckIns", JSON.stringify(existingCheckIns));
+    // Store in database
+    const { error } = await supabase.from("guest_check_ins").insert({
+      event_id: eventData.id,
+      guest_name: guestName || "Anonymous Guest",
+      guest_email: null,
+      location_lat: eventData.location_lat,
+      location_lng: eventData.location_lng,
+      distance_meters: distance || 0,
+      tracking_mode: "count_only",
+    });
 
+    if (error) {
+      console.error("Error saving check-in:", error);
+      toast.error("Failed to save check-in. Please try again.");
+      setLoading(false);
+      return;
+    }
+
+    setLoading(false);
     setState("success");
     toast.success("Check-in successful!");
   };
@@ -229,23 +234,23 @@ const GuestJoin = () => {
 
     setLoading(true);
 
-    // For full tracking, we need to register the guest
-    // Store in localStorage for now (in production, would create account or store in DB)
-    const guestCheckIn = {
-      eventId: eventData.id,
-      eventName: eventData.name,
-      guestName: registrationData.name,
-      guestEmail: registrationData.email,
-      checkedInAt: new Date().toISOString(),
-      locationLat: eventData.location_lat,
-      locationLng: eventData.location_lng,
-      distance: distance || 0,
-      trackingMode: "full_tracking",
-    };
+    // Store in database
+    const { error } = await supabase.from("guest_check_ins").insert({
+      event_id: eventData.id,
+      guest_name: registrationData.name,
+      guest_email: registrationData.email,
+      location_lat: eventData.location_lat,
+      location_lng: eventData.location_lng,
+      distance_meters: distance || 0,
+      tracking_mode: "full_tracking",
+    });
 
-    const existingCheckIns = JSON.parse(localStorage.getItem("guestCheckIns") || "[]");
-    existingCheckIns.push(guestCheckIn);
-    localStorage.setItem("guestCheckIns", JSON.stringify(existingCheckIns));
+    if (error) {
+      console.error("Error saving check-in:", error);
+      toast.error("Failed to save check-in. Please try again.");
+      setLoading(false);
+      return;
+    }
 
     setLoading(false);
     setState("success");

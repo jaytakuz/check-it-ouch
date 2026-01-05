@@ -88,16 +88,17 @@ const LiveMonitor = () => {
     setCheckedIn(count || 0);
   };
 
-  const fetchGuestCount = () => {
+  const fetchGuestCount = async () => {
     if (!eventId) return;
 
     const today = new Date().toISOString().split("T")[0];
-    const guestCheckIns = JSON.parse(localStorage.getItem("guestCheckIns") || "[]");
-    const todayGuests = guestCheckIns.filter((g: any) => {
-      const checkInDate = new Date(g.checkedInAt).toISOString().split("T")[0];
-      return g.eventId === eventId && checkInDate === today;
-    });
-    setGuestCount(todayGuests.length);
+    const { count } = await supabase
+      .from("guest_check_ins")
+      .select("*", { count: "exact", head: true })
+      .eq("event_id", eventId)
+      .eq("session_date", today);
+
+    setGuestCount(count || 0);
   };
 
   // QR refresh and countdown effect
@@ -150,6 +151,18 @@ const LiveMonitor = () => {
         },
         () => {
           fetchCheckInCount();
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "guest_check_ins",
+          filter: `event_id=eq.${eventId}`,
+        },
+        () => {
+          fetchGuestCount();
         }
       )
       .subscribe();

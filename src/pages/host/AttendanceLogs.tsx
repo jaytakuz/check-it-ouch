@@ -67,8 +67,9 @@ interface CheckInRecord {
 interface GuestCheckInRecord {
   id: string;
   guestName: string;
-  guestEmail?: string;
+  guestEmail?: string | null;
   checkedInAt: string;
+  sessionDate?: string;
   distance: number;
   trackingMode: string;
 }
@@ -142,17 +143,26 @@ const AttendanceLogs = () => {
 
     const profileMap = new Map(profiles?.map((p) => [p.user_id, p.full_name]) || []);
 
-    // Fetch guest check-ins from localStorage
-    const guestCheckIns: GuestCheckInRecord[] = JSON.parse(localStorage.getItem("guestCheckIns") || "[]")
-      .filter((g: any) => g.eventId === eventId)
-      .map((g: any, idx: number) => ({
-        id: `guest-${idx}`,
-        guestName: g.guestName || "Anonymous Guest",
-        guestEmail: g.guestEmail,
-        checkedInAt: g.checkedInAt,
-        distance: g.distance || 0,
-        trackingMode: g.trackingMode || "count_only",
-      }));
+    // Fetch guest check-ins from database
+    const { data: guestCheckInsData, error: guestError } = await supabase
+      .from("guest_check_ins")
+      .select("*")
+      .eq("event_id", eventId)
+      .order("session_date", { ascending: false });
+
+    if (guestError) {
+      console.error("Error fetching guest check-ins:", guestError);
+    }
+
+    const guestCheckIns: GuestCheckInRecord[] = (guestCheckInsData || []).map((g) => ({
+      id: g.id,
+      guestName: g.guest_name || "Anonymous Guest",
+      guestEmail: g.guest_email,
+      checkedInAt: g.checked_in_at,
+      sessionDate: g.session_date,
+      distance: g.distance_meters || 0,
+      trackingMode: g.tracking_mode || "count_only",
+    }));
 
     // Group all check-ins by date
     const sessionMap = new Map<string, { registered: CheckInRecord[]; guests: GuestCheckInRecord[] }>();
@@ -174,7 +184,7 @@ const AttendanceLogs = () => {
 
     // Add guest check-ins
     guestCheckIns.forEach((guest) => {
-      const date = new Date(guest.checkedInAt).toISOString().split("T")[0];
+      const date = guest.sessionDate || new Date(guest.checkedInAt).toISOString().split("T")[0];
       if (!sessionMap.has(date)) {
         sessionMap.set(date, { registered: [], guests: [] });
       }
