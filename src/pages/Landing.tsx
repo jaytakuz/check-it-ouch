@@ -74,7 +74,7 @@ const Landing = () => {
         }} transition={{
           duration: 0.6
         }}>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-background text-primary text-sm font-medium mb-6 backdrop-blur-sm shadow-sm">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-background text-primary text-sm font-medium mb-6 backdrop-blur-sm shadow-md">
               <Zap size={16} />
               <span>Simple Presence Verification  </span>
             </div>
