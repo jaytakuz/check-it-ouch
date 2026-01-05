@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { format, parseISO, subDays, isToday, isYesterday } from "date-fns";
+import { format, parseISO, isToday, isYesterday } from "date-fns";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import {
@@ -26,7 +26,12 @@ import {
   CheckCircle2,
   User,
   MapPin,
+  UserCheck,
+  UsersRound,
+  Mail,
 } from "lucide-react";
+
+type TrackingMode = "count_only" | "full_tracking";
 
 interface Event {
   id: string;
@@ -38,12 +43,16 @@ interface Event {
   location_name: string;
   max_attendees: number | null;
   host_id: string;
+  tracking_mode: TrackingMode;
 }
 
 interface SessionLog {
   date: string;
   attendees: number;
+  registeredCount: number;
+  guestCount: number;
   checkIns: CheckInRecord[];
+  guestCheckIns: GuestCheckInRecord[];
 }
 
 interface CheckInRecord {
@@ -52,6 +61,16 @@ interface CheckInRecord {
   checked_in_at: string;
   distance_meters: number;
   user_name: string | null;
+  user_email?: string | null;
+}
+
+interface GuestCheckInRecord {
+  id: string;
+  guestName: string;
+  guestEmail?: string;
+  checkedInAt: string;
+  distance: number;
+  trackingMode: string;
 }
 
 const AttendanceLogs = () => {
@@ -68,6 +87,8 @@ const AttendanceLogs = () => {
     totalCheckIns: 0,
     avgAttendance: 0,
     peakAttendance: 0,
+    registeredTotal: 0,
+    guestTotal: 0,
   });
 
   useEffect(() => {
@@ -98,9 +119,10 @@ const AttendanceLogs = () => {
       return;
     }
 
-    setEvent(eventData);
+    const trackingMode = (eventData.tracking_mode === "full_tracking" ? "full_tracking" : "count_only") as TrackingMode;
+    setEvent({ ...eventData, tracking_mode: trackingMode });
 
-    // Fetch all check-ins for this event
+    // Fetch all check-ins for this event (registered users)
     const { data: checkIns, error: checkInsError } = await supabase
       .from("check_ins")
       .select("*")
@@ -109,8 +131,6 @@ const AttendanceLogs = () => {
 
     if (checkInsError) {
       console.error("Error fetching check-ins:", checkInsError);
-      setLoading(false);
-      return;
     }
 
     // Fetch user profiles for names
@@ -118,18 +138,32 @@ const AttendanceLogs = () => {
     const { data: profiles } = await supabase
       .from("profiles")
       .select("user_id, full_name")
-      .in("user_id", userIds);
+      .in("user_id", userIds.length > 0 ? userIds : ["00000000-0000-0000-0000-000000000000"]);
 
     const profileMap = new Map(profiles?.map((p) => [p.user_id, p.full_name]) || []);
 
-    // Group check-ins by session_date
-    const sessionMap = new Map<string, CheckInRecord[]>();
+    // Fetch guest check-ins from localStorage
+    const guestCheckIns: GuestCheckInRecord[] = JSON.parse(localStorage.getItem("guestCheckIns") || "[]")
+      .filter((g: any) => g.eventId === eventId)
+      .map((g: any, idx: number) => ({
+        id: `guest-${idx}`,
+        guestName: g.guestName || "Anonymous Guest",
+        guestEmail: g.guestEmail,
+        checkedInAt: g.checkedInAt,
+        distance: g.distance || 0,
+        trackingMode: g.trackingMode || "count_only",
+      }));
+
+    // Group all check-ins by date
+    const sessionMap = new Map<string, { registered: CheckInRecord[]; guests: GuestCheckInRecord[] }>();
+
+    // Add registered check-ins
     checkIns?.forEach((checkIn) => {
       const date = checkIn.session_date;
       if (!sessionMap.has(date)) {
-        sessionMap.set(date, []);
+        sessionMap.set(date, { registered: [], guests: [] });
       }
-      sessionMap.get(date)?.push({
+      sessionMap.get(date)?.registered.push({
         id: checkIn.id,
         user_id: checkIn.user_id,
         checked_in_at: checkIn.checked_in_at,
@@ -138,13 +172,27 @@ const AttendanceLogs = () => {
       });
     });
 
+    // Add guest check-ins
+    guestCheckIns.forEach((guest) => {
+      const date = new Date(guest.checkedInAt).toISOString().split("T")[0];
+      if (!sessionMap.has(date)) {
+        sessionMap.set(date, { registered: [], guests: [] });
+      }
+      sessionMap.get(date)?.guests.push(guest);
+    });
+
     // Convert to array and sort
     const logs: SessionLog[] = Array.from(sessionMap.entries())
-      .map(([date, checkIns]) => ({
+      .map(([date, data]) => ({
         date,
-        attendees: checkIns.length,
-        checkIns: checkIns.sort(
+        attendees: data.registered.length + data.guests.length,
+        registeredCount: data.registered.length,
+        guestCount: data.guests.length,
+        checkIns: data.registered.sort(
           (a, b) => new Date(a.checked_in_at).getTime() - new Date(b.checked_in_at).getTime()
+        ),
+        guestCheckIns: data.guests.sort(
+          (a, b) => new Date(a.checkedInAt).getTime() - new Date(b.checkedInAt).getTime()
         ),
       }))
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -154,6 +202,8 @@ const AttendanceLogs = () => {
     // Calculate overall stats
     const totalSessions = logs.length;
     const totalCheckIns = logs.reduce((sum, log) => sum + log.attendees, 0);
+    const registeredTotal = logs.reduce((sum, log) => sum + log.registeredCount, 0);
+    const guestTotal = logs.reduce((sum, log) => sum + log.guestCount, 0);
     const avgAttendance = totalSessions > 0 ? Math.round(totalCheckIns / totalSessions) : 0;
     const peakAttendance = logs.length > 0 ? Math.max(...logs.map((l) => l.attendees)) : 0;
 
@@ -162,6 +212,8 @@ const AttendanceLogs = () => {
       totalCheckIns,
       avgAttendance,
       peakAttendance,
+      registeredTotal,
+      guestTotal,
     });
 
     if (logs.length > 0) {
@@ -191,10 +243,6 @@ const AttendanceLogs = () => {
     return Math.round((attendees / event.max_attendees) * 100);
   };
 
-  const getSelectedSessionData = (): SessionLog | null => {
-    return sessionLogs.find((s) => s.date === selectedSession) || null;
-  };
-
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -211,8 +259,6 @@ const AttendanceLogs = () => {
     );
   }
 
-  const selectedData = getSelectedSessionData();
-
   return (
     <div className="min-h-screen bg-background pb-24">
       {/* Header */}
@@ -222,8 +268,17 @@ const AttendanceLogs = () => {
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft size={20} />
             </Button>
-            <div>
-              <h1 className="font-semibold text-foreground">{event.name}</h1>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <h1 className="font-semibold text-foreground">{event.name}</h1>
+                <Badge variant={event.tracking_mode === "full_tracking" ? "default" : "secondary"} className="text-xs">
+                  {event.tracking_mode === "full_tracking" ? (
+                    <><UserCheck size={10} className="mr-1" /> Full Tracking</>
+                  ) : (
+                    <><UsersRound size={10} className="mr-1" /> Count Only</>
+                  )}
+                </Badge>
+              </div>
               <p className="text-sm text-muted-foreground">Attendance Logs</p>
             </div>
           </div>
@@ -266,6 +321,33 @@ const AttendanceLogs = () => {
             <p className="text-2xl font-bold text-foreground">{overallStats.peakAttendance}</p>
           </div>
         </div>
+
+        {/* Breakdown by type */}
+        {(overallStats.registeredTotal > 0 || overallStats.guestTotal > 0) && (
+          <div className="bg-card rounded-xl p-4 border border-border mb-6">
+            <h3 className="font-medium text-foreground mb-3">Check-in Breakdown</h3>
+            <div className="flex gap-6">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <UserCheck size={16} className="text-primary" />
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-foreground">{overallStats.registeredTotal}</p>
+                  <p className="text-xs text-muted-foreground">Registered</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+                  <UsersRound size={16} className="text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-foreground">{overallStats.guestTotal}</p>
+                  <p className="text-xs text-muted-foreground">Guests</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Event Info */}
         <div className="bg-card rounded-xl p-4 border border-border mb-6">
@@ -330,24 +412,31 @@ const AttendanceLogs = () => {
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Users size={14} />
-                  {session.attendees} attendees
+                  {session.attendees} total
                 </span>
-                {event.max_attendees && (
-                  <span>of {event.max_attendees} capacity</span>
+                {session.registeredCount > 0 && (
+                  <span className="flex items-center gap-1">
+                    <UserCheck size={14} className="text-primary" />
+                    {session.registeredCount} registered
+                  </span>
+                )}
+                {session.guestCount > 0 && (
+                  <span className="flex items-center gap-1">
+                    <UsersRound size={14} />
+                    {session.guestCount} guests
+                  </span>
                 )}
               </div>
             </div>
 
-            {/* Attendee List */}
-            <div className="bg-card rounded-xl border border-border overflow-hidden">
-              <div className="p-4 border-b border-border">
-                <h4 className="font-medium text-foreground">Attendee List</h4>
-              </div>
-              {session.checkIns.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground">
-                  No check-ins recorded for this session
+            {/* Registered Attendee List */}
+            {session.checkIns.length > 0 && (
+              <div className="bg-card rounded-xl border border-border overflow-hidden">
+                <div className="p-4 border-b border-border flex items-center gap-2">
+                  <UserCheck size={16} className="text-primary" />
+                  <h4 className="font-medium text-foreground">Registered Attendees</h4>
+                  <Badge variant="secondary" className="ml-auto">{session.registeredCount}</Badge>
                 </div>
-              ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -379,8 +468,72 @@ const AttendanceLogs = () => {
                     ))}
                   </TableBody>
                 </Table>
-              )}
-            </div>
+              </div>
+            )}
+
+            {/* Guest Attendee List */}
+            {session.guestCheckIns.length > 0 && (
+              <div className="bg-card rounded-xl border border-border overflow-hidden">
+                <div className="p-4 border-b border-border flex items-center gap-2">
+                  <UsersRound size={16} className="text-muted-foreground" />
+                  <h4 className="font-medium text-foreground">Guest Check-ins</h4>
+                  <Badge variant="outline" className="ml-auto">{session.guestCount}</Badge>
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      {event.tracking_mode === "full_tracking" && <TableHead>Email</TableHead>}
+                      <TableHead>Time</TableHead>
+                      <TableHead className="text-right">Type</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {session.guestCheckIns.map((guest, index) => (
+                      <TableRow key={guest.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                              <User size={14} className="text-muted-foreground" />
+                            </div>
+                            <span className="font-medium text-foreground">
+                              {guest.guestName}
+                            </span>
+                          </div>
+                        </TableCell>
+                        {event.tracking_mode === "full_tracking" && (
+                          <TableCell className="text-muted-foreground">
+                            {guest.guestEmail ? (
+                              <span className="flex items-center gap-1">
+                                <Mail size={12} />
+                                {guest.guestEmail}
+                              </span>
+                            ) : (
+                              "-"
+                            )}
+                          </TableCell>
+                        )}
+                        <TableCell className="text-muted-foreground">
+                          {format(new Date(guest.checkedInAt), "h:mm a")}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Badge variant={guest.trackingMode === "full_tracking" ? "default" : "outline"} className="text-xs">
+                            {guest.trackingMode === "full_tracking" ? "Registered" : "Anonymous"}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+
+            {/* Empty state for session */}
+            {session.checkIns.length === 0 && session.guestCheckIns.length === 0 && (
+              <div className="bg-card rounded-xl border border-border p-8 text-center text-muted-foreground">
+                No check-ins recorded for this session
+              </div>
+            )}
           </TabsContent>
         ))}
       </Tabs>
