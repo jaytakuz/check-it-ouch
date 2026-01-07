@@ -410,13 +410,13 @@ const UnifiedDashboard = () => {
               <Button
                 variant="outline"
                 className="h-auto flex-col gap-2 p-4 bg-success/5 border-success/20 hover:bg-success/10 transition-all"
-                onClick={() => navigate(`/event/${liveEvents[0].id}`)}
+                onClick={() => navigate(`/host/monitor/${liveEvents[0].id}`)}
               >
                 <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center relative">
-                  <QrCode size={20} className="text-success" />
+                  <Play size={20} className="text-success" />
                   <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-success animate-pulse" />
                 </div>
-                <span className="font-medium text-sm text-success">Show QR Code</span>
+                <span className="font-medium text-sm text-success">Monitor Live</span>
                 <span className="text-xs text-success/70 truncate max-w-full">{liveEvents[0].name}</span>
               </Button>
             ) : (
@@ -470,38 +470,6 @@ const UnifiedDashboard = () => {
         )}
       </div>
 
-      {/* Live Events Alert (host mode) */}
-      {viewMode === "host" && liveEvents.length > 0 && (
-        <div className="max-w-2xl mx-auto px-4 mb-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-success/10 border border-success/20 rounded-xl p-4"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center">
-                  <div className="w-3 h-3 rounded-full bg-success animate-pulse" />
-                </div>
-                <div>
-                  <p className="font-medium text-success">
-                    {liveEvents.length} event{liveEvents.length > 1 ? "s" : ""} live now
-                  </p>
-                  <p className="text-sm text-success/80">{liveEvents[0].name}</p>
-                </div>
-              </div>
-              <Button 
-                size="sm" 
-                className="bg-success hover:bg-success/90"
-                onClick={() => navigate(`/host/monitor/${liveEvents[0].id}`)}
-              >
-                <Play size={14} className="mr-1" />
-                Monitor
-              </Button>
-            </div>
-          </motion.div>
-        </div>
-      )}
 
       {/* Events Section */}
       <div className="max-w-2xl mx-auto px-4">
