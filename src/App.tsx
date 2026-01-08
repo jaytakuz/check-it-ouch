@@ -9,6 +9,7 @@ import RoleSelect from "./pages/RoleSelect";
 import GuestJoin from "./pages/GuestJoin";
 import UnifiedDashboard from "./pages/UnifiedDashboard";
 import CreateEvent from "./pages/host/CreateEvent";
+import EditEvent from "./pages/host/EditEvent";
 import LiveMonitor from "./pages/host/LiveMonitor";
 import AttendanceLogs from "./pages/host/AttendanceLogs";
 import UserProfile from "./pages/user/Profile";
@@ -39,6 +40,7 @@ const App = () => (
           
           {/* Host-specific pages */}
           <Route path="/host/create-event" element={<CreateEvent />} />
+          <Route path="/host/edit-event/:eventId" element={<EditEvent />} />
           <Route path="/host/monitor/:eventId" element={<LiveMonitor />} />
           <Route path="/host/attendance/:eventId" element={<AttendanceLogs />} />
           <Route path="/host/event/:eventId" element={<EventDetails />} />
