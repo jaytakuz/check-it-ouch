@@ -25,6 +25,7 @@ import {
   Play,
   User,
   Star,
+  Pencil,
 } from "lucide-react";
 import LeafletLocationMap from "@/components/LeafletLocationMap";
 
@@ -243,6 +244,15 @@ const EventDetails = () => {
               <ArrowLeft size={20} />
             </Button>
             <div className="flex items-center gap-2">
+              {isHostView && (
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => navigate(`/host/edit-event/${eventId}`)}
+                >
+                  <Pencil size={20} />
+                </Button>
+              )}
               <Button variant="ghost" size="icon" onClick={handleShare}>
                 <Share2 size={20} />
               </Button>
