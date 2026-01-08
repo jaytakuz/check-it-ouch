@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { MapPin, Navigation, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import mockMapBg from "@/assets/mock-map-bg.png";
 
 interface MockLocationMapProps {
   eventLocation: { lat: number; lng: number };
@@ -54,19 +55,12 @@ const MockLocationMap = ({
     <div className={cn("space-y-3", className)}>
       {/* Mock Map Display */}
       <div className="aspect-video rounded-xl overflow-hidden border border-border relative bg-muted">
-        {/* Mock map background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-primary/10">
-          <div 
-            className="absolute inset-0 opacity-20"
-            style={{
-              backgroundImage: `
-                linear-gradient(to right, hsl(var(--border)) 1px, transparent 1px),
-                linear-gradient(to bottom, hsl(var(--border)) 1px, transparent 1px)
-              `,
-              backgroundSize: '40px 40px'
-            }}
-          />
-        </div>
+        {/* Mock map background with real map image */}
+        <img 
+          src={mockMapBg} 
+          alt="Map" 
+          className="absolute inset-0 w-full h-full object-cover"
+        />
 
         {/* Center of map - Event location with radius */}
         <div className="absolute inset-0 flex items-center justify-center">

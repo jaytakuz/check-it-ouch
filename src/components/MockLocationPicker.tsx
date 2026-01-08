@@ -2,6 +2,7 @@ import { useState } from "react";
 import { MapPin, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import mockMapBg from "@/assets/mock-map-bg.png";
 
 // Default mock location (Bangkok, Thailand)
 const DEFAULT_LOCATION = { lat: 13.7563, lng: 100.5018 };
@@ -31,19 +32,12 @@ const MockLocationPicker = ({ value, onChange, radius = 50, className }: MockLoc
     <div className={cn("space-y-3", className)}>
       {/* Mock Map Display */}
       <div className="aspect-video rounded-xl overflow-hidden border border-border relative bg-muted">
-        {/* Mock map background with grid pattern */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-primary/10">
-          <div 
-            className="absolute inset-0 opacity-20"
-            style={{
-              backgroundImage: `
-                linear-gradient(to right, hsl(var(--border)) 1px, transparent 1px),
-                linear-gradient(to bottom, hsl(var(--border)) 1px, transparent 1px)
-              `,
-              backgroundSize: '40px 40px'
-            }}
-          />
-        </div>
+        {/* Mock map background with real map image */}
+        <img 
+          src={mockMapBg} 
+          alt="Map" 
+          className="absolute inset-0 w-full h-full object-cover"
+        />
 
         {/* Mock location marker and radius */}
         {currentLocation ? (
