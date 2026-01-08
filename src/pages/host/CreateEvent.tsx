@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, Clock, CalendarDays, Repeat, Users, UserCheck, ChevronRight, Check, Award, Download, Upload, FileImage, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, CalendarDays, Repeat, Users, UserCheck, ChevronRight, Check, Award, Download, Upload, FileImage, CheckCircle2, Plus, Trash2, Settings2, List } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,15 @@ const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 type EventType = "one-time" | "recurring";
 type TrackingMode = "count-only" | "full-tracking";
+type ScheduleMode = "basic" | "advanced";
+
+interface AdvancedScheduleEntry {
+  id: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  topic: string;
+}
 
 // eCertificate templates
 const CERTIFICATE_TEMPLATES = [
@@ -64,6 +73,12 @@ const CreateEvent = () => {
   const [uploadedTemplate, setUploadedTemplate] = useState<File | null>(null);
   const [uploadedTemplatePreview, setUploadedTemplatePreview] = useState<string | null>(null);
   
+  // Schedule mode state
+  const [scheduleMode, setScheduleMode] = useState<ScheduleMode>("basic");
+  const [advancedSchedule, setAdvancedSchedule] = useState<AdvancedScheduleEntry[]>([
+    { id: crypto.randomUUID(), date: "", startTime: "09:00", endTime: "10:30", topic: "" }
+  ]);
+  
   // Form state
   const [selectedDays, setSelectedDays] = useState<number[]>([0, 2, 4]);
   const [radius, setRadius] = useState([50]);
@@ -96,6 +111,26 @@ const CreateEvent = () => {
         ? prev.filter((d) => d !== index)
         : [...prev, index].sort()
     );
+  };
+
+  // Advanced schedule helpers
+  const addScheduleEntry = () => {
+    setAdvancedSchedule(prev => [
+      ...prev,
+      { id: crypto.randomUUID(), date: "", startTime: "09:00", endTime: "10:30", topic: "" }
+    ]);
+  };
+
+  const removeScheduleEntry = (id: string) => {
+    if (advancedSchedule.length > 1) {
+      setAdvancedSchedule(prev => prev.filter(entry => entry.id !== id));
+    }
+  };
+
+  const updateScheduleEntry = (id: string, field: keyof AdvancedScheduleEntry, value: string) => {
+    setAdvancedSchedule(prev => prev.map(entry => 
+      entry.id === id ? { ...entry, [field]: value } : entry
+    ));
   };
 
   const handleLocationChange = (location: { lat: number; lng: number }) => {
@@ -521,71 +556,208 @@ const CreateEvent = () => {
                   transition={{ delay: 0.1 }}
                   className="bg-card rounded-2xl p-4 border border-border space-y-4"
                 >
-                  <h3 className="font-medium text-foreground flex items-center gap-2">
-                    <Clock size={18} />
-                    Schedule
-                  </h3>
-
-                  {eventType === "recurring" ? (
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label>Select Days</Label>
-                        <div className="flex gap-2 justify-between">
-                          {DAYS.map((day, index) => (
-                            <button
-                              key={index}
-                              type="button"
-                              onClick={() => toggleDay(index)}
-                              className={cn(
-                                "w-10 h-10 rounded-full text-sm font-medium transition-all",
-                                "flex items-center justify-center",
-                                selectedDays.includes(index)
-                                  ? "bg-primary text-primary-foreground shadow-md"
-                                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-                              )}
-                              title={DAY_LABELS[index]}
-                            >
-                              {day}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <Label htmlFor="date">Date</Label>
-                      <Input
-                        id="date"
-                        type="date"
-                        value={formData.date}
-                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                        required={eventType === "one-time"}
-                      />
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="startTime">Start Time</Label>
-                      <Input
-                        id="startTime"
-                        type="time"
-                        value={formData.startTime}
-                        onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="endTime">End Time</Label>
-                      <Input
-                        id="endTime"
-                        type="time"
-                        value={formData.endTime}
-                        onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                        required
-                      />
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-medium text-foreground flex items-center gap-2">
+                      <Clock size={18} />
+                      Schedule
+                    </h3>
+                    
+                    {/* Schedule Mode Toggle */}
+                    <div className="flex items-center bg-muted rounded-lg p-1">
+                      <button
+                        type="button"
+                        onClick={() => setScheduleMode("basic")}
+                        className={cn(
+                          "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                          scheduleMode === "basic"
+                            ? "bg-background text-foreground shadow-sm"
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        <List size={14} />
+                        Basic
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setScheduleMode("advanced")}
+                        className={cn(
+                          "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                          scheduleMode === "advanced"
+                            ? "bg-background text-foreground shadow-sm"
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        <Settings2 size={14} />
+                        Advanced
+                      </button>
                     </div>
                   </div>
+
+                  <AnimatePresence mode="wait">
+                    {scheduleMode === "basic" ? (
+                      <motion.div
+                        key="basic-schedule"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="space-y-4"
+                      >
+                        {eventType === "recurring" ? (
+                          <div className="space-y-4">
+                            <div className="space-y-2">
+                              <Label>Select Days</Label>
+                              <div className="flex gap-2 justify-between">
+                                {DAYS.map((day, index) => (
+                                  <button
+                                    key={index}
+                                    type="button"
+                                    onClick={() => toggleDay(index)}
+                                    className={cn(
+                                      "w-10 h-10 rounded-full text-sm font-medium transition-all",
+                                      "flex items-center justify-center",
+                                      selectedDays.includes(index)
+                                        ? "bg-primary text-primary-foreground shadow-md"
+                                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                                    )}
+                                    title={DAY_LABELS[index]}
+                                  >
+                                    {day}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <Label htmlFor="date">Date</Label>
+                            <Input
+                              id="date"
+                              type="date"
+                              value={formData.date}
+                              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                              required={eventType === "one-time"}
+                            />
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="startTime">Start Time</Label>
+                            <Input
+                              id="startTime"
+                              type="time"
+                              value={formData.startTime}
+                              onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                              required
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="endTime">End Time</Label>
+                            <Input
+                              id="endTime"
+                              type="time"
+                              value={formData.endTime}
+                              onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                              required
+                            />
+                          </div>
+                        </div>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="advanced-schedule"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="space-y-4"
+                      >
+                        <p className="text-xs text-muted-foreground">
+                          Configure detailed schedule with multiple sessions. Topic will be appended to event name.
+                        </p>
+                        
+                        {/* Schedule Table */}
+                        <div className="space-y-3">
+                          {advancedSchedule.map((entry, index) => (
+                            <motion.div
+                              key={entry.id}
+                              initial={{ opacity: 0, y: -10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -10 }}
+                              className="bg-muted/50 rounded-xl p-3 space-y-3"
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-medium text-muted-foreground">
+                                  Session {index + 1}
+                                </span>
+                                {advancedSchedule.length > 1 && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 text-destructive hover:text-destructive"
+                                    onClick={() => removeScheduleEntry(entry.id)}
+                                  >
+                                    <Trash2 size={14} />
+                                  </Button>
+                                )}
+                              </div>
+                              
+                              <div className="grid grid-cols-3 gap-2">
+                                <div className="space-y-1">
+                                  <Label className="text-xs">Date</Label>
+                                  <Input
+                                    type="date"
+                                    value={entry.date}
+                                    onChange={(e) => updateScheduleEntry(entry.id, "date", e.target.value)}
+                                    className="h-9 text-sm"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs">Start</Label>
+                                  <Input
+                                    type="time"
+                                    value={entry.startTime}
+                                    onChange={(e) => updateScheduleEntry(entry.id, "startTime", e.target.value)}
+                                    className="h-9 text-sm"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs">End</Label>
+                                  <Input
+                                    type="time"
+                                    value={entry.endTime}
+                                    onChange={(e) => updateScheduleEntry(entry.id, "endTime", e.target.value)}
+                                    className="h-9 text-sm"
+                                  />
+                                </div>
+                              </div>
+                              
+                              <div className="space-y-1">
+                                <Label className="text-xs">Topic (Optional)</Label>
+                                <Input
+                                  placeholder="e.g., Introduction, Workshop, etc."
+                                  value={entry.topic}
+                                  onChange={(e) => updateScheduleEntry(entry.id, "topic", e.target.value)}
+                                  className="h-9 text-sm"
+                                />
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                        
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={addScheduleEntry}
+                          className="w-full"
+                        >
+                          <Plus size={16} className="mr-1" />
+                          Add Session
+                        </Button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </motion.div>
 
                 {/* Location */}
