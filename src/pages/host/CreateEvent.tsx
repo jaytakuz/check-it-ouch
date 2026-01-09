@@ -636,6 +636,7 @@ const CreateEvent = () => {
                             <Input
                               id="date"
                               type="date"
+                              placeholder="Select event date"
                               value={formData.date}
                               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                               required={eventType === "one-time"}
@@ -649,6 +650,7 @@ const CreateEvent = () => {
                             <Input
                               id="startTime"
                               type="time"
+                              placeholder="e.g. 09:00"
                               value={formData.startTime}
                               onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
                               required
@@ -659,6 +661,7 @@ const CreateEvent = () => {
                             <Input
                               id="endTime"
                               type="time"
+                              placeholder="e.g. 17:00"
                               value={formData.endTime}
                               onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
                               required
