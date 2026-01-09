@@ -608,6 +608,33 @@ const CreateEvent = () => {
                       >
                         {eventType === "recurring" ? (
                           <div className="space-y-4">
+                            {/* Time Selection Slots */}
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="startTime">Start Time</Label>
+                                <Input
+                                  id="startTime"
+                                  type="time"
+                                  placeholder="e.g. 09:00"
+                                  value={formData.startTime}
+                                  onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                                  required
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="endTime">End Time</Label>
+                                <Input
+                                  id="endTime"
+                                  type="time"
+                                  placeholder="e.g. 17:00"
+                                  value={formData.endTime}
+                                  onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                                  required
+                                />
+                              </div>
+                            </div>
+                            
+                            {/* Select Days */}
                             <div className="space-y-2">
                               <Label>Select Days</Label>
                               <div className="flex gap-2 justify-between">
@@ -647,43 +674,45 @@ const CreateEvent = () => {
                             </div>
                           </div>
                         ) : (
-                          <div className="space-y-2">
-                            <Label htmlFor="date">Date</Label>
-                            <Input
-                              id="date"
-                              type="date"
-                              placeholder="Select event date"
-                              value={formData.date}
-                              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                              required={eventType === "one-time"}
-                            />
-                          </div>
+                          <>
+                            <div className="space-y-2">
+                              <Label htmlFor="date">Date</Label>
+                              <Input
+                                id="date"
+                                type="date"
+                                placeholder="Select event date"
+                                value={formData.date}
+                                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                                required={eventType === "one-time"}
+                              />
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="startTime">Start Time</Label>
+                                <Input
+                                  id="startTime"
+                                  type="time"
+                                  placeholder="e.g. 09:00"
+                                  value={formData.startTime}
+                                  onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                                  required
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="endTime">End Time</Label>
+                                <Input
+                                  id="endTime"
+                                  type="time"
+                                  placeholder="e.g. 17:00"
+                                  value={formData.endTime}
+                                  onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                                  required
+                                />
+                              </div>
+                            </div>
+                          </>
                         )}
-
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="startTime">Start Time</Label>
-                            <Input
-                              id="startTime"
-                              type="time"
-                              placeholder="e.g. 09:00"
-                              value={formData.startTime}
-                              onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                              required
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="endTime">End Time</Label>
-                            <Input
-                              id="endTime"
-                              type="time"
-                              placeholder="e.g. 17:00"
-                              value={formData.endTime}
-                              onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                              required
-                            />
-                          </div>
-                        </div>
                       </motion.div>
                     ) : (
                       <motion.div
