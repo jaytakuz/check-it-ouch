@@ -562,39 +562,42 @@ const CreateEvent = () => {
                       Schedule
                     </h3>
                     
-                    {/* Schedule Mode Toggle */}
-                    <div className="flex items-center bg-muted rounded-lg p-1">
-                      <button
-                        type="button"
-                        onClick={() => setScheduleMode("basic")}
-                        className={cn(
-                          "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
-                          scheduleMode === "basic"
-                            ? "bg-background text-foreground shadow-sm"
-                            : "text-muted-foreground hover:text-foreground"
-                        )}
-                      >
-                        <List size={14} />
-                        Basic
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setScheduleMode("advanced")}
-                        className={cn(
-                          "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
-                          scheduleMode === "advanced"
-                            ? "bg-background text-foreground shadow-sm"
-                            : "text-muted-foreground hover:text-foreground"
-                        )}
-                      >
-                        <Settings2 size={14} />
-                        Advanced
-                      </button>
-                    </div>
+                    {/* Schedule Mode Toggle - Only show for recurring events */}
+                    {eventType === "recurring" && (
+                      <div className="flex items-center bg-muted rounded-lg p-1">
+                        <button
+                          type="button"
+                          onClick={() => setScheduleMode("basic")}
+                          className={cn(
+                            "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                            scheduleMode === "basic"
+                              ? "bg-background text-foreground shadow-sm"
+                              : "text-muted-foreground hover:text-foreground"
+                          )}
+                        >
+                          <List size={14} />
+                          Basic
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setScheduleMode("advanced")}
+                          className={cn(
+                            "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                            scheduleMode === "advanced"
+                              ? "bg-background text-foreground shadow-sm"
+                              : "text-muted-foreground hover:text-foreground"
+                          )}
+                        >
+                          <Settings2 size={14} />
+                          Advanced
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   <AnimatePresence mode="wait">
-                    {scheduleMode === "basic" ? (
+                    {/* For one-time events, always show basic schedule */}
+                    {(eventType === "one-time" || scheduleMode === "basic") ? (
                       <motion.div
                         key="basic-schedule"
                         initial={{ opacity: 0, height: 0 }}
