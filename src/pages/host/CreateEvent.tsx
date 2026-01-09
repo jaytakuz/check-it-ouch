@@ -88,6 +88,7 @@ const CreateEvent = () => {
     name: "",
     description: "",
     date: "",
+    endRepeatDate: "",
     startTime: "09:00",
     endTime: "10:30",
     location: "",
@@ -628,6 +629,21 @@ const CreateEvent = () => {
                                   </button>
                                 ))}
                               </div>
+                            </div>
+                            
+                            {/* End Repeat Date */}
+                            <div className="space-y-2">
+                              <Label htmlFor="endRepeatDate">End Repeat</Label>
+                              <Input
+                                id="endRepeatDate"
+                                type="date"
+                                placeholder="Select end date"
+                                value={formData.endRepeatDate}
+                                onChange={(e) => setFormData({ ...formData, endRepeatDate: e.target.value })}
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Leave empty for no end date
+                              </p>
                             </div>
                           </div>
                         ) : (
