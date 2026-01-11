@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, Clock, CalendarDays, Repeat, Users, UserCheck, ChevronRight, Check, Award, Download, Upload, FileImage, CheckCircle2, Plus, Trash2, Settings2, List } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, CalendarDays, Repeat, Users, UserCheck, ChevronRight, Check, Award, Download, Upload, FileImage, CheckCircle2, Plus, Trash2, Settings2, List, Tag } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -92,9 +92,29 @@ const CreateEvent = () => {
   const [radius, setRadius] = useState([50]);
   const [loading, setLoading] = useState(false);
   
+  // Predefined event tags
+  const EVENT_TAGS = [
+    "Workshop",
+    "Seminar",
+    "Conference",
+    "Training",
+    "Meeting",
+    "Class",
+    "Lecture",
+    "Webinar",
+    "Networking",
+    "Team Building",
+    "Hackathon",
+    "Bootcamp",
+    "Orientation",
+    "Ceremony",
+    "Exhibition",
+  ];
+
   const [formData, setFormData] = useState({
     name: "",
     description: "",
+    eventTag: "",
     date: "",
     endRepeatDate: "",
     startTime: "09:00",
@@ -104,6 +124,24 @@ const CreateEvent = () => {
     locationLng: 0,
     maxAttendees: "50",
   });
+
+  const [showTagDropdown, setShowTagDropdown] = useState(false);
+  const [filteredTags, setFilteredTags] = useState<string[]>([]);
+  const tagInputRef = useRef<HTMLInputElement>(null);
+
+  // Filter tags based on input
+  useEffect(() => {
+    if (formData.eventTag.trim()) {
+      const filtered = EVENT_TAGS.filter(tag =>
+        tag.toLowerCase().includes(formData.eventTag.toLowerCase())
+      );
+      setFilteredTags(filtered);
+      setShowTagDropdown(filtered.length > 0);
+    } else {
+      setShowTagDropdown(false);
+      setFilteredTags([]);
+    }
+  }, [formData.eventTag]);
 
   // Calculate total steps
   const totalSteps = enableCertificate && trackingMode === "full-tracking" ? 4 : 3;
@@ -209,6 +247,7 @@ const CreateEvent = () => {
       host_id: user.id,
       name: formData.name,
       description: formData.description || null,
+      event_tag: formData.eventTag || null,
       is_recurring: eventType === "recurring",
       recurring_days: eventType === "recurring" ? selectedDays : null,
       event_date: eventType === "recurring" ? null : formData.date,
@@ -545,6 +584,53 @@ const CreateEvent = () => {
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       rows={3}
                     />
+                  </div>
+
+                  <div className="space-y-2 relative">
+                    <Label htmlFor="eventTag" className="flex items-center gap-2">
+                      <Tag size={14} />
+                      Event Tag
+                    </Label>
+                    <Input
+                      ref={tagInputRef}
+                      id="eventTag"
+                      placeholder="Start typing to select a tag (e.g., Workshop, Seminar...)"
+                      value={formData.eventTag}
+                      onChange={(e) => setFormData({ ...formData, eventTag: e.target.value })}
+                      onFocus={() => {
+                        if (formData.eventTag.trim()) {
+                          setShowTagDropdown(filteredTags.length > 0);
+                        }
+                      }}
+                      onBlur={() => {
+                        // Delay to allow click on dropdown item
+                        setTimeout(() => setShowTagDropdown(false), 150);
+                      }}
+                      autoComplete="off"
+                    />
+                    {showTagDropdown && (
+                      <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-lg shadow-lg overflow-hidden">
+                        <div className="max-h-48 overflow-y-auto">
+                          {filteredTags.map((tag) => (
+                            <button
+                              key={tag}
+                              type="button"
+                              className="w-full px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground transition-colors flex items-center gap-2"
+                              onClick={() => {
+                                setFormData({ ...formData, eventTag: tag });
+                                setShowTagDropdown(false);
+                              }}
+                            >
+                              <Tag size={14} className="text-muted-foreground" />
+                              {tag}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Select or type a tag to categorize your event
+                    </p>
                   </div>
 
                   <div className="space-y-2">
