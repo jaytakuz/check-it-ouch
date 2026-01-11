@@ -66,6 +66,7 @@ export type Database = {
           end_repeat_date: string | null
           end_time: string
           event_date: string | null
+          event_tag: string | null
           host_id: string
           id: string
           is_active: boolean
@@ -89,6 +90,7 @@ export type Database = {
           end_repeat_date?: string | null
           end_time: string
           event_date?: string | null
+          event_tag?: string | null
           host_id: string
           id?: string
           is_active?: boolean
@@ -112,6 +114,7 @@ export type Database = {
           end_repeat_date?: string | null
           end_time?: string
           event_date?: string | null
+          event_tag?: string | null
           host_id?: string
           id?: string
           is_active?: boolean
