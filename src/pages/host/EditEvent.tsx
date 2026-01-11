@@ -1,36 +1,73 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, MapPin, Clock, CalendarDays, Repeat, Users, UserCheck, Save, Loader2 } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, CalendarDays, Repeat, Users, UserCheck, Save, Loader2, Trash2, Tag } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import LeafletLocationPicker from "@/components/LeafletLocationPicker";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const DAYS = ["M", "T", "W", "T", "F", "S", "S"];
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+// Predefined event tags
+const EVENT_TAGS = [
+  "Workshop",
+  "Seminar",
+  "Conference",
+  "Training",
+  "Meeting",
+  "Class",
+  "Lecture",
+  "Webinar",
+  "Networking",
+  "Team Building",
+  "Hackathon",
+  "Bootcamp",
+  "Orientation",
+  "Ceremony",
+  "Exhibition",
+];
 
 const EditEvent = () => {
   const navigate = useNavigate();
   const { eventId } = useParams<{ eventId: string }>();
   const { user, loading: authLoading } = useAuth();
+  const tagInputRef = useRef<HTMLInputElement>(null);
   
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [radius, setRadius] = useState([50]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [isRecurring, setIsRecurring] = useState(false);
   const [trackingMode, setTrackingMode] = useState<string>("count_only");
+  
+  // Tag state
+  const [showTagDropdown, setShowTagDropdown] = useState(false);
+  const [filteredTags, setFilteredTags] = useState<string[]>([]);
   
   const [formData, setFormData] = useState({
     name: "",
     description: "",
+    eventTag: "",
     date: "",
     startTime: "09:00",
     endTime: "10:30",
@@ -39,6 +76,20 @@ const EditEvent = () => {
     locationLng: 0,
     maxAttendees: "50",
   });
+
+  // Filter tags based on input
+  useEffect(() => {
+    if (formData.eventTag.trim()) {
+      const filtered = EVENT_TAGS.filter(tag =>
+        tag.toLowerCase().includes(formData.eventTag.toLowerCase())
+      );
+      setFilteredTags(filtered);
+      setShowTagDropdown(filtered.length > 0);
+    } else {
+      setShowTagDropdown(false);
+      setFilteredTags([]);
+    }
+  }, [formData.eventTag]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -76,6 +127,7 @@ const EditEvent = () => {
     setFormData({
       name: data.name,
       description: data.description || "",
+      eventTag: data.event_tag || "",
       date: data.event_date || "",
       startTime: data.start_time,
       endTime: data.end_time,
@@ -89,6 +141,28 @@ const EditEvent = () => {
     setSelectedDays(data.recurring_days || []);
     setTrackingMode(data.tracking_mode);
     setLoading(false);
+  };
+
+  const handleDelete = async () => {
+    if (!eventId) return;
+    
+    setDeleting(true);
+    
+    const { error } = await supabase
+      .from("events")
+      .delete()
+      .eq("id", eventId);
+
+    if (error) {
+      console.error("Error deleting event:", error);
+      toast.error("Failed to delete event. Please try again.");
+      setDeleting(false);
+      return;
+    }
+
+    toast.success("Event deleted successfully!");
+    navigate("/dashboard");
+    setDeleting(false);
   };
 
   const toggleDay = (index: number) => {
@@ -132,6 +206,7 @@ const EditEvent = () => {
       .update({
         name: formData.name,
         description: formData.description || null,
+        event_tag: formData.eventTag || null,
         recurring_days: isRecurring ? selectedDays : null,
         event_date: isRecurring ? null : formData.date,
         start_time: formData.startTime,
@@ -234,6 +309,52 @@ const EditEvent = () => {
                   value={formData.maxAttendees}
                   onChange={(e) => setFormData({ ...formData, maxAttendees: e.target.value })}
                 />
+              </div>
+
+              <div className="space-y-2 relative">
+                <Label htmlFor="eventTag" className="flex items-center gap-2">
+                  <Tag size={14} />
+                  Event Tag
+                </Label>
+                <Input
+                  ref={tagInputRef}
+                  id="eventTag"
+                  placeholder="Start typing to select a tag..."
+                  value={formData.eventTag}
+                  onChange={(e) => setFormData({ ...formData, eventTag: e.target.value })}
+                  onFocus={() => {
+                    if (formData.eventTag.trim()) {
+                      setShowTagDropdown(filteredTags.length > 0);
+                    }
+                  }}
+                  onBlur={() => {
+                    setTimeout(() => setShowTagDropdown(false), 150);
+                  }}
+                  autoComplete="off"
+                />
+                {showTagDropdown && (
+                  <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-lg shadow-lg overflow-hidden">
+                    <div className="max-h-48 overflow-y-auto">
+                      {filteredTags.map((tag) => (
+                        <button
+                          key={tag}
+                          type="button"
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground transition-colors flex items-center gap-2"
+                          onClick={() => {
+                            setFormData({ ...formData, eventTag: tag });
+                            setShowTagDropdown(false);
+                          }}
+                        >
+                          <Tag size={14} className="text-muted-foreground" />
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Select or type a custom tag to categorize your event
+                </p>
               </div>
             </motion.div>
 
@@ -358,20 +479,61 @@ const EditEvent = () => {
               </div>
             </motion.div>
 
-            {/* Submit */}
-            <Button type="submit" className="w-full" size="lg" disabled={saving}>
-              {saving ? (
-                <>
-                  <Loader2 size={18} className="mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save size={18} className="mr-2" />
-                  Save Changes
-                </>
-              )}
-            </Button>
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              <Button type="submit" className="w-full" size="lg" disabled={saving || deleting}>
+                {saving ? (
+                  <>
+                    <Loader2 size={18} className="mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save size={18} className="mr-2" />
+                    Save Changes
+                  </>
+                )}
+              </Button>
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    type="button" 
+                    variant="destructive" 
+                    className="w-full" 
+                    size="lg" 
+                    disabled={saving || deleting}
+                  >
+                    {deleting ? (
+                      <>
+                        <Loader2 size={18} className="mr-2 animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 size={18} className="mr-2" />
+                        Delete Event
+                      </>
+                    )}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. This will permanently delete the event
+                      and all associated check-in records.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </form>
         </motion.div>
       </div>
