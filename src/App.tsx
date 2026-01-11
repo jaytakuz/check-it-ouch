@@ -15,6 +15,7 @@ import AttendanceLogs from "./pages/host/AttendanceLogs";
 import UserProfile from "./pages/user/Profile";
 import CheckIn from "./pages/CheckIn";
 import EventDetails from "./pages/EventDetails";
+import Scan from "./pages/Scan";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -51,6 +52,7 @@ const App = () => (
           {/* Shared pages */}
           <Route path="/event/:eventId" element={<EventDetails />} />
           <Route path="/checkin" element={<CheckIn />} />
+          <Route path="/scan" element={<Scan />} />
           
           <Route path="*" element={<NotFound />} />
         </Routes>
