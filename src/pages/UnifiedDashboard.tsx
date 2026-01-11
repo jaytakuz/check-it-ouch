@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Logo } from "@/components/ui/Logo";
 import { useNavigate } from "react-router-dom";
 import {
@@ -17,8 +18,11 @@ import {
   MousePointerClick,
   CheckCircle2,
   FileText,
+  Tag,
+  Filter,
+  X,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -43,6 +47,7 @@ interface Event {
   max_attendees: number | null;
   is_active: boolean;
   host_id: string;
+  event_tag: string | null;
   check_in_count?: number;
   user_checked_in?: boolean;
 }
@@ -59,6 +64,12 @@ const UnifiedDashboard = () => {
   const [hasHostRole, setHasHostRole] = useState(false);
   const [hasAttendeeRole, setHasAttendeeRole] = useState(false);
   const [totalCheckIns, setTotalCheckIns] = useState(0);
+  
+  // Tag filtering
+  const [selectedTagFilter, setSelectedTagFilter] = useState<string | null>(null);
+  const [tagFilterInput, setTagFilterInput] = useState("");
+  const [showTagFilterDropdown, setShowTagFilterDropdown] = useState(false);
+  const tagFilterRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -319,7 +330,18 @@ const UnifiedDashboard = () => {
   // Filter events based on view mode
   const hostingEvents = events.filter((e) => e.host_id === user?.id);
   const participatingEvents = events.filter((e) => e.host_id !== user?.id);
-  const displayEvents = viewMode === "host" ? hostingEvents : participatingEvents;
+  
+  // Get unique tags from events
+  const allTags = [...new Set(events.filter(e => e.event_tag).map(e => e.event_tag as string))];
+  const filteredTagOptions = tagFilterInput.trim() 
+    ? allTags.filter(tag => tag.toLowerCase().includes(tagFilterInput.toLowerCase()))
+    : [];
+  
+  // Apply tag filter
+  const baseEvents = viewMode === "host" ? hostingEvents : participatingEvents;
+  const displayEvents = selectedTagFilter 
+    ? baseEvents.filter(e => e.event_tag === selectedTagFilter)
+    : baseEvents;
   
   const liveEvents = hostingEvents.filter((e) => getEventStatus(e) === "live");
   const activeEventsCount = hostingEvents.filter((e) => e.is_active).length;
@@ -473,10 +495,80 @@ const UnifiedDashboard = () => {
 
       {/* Events Section */}
       <div className="max-w-2xl mx-auto px-4">
-        <div className="mb-4">
-          <h2 className="text-lg font-semibold text-foreground">
-            {viewMode === "host" ? "Your Events" : "Available Events"}
-          </h2>
+        <div className="mb-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-foreground">
+              {viewMode === "host" ? "Your Events" : "Available Events"}
+            </h2>
+            {allTags.length > 0 && (
+              <div className="relative">
+                <div className="flex items-center gap-2">
+                  {selectedTagFilter && (
+                    <button
+                      onClick={() => {
+                        setSelectedTagFilter(null);
+                        setTagFilterInput("");
+                      }}
+                      className="flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded-full hover:bg-primary/20 transition-colors"
+                    >
+                      <Tag size={12} />
+                      {selectedTagFilter}
+                      <X size={12} />
+                    </button>
+                  )}
+                  <div className="relative">
+                    <Input
+                      ref={tagFilterRef}
+                      placeholder="Filter by tag..."
+                      value={tagFilterInput}
+                      onChange={(e) => {
+                        setTagFilterInput(e.target.value);
+                        setShowTagFilterDropdown(e.target.value.trim().length > 0);
+                      }}
+                      onFocus={() => {
+                        if (tagFilterInput.trim()) {
+                          setShowTagFilterDropdown(true);
+                        }
+                      }}
+                      onBlur={() => {
+                        setTimeout(() => setShowTagFilterDropdown(false), 150);
+                      }}
+                      className="h-8 w-36 text-xs pl-8"
+                    />
+                    <Filter size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  </div>
+                </div>
+                <AnimatePresence>
+                  {showTagFilterDropdown && filteredTagOptions.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -5 }}
+                      className="absolute z-50 right-0 mt-1 w-48 bg-popover border border-border rounded-lg shadow-lg overflow-hidden"
+                    >
+                      <div className="max-h-48 overflow-y-auto">
+                        {filteredTagOptions.map((tag) => (
+                          <button
+                            key={tag}
+                            type="button"
+                            className="w-full px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground transition-colors flex items-center gap-2"
+                            onClick={() => {
+                              setSelectedTagFilter(tag);
+                              setTagFilterInput("");
+                              setShowTagFilterDropdown(false);
+                            }}
+                          >
+                            <Tag size={14} className="text-muted-foreground" />
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+          </div>
         </div>
 
         {displayEvents.length === 0 ? (
@@ -526,9 +618,17 @@ const UnifiedDashboard = () => {
                           </span>
                         )}
                       </div>
-                      <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                        {event.is_recurring ? "Recurring" : "One-time"}
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                          {event.is_recurring ? "Recurring" : "One-time"}
+                        </span>
+                        {event.event_tag && (
+                          <span className="text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <Tag size={10} />
+                            {event.event_tag}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 

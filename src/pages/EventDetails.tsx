@@ -26,6 +26,7 @@ import {
   User,
   Star,
   Pencil,
+  Tag,
 } from "lucide-react";
 import LeafletLocationMap from "@/components/LeafletLocationMap";
 
@@ -46,6 +47,7 @@ interface Event {
   is_active: boolean;
   host_id: string;
   certificate_url: string | null;
+  event_tag: string | null;
 }
 
 interface HostProfile {
@@ -284,6 +286,12 @@ const EventDetails = () => {
                 <Badge variant="secondary">
                   <Award size={12} className="mr-1" />
                   Certificate
+                </Badge>
+              )}
+              {event.event_tag && (
+                <Badge variant="outline" className="bg-primary/5 border-primary/20 text-primary">
+                  <Tag size={12} className="mr-1" />
+                  {event.event_tag}
                 </Badge>
               )}
             </div>
