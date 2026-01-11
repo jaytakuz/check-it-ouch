@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import LeafletLocationPicker from "@/components/LeafletLocationPicker";
+import CertificateNameZoneEditor from "@/components/CertificateNameZoneEditor";
 
 const DAYS = ["M", "T", "W", "T", "F", "S", "S"];
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -73,6 +74,12 @@ const CreateEvent = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [uploadedTemplate, setUploadedTemplate] = useState<File | null>(null);
   const [uploadedTemplatePreview, setUploadedTemplatePreview] = useState<string | null>(null);
+  const [nameZone, setNameZone] = useState<{ x: number; y: number; width: number; height: number }>({
+    x: 25,
+    y: 45,
+    width: 50,
+    height: 10,
+  });
   
   // Schedule mode state
   const [scheduleMode, setScheduleMode] = useState<ScheduleMode>("basic");
@@ -1097,16 +1104,10 @@ const CreateEvent = () => {
                   className="hidden"
                 />
                 
-                {uploadedTemplatePreview ? (
-                  <div className="relative rounded-xl overflow-hidden border-2 border-primary bg-card">
-                    <div className="aspect-[4/3]">
-                      <img 
-                        src={uploadedTemplatePreview} 
-                        alt="Uploaded template"
-                        className="w-full h-full object-contain bg-muted"
-                      />
-                    </div>
-                    <div className="p-3 flex items-center justify-between">
+{uploadedTemplatePreview ? (
+                  <div className="space-y-4">
+                    {/* Status bar */}
+                    <div className="p-3 flex items-center justify-between rounded-lg bg-primary/10 border border-primary/20">
                       <div className="flex items-center gap-2 text-primary">
                         <CheckCircle2 size={18} />
                         <span className="text-sm font-medium">Template uploaded</span>
@@ -1119,6 +1120,23 @@ const CreateEvent = () => {
                       >
                         Change
                       </Button>
+                    </div>
+
+                    {/* Name Zone Editor */}
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <Settings2 size={16} />
+                        Set Attendee Name Position
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Drag and resize the box to define where attendee names will appear on the certificate
+                      </p>
+                      <CertificateNameZoneEditor
+                        imageUrl={uploadedTemplatePreview}
+                        zone={nameZone}
+                        onZoneChange={setNameZone}
+                        className="mt-2"
+                      />
                     </div>
                   </div>
                 ) : (
