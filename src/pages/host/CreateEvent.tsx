@@ -918,11 +918,11 @@ const CreateEvent = () => {
               <div className="text-center mb-6">
                 <h2 className="text-2xl font-bold text-foreground mb-2">eCertificate Setup</h2>
                 <p className="text-muted-foreground">
-                  Design a certificate for your attendees
+                  Easy format template — ready to use
                 </p>
               </div>
 
-              {/* How it works */}
+              {/* Achievement Criteria */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -930,99 +930,140 @@ const CreateEvent = () => {
               >
                 <h3 className="font-medium text-foreground mb-3 flex items-center gap-2">
                   <Award size={18} className="text-primary" />
-                  How it works
+                  Achievement Criteria
                 </h3>
-                <ol className="space-y-2 text-sm text-muted-foreground">
-                  <li className="flex items-start gap-2">
-                    <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center shrink-0 mt-0.5">1</span>
-                    <span>Choose a template below</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center shrink-0 mt-0.5">2</span>
-                    <span>Export and customize it on your device (add logos, text, etc.)</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center shrink-0 mt-0.5">3</span>
-                    <span>Import your designed template back</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center shrink-0 mt-0.5">4</span>
-                    <span>System generates personalized certificates for all qualifying attendees</span>
-                  </li>
-                </ol>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Attendees will receive a certificate when they meet the following requirement:
+                </p>
+                <div className="flex items-center gap-3 p-3 bg-background rounded-xl border border-border">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <CheckCircle2 size={20} className="text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground">80% Attendance Rate</p>
+                    <p className="text-xs text-muted-foreground">
+                      Participants must attend at least 80% of all sessions
+                    </p>
+                  </div>
+                </div>
               </motion.div>
 
-              {/* Template Selection */}
+              {/* Certificate Image Guideline */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
                 className="space-y-3"
               >
-                <Label>Select a Template</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  {CERTIFICATE_TEMPLATES.map((template) => (
-                    <button
-                      key={template.id}
-                      type="button"
-                      onClick={() => setSelectedTemplate(template.id)}
-                      className={cn(
-                        "relative rounded-xl overflow-hidden border-2 transition-all",
-                        selectedTemplate === template.id
-                          ? "border-primary ring-2 ring-primary/20"
-                          : "border-border hover:border-primary/50"
-                      )}
-                    >
-                      <div className="aspect-[4/3] bg-muted relative">
-                        <img 
-                          src={template.preview} 
-                          alt={template.name}
-                          className="w-full h-full object-cover"
-                        />
-                        {selectedTemplate === template.id && (
-                          <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-                            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                              <Check size={18} className="text-primary-foreground" />
-                            </div>
-                          </div>
-                        )}
+                <Label className="flex items-center gap-2">
+                  <FileImage size={16} />
+                  Certificate Image Guideline
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Design your certificate following this template layout. The system will automatically embed user data.
+                </p>
+                
+                {/* Certificate Preview Template */}
+                <div className="relative bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 rounded-2xl border-2 border-amber-200 dark:border-amber-800 overflow-hidden aspect-[4/3] p-4">
+                  {/* Decorative Border */}
+                  <div className="absolute inset-2 border-2 border-amber-300/50 dark:border-amber-700/50 rounded-xl pointer-events-none" />
+                  <div className="absolute inset-4 border border-amber-200/50 dark:border-amber-800/50 rounded-lg pointer-events-none" />
+                  
+                  {/* Certificate Content */}
+                  <div className="relative h-full flex flex-col items-center justify-between py-2">
+                    {/* Top Section - Topic */}
+                    <div className="text-center space-y-0.5">
+                      <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium uppercase tracking-wider">
+                        1. Topic (if exists)
+                      </p>
+                      <div className="px-3 py-1 bg-amber-100/50 dark:bg-amber-900/30 rounded border border-dashed border-amber-400 dark:border-amber-600">
+                        <p className="text-xs text-amber-700 dark:text-amber-300 italic">
+                          Session Topic / Module Name
+                        </p>
                       </div>
-                      <div className="p-2 bg-card">
-                        <p className="text-sm font-medium text-foreground">{template.name}</p>
-                        <p className="text-xs text-muted-foreground truncate">{template.description}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </motion.div>
+                    </div>
 
-              {/* Export Template Button */}
-              {selectedTemplate && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => handleTemplateExport(selectedTemplate)}
-                  >
-                    <Download size={18} className="mr-2" />
-                    Export Template for Editing
-                  </Button>
-                </motion.div>
-              )}
+                    {/* Event Name Section */}
+                    <div className="text-center space-y-0.5">
+                      <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium uppercase tracking-wider">
+                        2. Event Name
+                      </p>
+                      <div className="px-4 py-1.5 bg-amber-100/50 dark:bg-amber-900/30 rounded border border-dashed border-amber-400 dark:border-amber-600">
+                        <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+                          {formData.name || "Your Event Name"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* User Name Section */}
+                    <div className="text-center space-y-0.5">
+                      <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium uppercase tracking-wider">
+                        3. User Name
+                      </p>
+                      <div className="px-4 py-1.5 bg-amber-100/50 dark:bg-amber-900/30 rounded border border-dashed border-amber-400 dark:border-amber-600">
+                        <p className="text-sm font-medium text-amber-700 dark:text-amber-300 italic">
+                          Attendee Full Name
+                        </p>
+                      </div>
+                      <p className="text-[9px] text-muted-foreground">
+                        (Auto-linked from qualified attendees)
+                      </p>
+                    </div>
+
+                    {/* Date Section */}
+                    <div className="text-center space-y-0.5">
+                      <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium uppercase tracking-wider">
+                        4. Date of Event(s)
+                      </p>
+                      <div className="px-3 py-1 bg-amber-100/50 dark:bg-amber-900/30 rounded border border-dashed border-amber-400 dark:border-amber-600">
+                        <p className="text-xs text-amber-700 dark:text-amber-300">
+                          {formData.date || "Event Date Range"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Bottom Left - QR Code */}
+                    <div className="absolute bottom-2 left-2 flex items-end gap-2">
+                      <div className="bg-white dark:bg-gray-800 p-1.5 rounded-lg border border-amber-300 dark:border-amber-700 shadow-sm">
+                        <div className="w-10 h-10 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-600 dark:to-gray-700 rounded grid grid-cols-3 gap-0.5 p-1">
+                          {[...Array(9)].map((_, i) => (
+                            <div 
+                              key={i} 
+                              className={cn(
+                                "rounded-sm",
+                                [0, 2, 3, 5, 6, 8].includes(i) 
+                                  ? "bg-gray-800 dark:bg-gray-200" 
+                                  : "bg-transparent"
+                              )}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <div className="space-y-0.5">
+                        <p className="text-[8px] text-amber-600 dark:text-amber-400 font-medium uppercase">
+                          5. QR Verified
+                        </p>
+                        <p className="text-[7px] text-muted-foreground leading-tight max-w-[80px]">
+                          Links to event detail for verification
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-xs text-muted-foreground text-center">
+                  ↑ This is a guideline preview. Upload your custom design below.
+                </p>
+              </motion.div>
 
               {/* Upload Customized Template */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
+                transition={{ delay: 0.2 }}
                 className="space-y-3"
               >
-                <Label>Import Your Designed Template</Label>
+                <Label>Upload Your Certificate Design</Label>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -1059,7 +1100,7 @@ const CreateEvent = () => {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-full border-2 border-dashed border-border rounded-xl p-8 hover:border-primary/50 transition-colors"
+                    className="w-full border-2 border-dashed border-border rounded-xl p-6 hover:border-primary/50 transition-colors"
                   >
                     <div className="flex flex-col items-center gap-3 text-muted-foreground">
                       <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center">
@@ -1079,7 +1120,7 @@ const CreateEvent = () => {
                 type="button" 
                 className="w-full" 
                 size="lg" 
-                disabled={loading || !selectedTemplate}
+                disabled={loading}
                 onClick={handleSubmit}
               >
                 {loading ? "Creating Event..." : "Create Event with Certificate"}
