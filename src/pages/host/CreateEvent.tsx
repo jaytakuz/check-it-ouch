@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -964,88 +965,112 @@ const CreateEvent = () => {
                   Design your certificate following this template layout. The system will automatically embed user data.
                 </p>
                 
-                {/* Certificate Preview Template */}
-                <div className="relative bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 rounded-2xl border-2 border-amber-200 dark:border-amber-800 overflow-hidden aspect-[4/3] p-4">
-                  {/* Decorative Border */}
-                  <div className="absolute inset-2 border-2 border-amber-300/50 dark:border-amber-700/50 rounded-xl pointer-events-none" />
-                  <div className="absolute inset-4 border border-amber-200/50 dark:border-amber-800/50 rounded-lg pointer-events-none" />
+                {/* Certificate Preview Template - Elegant Real Certificate Look */}
+                <div className="relative bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 dark:from-amber-950/40 dark:via-yellow-950/30 dark:to-orange-950/40 rounded-2xl border-4 border-double border-amber-400 dark:border-amber-600 overflow-hidden aspect-[4/3] shadow-xl">
+                  {/* Decorative Corner Ornaments */}
+                  <div className="absolute top-3 left-3 w-8 h-8 border-l-2 border-t-2 border-amber-500/60 dark:border-amber-400/60 rounded-tl-lg" />
+                  <div className="absolute top-3 right-3 w-8 h-8 border-r-2 border-t-2 border-amber-500/60 dark:border-amber-400/60 rounded-tr-lg" />
+                  <div className="absolute bottom-3 left-3 w-8 h-8 border-l-2 border-b-2 border-amber-500/60 dark:border-amber-400/60 rounded-bl-lg" />
+                  <div className="absolute bottom-3 right-3 w-8 h-8 border-r-2 border-b-2 border-amber-500/60 dark:border-amber-400/60 rounded-br-lg" />
+                  
+                  {/* Inner Decorative Border */}
+                  <div className="absolute inset-5 border border-amber-300/70 dark:border-amber-700/70 rounded-lg pointer-events-none" />
+                  
+                  {/* Subtle Pattern Overlay */}
+                  <div className="absolute inset-0 opacity-5 bg-[radial-gradient(circle_at_center,_transparent_0%,_transparent_50%,_rgba(180,120,50,0.3)_100%)]" />
                   
                   {/* Certificate Content */}
-                  <div className="relative h-full flex flex-col items-center justify-between py-2">
+                  <div className="relative h-full flex flex-col items-center justify-between p-6 pt-4">
                     {/* Top Section - Topic */}
-                    <div className="text-center space-y-0.5">
-                      <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium uppercase tracking-wider">
-                        1. Topic (if exists)
+                    <div className="text-center space-y-1">
+                      <p className="text-[9px] text-amber-600/80 dark:text-amber-400/80 font-medium uppercase tracking-[0.2em]">
+                        Certificate of Completion
                       </p>
-                      <div className="px-3 py-1 bg-amber-100/50 dark:bg-amber-900/30 rounded border border-dashed border-amber-400 dark:border-amber-600">
-                        <p className="text-xs text-amber-700 dark:text-amber-300 italic">
-                          Session Topic / Module Name
+                      <div className="px-4 py-1 bg-gradient-to-r from-transparent via-amber-200/30 to-transparent dark:via-amber-800/30">
+                        <p className="text-xs font-serif text-amber-800 dark:text-amber-200 italic">
+                          {formData.name ? "Session Topic / Module Name" : "Session Topic"}
                         </p>
                       </div>
                     </div>
 
-                    {/* Event Name Section */}
-                    <div className="text-center space-y-0.5">
-                      <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium uppercase tracking-wider">
-                        2. Event Name
-                      </p>
-                      <div className="px-4 py-1.5 bg-amber-100/50 dark:bg-amber-900/30 rounded border border-dashed border-amber-400 dark:border-amber-600">
-                        <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
-                          {formData.name || "Your Event Name"}
-                        </p>
+                    {/* Main Title - Event Name */}
+                    <div className="text-center space-y-1 -mt-1">
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-8 h-px bg-gradient-to-r from-transparent to-amber-400 dark:to-amber-500" />
+                        <Award className="w-5 h-5 text-amber-500 dark:text-amber-400" />
+                        <div className="w-8 h-px bg-gradient-to-l from-transparent to-amber-400 dark:to-amber-500" />
                       </div>
-                    </div>
-
-                    {/* User Name Section */}
-                    <div className="text-center space-y-0.5">
-                      <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium uppercase tracking-wider">
-                        3. User Name
-                      </p>
-                      <div className="px-4 py-1.5 bg-amber-100/50 dark:bg-amber-900/30 rounded border border-dashed border-amber-400 dark:border-amber-600">
-                        <p className="text-sm font-medium text-amber-700 dark:text-amber-300 italic">
-                          Attendee Full Name
-                        </p>
-                      </div>
-                      <p className="text-[9px] text-muted-foreground">
-                        (Auto-linked from qualified attendees)
+                      <p className="text-lg font-bold font-serif text-amber-900 dark:text-amber-100 tracking-wide">
+                        {formData.name || "Your Event Name"}
                       </p>
                     </div>
 
-                    {/* Date Section */}
-                    <div className="text-center space-y-0.5">
-                      <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium uppercase tracking-wider">
-                        4. Date of Event(s)
+                    {/* This certifies section */}
+                    <div className="text-center space-y-1">
+                      <p className="text-[8px] text-amber-700/70 dark:text-amber-300/70 uppercase tracking-wider">
+                        This is to certify that
                       </p>
-                      <div className="px-3 py-1 bg-amber-100/50 dark:bg-amber-900/30 rounded border border-dashed border-amber-400 dark:border-amber-600">
-                        <p className="text-xs text-amber-700 dark:text-amber-300">
-                          {formData.date || "Event Date Range"}
+                      <div className="relative">
+                        <p className="text-base font-semibold font-serif text-amber-800 dark:text-amber-200">
+                          John Doe
                         </p>
+                        <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-24 h-px bg-gradient-to-r from-transparent via-amber-400 to-transparent" />
                       </div>
+                      <p className="text-[7px] text-muted-foreground mt-1">
+                        (Attendee name auto-filled)
+                      </p>
                     </div>
 
-                    {/* Bottom Left - QR Code */}
-                    <div className="absolute bottom-2 left-2 flex items-end gap-2">
-                      <div className="bg-white dark:bg-gray-800 p-1.5 rounded-lg border border-amber-300 dark:border-amber-700 shadow-sm">
-                        <div className="w-10 h-10 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-600 dark:to-gray-700 rounded grid grid-cols-3 gap-0.5 p-1">
-                          {[...Array(9)].map((_, i) => (
-                            <div 
-                              key={i} 
-                              className={cn(
-                                "rounded-sm",
-                                [0, 2, 3, 5, 6, 8].includes(i) 
-                                  ? "bg-gray-800 dark:bg-gray-200" 
-                                  : "bg-transparent"
-                              )}
-                            />
-                          ))}
+                    {/* Completion Text & Date */}
+                    <div className="text-center space-y-0.5">
+                      <p className="text-[8px] text-amber-700/80 dark:text-amber-300/80">
+                        has successfully completed all requirements on
+                      </p>
+                      <p className="text-xs font-medium text-amber-800 dark:text-amber-200">
+                        {formData.date || "January 13, 2026"}
+                      </p>
+                    </div>
+
+                    {/* Bottom Section - QR Code & Signature */}
+                    <div className="absolute bottom-4 left-6 right-6 flex items-end justify-between">
+                      {/* QR Code Section - Left */}
+                      <div className="flex items-end gap-2">
+                        <div className="bg-white dark:bg-gray-900 p-1.5 rounded-lg border border-amber-300/80 dark:border-amber-700/80 shadow-sm">
+                          <QRCodeSVG 
+                            value="https://app.example.com/verify/event-123"
+                            size={40}
+                            level="L"
+                            bgColor="transparent"
+                            fgColor="currentColor"
+                            className="text-amber-900 dark:text-amber-100"
+                          />
+                        </div>
+                        <div className="space-y-0.5 pb-0.5">
+                          <p className="text-[7px] font-medium text-amber-700 dark:text-amber-300 uppercase tracking-wide">
+                            Verify Certificate
+                          </p>
+                          <p className="text-[6px] text-muted-foreground leading-tight max-w-[70px]">
+                            Scan to verify authenticity
+                          </p>
                         </div>
                       </div>
-                      <div className="space-y-0.5">
-                        <p className="text-[8px] text-amber-600 dark:text-amber-400 font-medium uppercase">
-                          5. QR Verified
-                        </p>
-                        <p className="text-[7px] text-muted-foreground leading-tight max-w-[80px]">
-                          Links to event detail for verification
+
+                      {/* Signature Section - Right */}
+                      <div className="text-center">
+                        <div className="w-20 h-6 mb-0.5">
+                          <svg viewBox="0 0 100 30" className="w-full h-full text-amber-700 dark:text-amber-300">
+                            <path 
+                              d="M10 20 Q20 10 30 18 T50 15 T70 20 Q80 25 90 18" 
+                              fill="none" 
+                              stroke="currentColor" 
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                        </div>
+                        <div className="w-20 h-px bg-amber-600/50 dark:bg-amber-400/50" />
+                        <p className="text-[7px] font-medium text-amber-700 dark:text-amber-300 uppercase tracking-wide mt-0.5">
+                          Authorized Signature
                         </p>
                       </div>
                     </div>
@@ -1053,8 +1078,7 @@ const CreateEvent = () => {
                 </div>
 
                 <p className="text-xs text-muted-foreground text-center">
-                  ↑ This is a guideline preview. Upload your custom design below.
-                </p>
+                  ↑ Preview of auto-generated certificate. Upload your custom design below.</p>
               </motion.div>
 
               {/* Upload Customized Template */}
