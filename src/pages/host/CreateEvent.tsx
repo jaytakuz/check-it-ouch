@@ -204,6 +204,7 @@ const CreateEvent = () => {
       is_recurring: eventType === "recurring",
       recurring_days: eventType === "recurring" ? selectedDays : null,
       event_date: eventType === "recurring" ? null : formData.date,
+      end_repeat_date: eventType === "recurring" && formData.endRepeatDate ? formData.endRepeatDate : null,
       start_time: formData.startTime,
       end_time: formData.endTime,
       location_name: formData.location,

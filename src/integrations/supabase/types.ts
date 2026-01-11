@@ -63,6 +63,7 @@ export type Database = {
           certificate_url: string | null
           created_at: string
           description: string | null
+          end_repeat_date: string | null
           end_time: string
           event_date: string | null
           host_id: string
@@ -85,6 +86,7 @@ export type Database = {
           certificate_url?: string | null
           created_at?: string
           description?: string | null
+          end_repeat_date?: string | null
           end_time: string
           event_date?: string | null
           host_id: string
@@ -107,6 +109,7 @@ export type Database = {
           certificate_url?: string | null
           created_at?: string
           description?: string | null
+          end_repeat_date?: string | null
           end_time?: string
           event_date?: string | null
           host_id?: string
