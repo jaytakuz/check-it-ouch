@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,14 +6,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, Clock, CalendarDays, Repeat, Users, UserCheck, ChevronRight, Check, Award, Download, Upload, FileImage, CheckCircle2, Plus, Trash2, Settings2, List, Tag } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, CalendarDays, Repeat, Users, UserCheck, ChevronRight, Check, Award, Plus, Trash2, Settings2, List, Tag } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import LeafletLocationPicker from "@/components/LeafletLocationPicker";
-import CertificateNameZoneEditor from "@/components/CertificateNameZoneEditor";
 
 const DAYS = ["M", "T", "W", "T", "F", "S", "S"];
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -31,34 +29,6 @@ interface AdvancedScheduleEntry {
   topic: string;
 }
 
-// eCertificate templates
-const CERTIFICATE_TEMPLATES = [
-  {
-    id: "modern-blue",
-    name: "Modern Blue",
-    preview: "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=400&h=280&fit=crop&auto=format",
-    description: "Clean and professional design with blue accents"
-  },
-  {
-    id: "classic-gold",
-    name: "Classic Gold",
-    preview: "https://images.unsplash.com/photo-1557683316-973673baf926?w=400&h=280&fit=crop&auto=format",
-    description: "Elegant traditional style with gold borders"
-  },
-  {
-    id: "minimal-dark",
-    name: "Minimal Dark",
-    preview: "https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=400&h=280&fit=crop&auto=format",
-    description: "Modern minimalist dark theme"
-  },
-  {
-    id: "corporate-green",
-    name: "Corporate Green",
-    preview: "https://images.unsplash.com/photo-1557682224-5b8590cd9ec5?w=400&h=280&fit=crop&auto=format",
-    description: "Professional corporate style with green tones"
-  },
-];
-
 const CreateEvent = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
@@ -69,17 +39,8 @@ const CreateEvent = () => {
   const [eventType, setEventType] = useState<EventType | null>(null);
   const [trackingMode, setTrackingMode] = useState<TrackingMode | null>(null);
   
-  // eCertificate state
+  // eCertificate state (simplified - just enable/disable toggle)
   const [enableCertificate, setEnableCertificate] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
-  const [uploadedTemplate, setUploadedTemplate] = useState<File | null>(null);
-  const [uploadedTemplatePreview, setUploadedTemplatePreview] = useState<string | null>(null);
-  const [nameZone, setNameZone] = useState<{ x: number; y: number; width: number; height: number }>({
-    x: 25,
-    y: 45,
-    width: 50,
-    height: 10,
-  });
   
   // Schedule mode state
   const [scheduleMode, setScheduleMode] = useState<ScheduleMode>("basic");
@@ -143,8 +104,8 @@ const CreateEvent = () => {
     }
   }, [formData.eventTag]);
 
-  // Calculate total steps
-  const totalSteps = enableCertificate && trackingMode === "full-tracking" ? 4 : 3;
+  // Calculate total steps (now always 3 - no Step 4 for certificate)
+  const totalSteps = 3;
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -189,32 +150,6 @@ const CreateEvent = () => {
     }));
   };
 
-  const handleTemplateExport = (templateId: string) => {
-    // In a real app, this would download a template file
-    toast.success(`Template "${CERTIFICATE_TEMPLATES.find(t => t.id === templateId)?.name}" exported! Edit it on your device and import back.`);
-  };
-
-  const handleTemplateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        toast.error("Please upload an image file (PNG, JPG, etc.)");
-        return;
-      }
-      
-      setUploadedTemplate(file);
-      
-      // Create preview
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setUploadedTemplatePreview(event.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-      
-      toast.success("Template uploaded successfully!");
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -236,12 +171,8 @@ const CreateEvent = () => {
 
     setLoading(true);
 
-    // TODO: If uploadedTemplate exists, upload it to storage and get URL
-    let certificateUrl: string | null = null;
-    if (enableCertificate && uploadedTemplate) {
-      // For now, we'll store a placeholder. In production, upload to storage
-      certificateUrl = `certificate-template-${Date.now()}`;
-    }
+    // Certificate URL will be set later when host configures certificate in EventDetails
+    const certificateUrl: string | null = enableCertificate ? "pending" : null;
 
     const { error } = await supabase.from('events').insert({
       host_id: user.id,
@@ -277,15 +208,12 @@ const CreateEvent = () => {
 
   const canProceedToStep2 = eventType !== null;
   const canProceedToStep3 = trackingMode !== null;
-  const canProceedToStep4 = enableCertificate && selectedTemplate !== null;
 
   const handleNextStep = () => {
     if (currentStep === 1 && canProceedToStep2) {
       setCurrentStep(2);
     } else if (currentStep === 2 && canProceedToStep3) {
       setCurrentStep(3);
-    } else if (currentStep === 3 && enableCertificate && trackingMode === "full-tracking") {
-      setCurrentStep(4);
     }
   };
 
@@ -557,7 +485,7 @@ const CreateEvent = () => {
                 </span>
               </div>
 
-              <form onSubmit={enableCertificate && trackingMode === "full-tracking" ? (e) => { e.preventDefault(); handleNextStep(); } : handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Basic Info */}
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
@@ -967,7 +895,7 @@ const CreateEvent = () => {
                           <Award size={20} className="text-primary" />
                         </div>
                         <div>
-                          <h3 className="font-medium text-foreground">Create eCertificate</h3>
+                          <h3 className="font-medium text-foreground">Enable eCertificate</h3>
                           <p className="text-sm text-muted-foreground">
                             Issue certificates to attendees who complete the event
                           </p>
@@ -978,297 +906,27 @@ const CreateEvent = () => {
                         onCheckedChange={setEnableCertificate}
                       />
                     </div>
+                    {enableCertificate && (
+                      <p className="text-xs text-muted-foreground mt-3 pl-13">
+                        💡 You can configure the certificate design later from the Event Details page
+                      </p>
+                    )}
                   </motion.div>
                 )}
 
-                {/* Submit or Continue */}
+                {/* Submit */}
                 <Button 
                   type="submit" 
                   className="w-full" 
                   size="lg" 
                   disabled={loading}
                 >
-                  {enableCertificate && trackingMode === "full-tracking" ? (
-                    <>
-                      Continue to Certificate Setup
-                      <ChevronRight size={18} className="ml-1" />
-                    </>
-                  ) : (
-                    loading ? "Creating Event..." : "Create Event"
-                  )}
+                  {loading ? "Creating Event..." : "Create Event"}
                 </Button>
               </form>
             </motion.div>
           )}
 
-          {/* Step 4: eCertificate Setup */}
-          {currentStep === 4 && (
-            <motion.div
-              key="step4"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="space-y-6"
-            >
-              <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold text-foreground mb-2">eCertificate Setup</h2>
-                <p className="text-muted-foreground">
-                  Easy format template — ready to use
-                </p>
-              </div>
-
-              {/* Achievement Criteria */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-primary/5 rounded-2xl p-4 border border-primary/20"
-              >
-                <h3 className="font-medium text-foreground mb-3 flex items-center gap-2">
-                  <Award size={18} className="text-primary" />
-                  Achievement Criteria
-                </h3>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Attendees will receive a certificate when they meet the following requirement:
-                </p>
-                <div className="flex items-center gap-3 p-3 bg-background rounded-xl border border-border">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <CheckCircle2 size={20} className="text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-foreground">80% Attendance Rate</p>
-                    <p className="text-xs text-muted-foreground">
-                      Participants must attend at least 80% of all sessions
-                    </p>
-                  </div>
-                </div>
-              </motion.div>
-
-              {/* Certificate Image Guideline */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="space-y-3"
-              >
-                <Label className="flex items-center gap-2">
-                  <FileImage size={16} />
-                  Certificate Image Guideline
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Design your certificate following this template layout. The system will automatically embed user data.
-                </p>
-                
-                {/* Certificate Preview Template - Elegant Real Certificate Look */}
-                <div className="relative bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 dark:from-amber-950/40 dark:via-yellow-950/30 dark:to-orange-950/40 rounded-2xl border-4 border-double border-amber-400 dark:border-amber-600 overflow-hidden aspect-[4/3] shadow-xl">
-                  {/* Decorative Corner Ornaments */}
-                  <div className="absolute top-3 left-3 w-8 h-8 border-l-2 border-t-2 border-amber-500/60 dark:border-amber-400/60 rounded-tl-lg" />
-                  <div className="absolute top-3 right-3 w-8 h-8 border-r-2 border-t-2 border-amber-500/60 dark:border-amber-400/60 rounded-tr-lg" />
-                  <div className="absolute bottom-3 left-3 w-8 h-8 border-l-2 border-b-2 border-amber-500/60 dark:border-amber-400/60 rounded-bl-lg" />
-                  <div className="absolute bottom-3 right-3 w-8 h-8 border-r-2 border-b-2 border-amber-500/60 dark:border-amber-400/60 rounded-br-lg" />
-                  
-                  {/* Inner Decorative Border */}
-                  <div className="absolute inset-5 border border-amber-300/70 dark:border-amber-700/70 rounded-lg pointer-events-none" />
-                  
-                  {/* Subtle Pattern Overlay */}
-                  <div className="absolute inset-0 opacity-5 bg-[radial-gradient(circle_at_center,_transparent_0%,_transparent_50%,_rgba(180,120,50,0.3)_100%)]" />
-                  
-                  {/* Certificate Content */}
-                  <div className="relative h-full flex flex-col items-center justify-between p-6 pt-4">
-                    {/* Top Section - Topic */}
-                    <div className="text-center space-y-1">
-                      <p className="text-[9px] text-amber-600/80 dark:text-amber-400/80 font-medium uppercase tracking-[0.2em]">
-                        Certificate of Completion
-                      </p>
-                      <div className="px-4 py-1 bg-gradient-to-r from-transparent via-amber-200/30 to-transparent dark:via-amber-800/30">
-                        <p className="text-xs font-serif text-amber-800 dark:text-amber-200 italic">
-                          {formData.name ? "Session Topic / Module Name" : "Session Topic"}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Main Title - Event Name */}
-                    <div className="text-center space-y-1 -mt-1">
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="w-8 h-px bg-gradient-to-r from-transparent to-amber-400 dark:to-amber-500" />
-                        <Award className="w-5 h-5 text-amber-500 dark:text-amber-400" />
-                        <div className="w-8 h-px bg-gradient-to-l from-transparent to-amber-400 dark:to-amber-500" />
-                      </div>
-                      <p className="text-lg font-bold font-serif text-amber-900 dark:text-amber-100 tracking-wide">
-                        {formData.name || "Your Event Name"}
-                      </p>
-                    </div>
-
-                    {/* This certifies section */}
-                    <div className="text-center space-y-1">
-                      <p className="text-[8px] text-amber-700/70 dark:text-amber-300/70 uppercase tracking-wider">
-                        This is to certify that
-                      </p>
-                      <div className="relative">
-                        <p className="text-base font-semibold font-serif text-amber-800 dark:text-amber-200">
-                          John Doe
-                        </p>
-                        <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-24 h-px bg-gradient-to-r from-transparent via-amber-400 to-transparent" />
-                      </div>
-                      <p className="text-[7px] text-muted-foreground mt-1">
-                        (Attendee name auto-filled)
-                      </p>
-                    </div>
-
-                    {/* Completion Text & Date */}
-                    <div className="text-center space-y-0.5">
-                      <p className="text-[8px] text-amber-700/80 dark:text-amber-300/80">
-                        has successfully completed all requirements on
-                      </p>
-                      <p className="text-xs font-medium text-amber-800 dark:text-amber-200">
-                        {formData.date || "January 13, 2026"}
-                      </p>
-                    </div>
-
-                    {/* Bottom Section - QR Code & Signature */}
-                    <div className="absolute bottom-4 left-6 right-6 flex items-end justify-between">
-                      {/* QR Code Section - Left */}
-                      <div className="flex items-end gap-2">
-                        <div className="bg-white dark:bg-gray-900 p-1.5 rounded-lg border border-amber-300/80 dark:border-amber-700/80 shadow-sm">
-                          <QRCodeSVG 
-                            value="https://app.example.com/verify/event-123"
-                            size={40}
-                            level="L"
-                            bgColor="transparent"
-                            fgColor="currentColor"
-                            className="text-amber-900 dark:text-amber-100"
-                          />
-                        </div>
-                        <div className="space-y-0.5 pb-0.5">
-                          <p className="text-[7px] font-medium text-amber-700 dark:text-amber-300 uppercase tracking-wide">
-                            Verify Certificate
-                          </p>
-                          <p className="text-[6px] text-muted-foreground leading-tight max-w-[70px]">
-                            Scan to verify authenticity
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Signature Section - Right */}
-                      <div className="text-center">
-                        <div className="w-20 h-6 mb-0.5">
-                          <svg viewBox="0 0 100 30" className="w-full h-full text-amber-700 dark:text-amber-300">
-                            <path 
-                              d="M10 20 Q20 10 30 18 T50 15 T70 20 Q80 25 90 18" 
-                              fill="none" 
-                              stroke="currentColor" 
-                              strokeWidth="1.5"
-                              strokeLinecap="round"
-                            />
-                          </svg>
-                        </div>
-                        <div className="w-20 h-px bg-amber-600/50 dark:bg-amber-400/50" />
-                        <p className="text-[7px] font-medium text-amber-700 dark:text-amber-300 uppercase tracking-wide mt-0.5">
-                          Authorized Signature
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <p className="text-xs text-muted-foreground text-center">
-                  ↑ Preview of auto-generated certificate. Upload your custom design below.</p>
-              </motion.div>
-
-              {/* Upload Customized Template */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="space-y-3"
-              >
-                <Label>Upload Your Certificate Design</Label>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleTemplateUpload}
-                  className="hidden"
-                />
-                
-{uploadedTemplatePreview ? (
-                  <div className="space-y-4">
-                    {/* Status bar */}
-                    <div className="p-3 flex items-center justify-between rounded-lg bg-primary/10 border border-primary/20">
-                      <div className="flex items-center gap-2 text-primary">
-                        <CheckCircle2 size={18} />
-                        <span className="text-sm font-medium">Template uploaded</span>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        Change
-                      </Button>
-                    </div>
-
-                    {/* Name Zone Editor */}
-                    <div className="space-y-2">
-                      <Label className="flex items-center gap-2">
-                        <Settings2 size={16} />
-                        Set Attendee Name Position
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        Drag and resize the box to define where attendee names will appear on the certificate
-                      </p>
-                      <CertificateNameZoneEditor
-                        imageUrl={uploadedTemplatePreview}
-                        zone={nameZone}
-                        onZoneChange={setNameZone}
-                        className="mt-2"
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full border-2 border-dashed border-border rounded-xl p-6 hover:border-primary/50 transition-colors"
-                  >
-                    <div className="flex flex-col items-center gap-3 text-muted-foreground">
-                      <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center">
-                        <Upload size={24} />
-                      </div>
-                      <div className="text-center">
-                        <p className="font-medium text-foreground">Upload your template</p>
-                        <p className="text-sm">PNG, JPG, or other image formats</p>
-                      </div>
-                    </div>
-                  </button>
-                )}
-              </motion.div>
-
-              {/* Submit */}
-              <Button 
-                type="button" 
-                className="w-full" 
-                size="lg" 
-                disabled={loading}
-                onClick={handleSubmit}
-              >
-                {loading ? "Creating Event..." : "Create Event with Certificate"}
-              </Button>
-
-              {/* Skip option */}
-              <Button 
-                type="button" 
-                variant="ghost"
-                className="w-full" 
-                onClick={() => {
-                  setEnableCertificate(false);
-                  handleSubmit({ preventDefault: () => {} } as React.FormEvent);
-                }}
-              >
-                Skip certificate setup for now
-              </Button>
-            </motion.div>
-          )}
         </AnimatePresence>
       </div>
     </div>

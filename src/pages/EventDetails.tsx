@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,8 +27,12 @@ import {
   Star,
   Pencil,
   Tag,
+  Upload,
+  Settings2,
+  FileImage,
 } from "lucide-react";
 import LeafletLocationMap from "@/components/LeafletLocationMap";
+import CertificateNameZoneEditor from "@/components/CertificateNameZoneEditor";
 
 interface Event {
   id: string;
@@ -75,6 +79,13 @@ const EventDetails = () => {
   });
   const [loading, setLoading] = useState(true);
   const [isEnrolled, setIsEnrolled] = useState(false);
+  
+  // Certificate configuration state
+  const [enableCertificate, setEnableCertificate] = useState(false);
+  const [uploadedTemplatePreview, setUploadedTemplatePreview] = useState<string | null>(null);
+  const [nameZone, setNameZone] = useState({ x: 25, y: 45, width: 50, height: 10 });
+  const [savingCertificate, setSavingCertificate] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Detect if viewing as host (from /host/event/... route)
   const isHostView = window.location.pathname.startsWith("/host/event");
@@ -105,6 +116,11 @@ const EventDetails = () => {
     }
 
     setEvent(eventData);
+    
+    // Initialize certificate state based on event data
+    if (eventData.certificate_url) {
+      setEnableCertificate(true);
+    }
 
     // Fetch host profile
     const { data: profileData } = await supabase
@@ -216,6 +232,48 @@ const EventDetails = () => {
 
   const handleCheckIn = () => {
     navigate("/checkin", { state: { eventId } });
+  };
+
+  const handleTemplateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        toast.error("Please upload an image file (PNG, JPG, etc.)");
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setUploadedTemplatePreview(event.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+      toast.success("Template uploaded successfully!");
+    }
+  };
+
+  const handleSaveCertificate = async () => {
+    if (!event || !eventId) return;
+    
+    setSavingCertificate(true);
+    
+    // For now, store a placeholder URL. In production, upload to storage
+    const certificateUrl = enableCertificate ? `certificate-${eventId}-${Date.now()}` : null;
+    
+    const { error } = await supabase
+      .from("events")
+      .update({ certificate_url: certificateUrl })
+      .eq("id", eventId);
+    
+    if (error) {
+      console.error("Error saving certificate:", error);
+      toast.error("Failed to save certificate settings");
+    } else {
+      toast.success(enableCertificate ? "Certificate settings saved!" : "Certificate disabled");
+      // Refresh event data
+      setEvent({ ...event, certificate_url: certificateUrl });
+    }
+    
+    setSavingCertificate(false);
   };
 
   if (authLoading || loading) {
@@ -368,10 +426,11 @@ const EventDetails = () => {
 
       {/* Tabs */}
       <Tabs defaultValue="about" className="max-w-2xl mx-auto px-4">
-        <TabsList className="w-full grid grid-cols-3 mb-4">
+        <TabsList className={`w-full grid mb-4 ${isHostView ? 'grid-cols-4' : 'grid-cols-3'}`}>
           <TabsTrigger value="about">About</TabsTrigger>
           <TabsTrigger value="schedule">Schedule</TabsTrigger>
           <TabsTrigger value="location">Location</TabsTrigger>
+          {isHostView && <TabsTrigger value="certificate">Certificate</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="about" className="space-y-4">
@@ -527,6 +586,140 @@ const EventDetails = () => {
             </div>
           </div>
         </TabsContent>
+
+        {/* Certificate Tab - Host Only */}
+        {isHostView && (
+          <TabsContent value="certificate" className="space-y-4">
+            <div className="bg-card rounded-xl p-4 border border-border">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <Award size={20} className="text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-foreground">eCertificate</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Issue certificates to attendees
+                    </p>
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={enableCertificate}
+                    onChange={(e) => setEnableCertificate(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-muted rounded-full peer peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-background after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full" />
+                </label>
+              </div>
+
+              {enableCertificate && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  className="space-y-4 pt-4 border-t border-border"
+                >
+                  {/* Achievement Criteria */}
+                  <div className="bg-primary/5 rounded-xl p-4 border border-primary/20">
+                    <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
+                      <CheckCircle2 size={16} className="text-primary" />
+                      Achievement Criteria
+                    </h4>
+                    <p className="text-sm text-muted-foreground">
+                      Attendees who achieve <span className="font-medium text-foreground">80% attendance</span> will receive a certificate.
+                    </p>
+                  </div>
+
+                  {/* Upload Template */}
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                      <FileImage size={16} />
+                      Certificate Template
+                    </label>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleTemplateUpload}
+                      className="hidden"
+                    />
+                    
+                    {uploadedTemplatePreview ? (
+                      <div className="space-y-4">
+                        <div className="p-3 flex items-center justify-between rounded-lg bg-primary/10 border border-primary/20">
+                          <div className="flex items-center gap-2 text-primary">
+                            <CheckCircle2 size={18} />
+                            <span className="text-sm font-medium">Template uploaded</span>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => fileInputRef.current?.click()}
+                          >
+                            Change
+                          </Button>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                            <Settings2 size={14} />
+                            Set Attendee Name Position
+                          </label>
+                          <p className="text-xs text-muted-foreground">
+                            Drag and resize the box to define where names will appear
+                          </p>
+                          <CertificateNameZoneEditor
+                            imageUrl={uploadedTemplatePreview}
+                            zone={nameZone}
+                            onZoneChange={setNameZone}
+                            className="mt-2"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full border-2 border-dashed border-border rounded-xl p-6 hover:border-primary/50 transition-colors"
+                      >
+                        <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                          <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center">
+                            <Upload size={24} />
+                          </div>
+                          <div className="text-center">
+                            <p className="font-medium text-foreground">Upload certificate template</p>
+                            <p className="text-sm">PNG, JPG, or other image formats</p>
+                          </div>
+                        </div>
+                      </button>
+                    )}
+                  </div>
+
+                  <Button
+                    className="w-full"
+                    onClick={handleSaveCertificate}
+                    disabled={savingCertificate}
+                  >
+                    {savingCertificate ? "Saving..." : "Save Certificate Settings"}
+                  </Button>
+                </motion.div>
+              )}
+
+              {!enableCertificate && event.certificate_url && (
+                <Button
+                  variant="outline"
+                  className="w-full mt-4"
+                  onClick={handleSaveCertificate}
+                  disabled={savingCertificate}
+                >
+                  {savingCertificate ? "Saving..." : "Disable Certificate"}
+                </Button>
+              )}
+            </div>
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* Fixed Bottom CTA - only show for attendees */}
