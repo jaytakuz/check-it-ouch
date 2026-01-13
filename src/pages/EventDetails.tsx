@@ -701,7 +701,7 @@ const EventDetails = () => {
                         </h4>
                         <p className="text-sm text-muted-foreground mb-4">
                           Below is an example certificate showing which parts you can configure in{" "}
-                          <span className="font-medium text-foreground">Step 3 (Preview)</span>.
+                          <span className="font-medium text-foreground">Step 3</span>.
                         </p>
                       </div>
 
