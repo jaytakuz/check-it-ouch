@@ -30,6 +30,12 @@ import {
   Upload,
   Settings2,
   FileImage,
+  Info,
+  ChevronRight,
+  ChevronLeft,
+  Move,
+  Maximize2,
+  Eye,
 } from "lucide-react";
 import LeafletLocationMap from "@/components/LeafletLocationMap";
 import CertificateNameZoneEditor from "@/components/CertificateNameZoneEditor";
@@ -84,7 +90,10 @@ const EventDetails = () => {
   const [enableCertificate, setEnableCertificate] = useState(false);
   const [uploadedTemplatePreview, setUploadedTemplatePreview] = useState<string | null>(null);
   const [nameZone, setNameZone] = useState({ x: 25, y: 45, width: 50, height: 10 });
+  const [eventNameZone, setEventNameZone] = useState({ x: 10, y: 15, width: 80, height: 8 });
+  const [verificationZone, setVerificationZone] = useState({ x: 70, y: 80, width: 20, height: 15 });
   const [savingCertificate, setSavingCertificate] = useState(false);
+  const [certificateStep, setCertificateStep] = useState<1 | 2 | 3>(1);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Detect if viewing as host (from /host/event/... route)
@@ -607,7 +616,10 @@ const EventDetails = () => {
                   <input
                     type="checkbox"
                     checked={enableCertificate}
-                    onChange={(e) => setEnableCertificate(e.target.checked)}
+                    onChange={(e) => {
+                      setEnableCertificate(e.target.checked);
+                      if (e.target.checked) setCertificateStep(1);
+                    }}
                     className="sr-only peer"
                   />
                   <div className="w-11 h-6 bg-muted rounded-full peer peer-checked:bg-primary transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-background after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full" />
@@ -620,90 +632,385 @@ const EventDetails = () => {
                   animate={{ opacity: 1, height: "auto" }}
                   className="space-y-4 pt-4 border-t border-border"
                 >
-                  {/* Achievement Criteria */}
-                  <div className="bg-primary/5 rounded-xl p-4 border border-primary/20">
-                    <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
-                      <CheckCircle2 size={16} className="text-primary" />
-                      Achievement Criteria
-                    </h4>
-                    <p className="text-sm text-muted-foreground">
-                      Attendees who achieve <span className="font-medium text-foreground">80% attendance</span> will receive a certificate.
-                    </p>
+                  {/* Step Indicators */}
+                  <div className="flex items-center justify-between mb-6">
+                    {[
+                      { step: 1, label: "Guideline", icon: Info },
+                      { step: 2, label: "Edit Zone", icon: Settings2 },
+                      { step: 3, label: "Preview", icon: Eye },
+                    ].map(({ step, label, icon: Icon }, index) => (
+                      <React.Fragment key={step}>
+                        <button
+                          onClick={() => setCertificateStep(step as 1 | 2 | 3)}
+                          className={`flex flex-col items-center gap-1 transition-all ${
+                            certificateStep === step
+                              ? "text-primary"
+                              : certificateStep > step
+                              ? "text-primary/60"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          <div
+                            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                              certificateStep === step
+                                ? "bg-primary text-primary-foreground"
+                                : certificateStep > step
+                                ? "bg-primary/20 text-primary"
+                                : "bg-muted text-muted-foreground"
+                            }`}
+                          >
+                            <Icon size={18} />
+                          </div>
+                          <span className="text-xs font-medium">{label}</span>
+                        </button>
+                        {index < 2 && (
+                          <div
+                            className={`flex-1 h-0.5 mx-2 ${
+                              certificateStep > step ? "bg-primary/60" : "bg-muted"
+                            }`}
+                          />
+                        )}
+                      </React.Fragment>
+                    ))}
                   </div>
 
-                  {/* Upload Template */}
-                  <div className="space-y-3">
-                    <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                      <FileImage size={16} />
-                      Certificate Template
-                    </label>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleTemplateUpload}
-                      className="hidden"
-                    />
-                    
-                    {uploadedTemplatePreview ? (
-                      <div className="space-y-4">
-                        <div className="p-3 flex items-center justify-between rounded-lg bg-primary/10 border border-primary/20">
-                          <div className="flex items-center gap-2 text-primary">
-                            <CheckCircle2 size={18} />
-                            <span className="text-sm font-medium">Template uploaded</span>
-                          </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => fileInputRef.current?.click()}
-                          >
-                            Change
-                          </Button>
-                        </div>
+                  {/* Step 1: Guideline */}
+                  {certificateStep === 1 && (
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="space-y-4"
+                    >
+                      <div className="bg-primary/5 rounded-xl p-4 border border-primary/20">
+                        <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+                          <Info size={18} className="text-primary" />
+                          Certificate Guideline
+                        </h4>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Below is an example certificate showing which parts you can configure in{" "}
+                          <span className="font-medium text-foreground">Step 3 (Preview)</span>.
+                        </p>
+                      </div>
 
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                            <Settings2 size={14} />
-                            Set Attendee Name Position
-                          </label>
-                          <p className="text-xs text-muted-foreground">
-                            Drag and resize the box to define where names will appear
+                      {/* Example Certificate Diagram */}
+                      <div className="relative bg-gradient-to-br from-muted/50 to-muted rounded-xl p-6 border-2 border-dashed border-border overflow-hidden">
+                        {/* Mock Certificate */}
+                        <div className="bg-background rounded-lg shadow-lg p-6 space-y-4 relative">
+                          <div className="text-center space-y-2">
+                            <p className="text-xs text-muted-foreground uppercase tracking-wider">Certificate of Attendance</p>
+                            
+                            {/* Event Name Zone */}
+                            <div className="relative inline-block w-full">
+                              <div className="border-2 border-dashed border-blue-400 bg-blue-50 dark:bg-blue-950/30 rounded-lg px-4 py-2">
+                                <p className="text-lg font-bold text-blue-600 dark:text-blue-400">event_name</p>
+                              </div>
+                              <div className="absolute -top-2 -right-2 bg-blue-500 text-white text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                                <Move size={10} />
+                              </div>
+                            </div>
+                          </div>
+
+                          <p className="text-xs text-center text-muted-foreground">This is to certify that</p>
+
+                          {/* Attendee Name Zone - Highlighted as editable */}
+                          <div className="relative">
+                            <div className="border-2 border-dashed border-green-400 bg-green-50 dark:bg-green-950/30 rounded-lg px-4 py-3">
+                              <p className="text-xl font-bold text-center text-green-600 dark:text-green-400">attendee_name</p>
+                            </div>
+                            <div className="absolute -top-2 -right-2 bg-green-500 text-white text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                              <Move size={10} />
+                              <Maximize2 size={10} />
+                            </div>
+                            <div className="absolute -bottom-6 left-0 right-0 text-center">
+                              <span className="text-[10px] bg-green-500 text-white px-2 py-0.5 rounded-full">
+                                Resizable & Movable
+                              </span>
+                            </div>
+                          </div>
+
+                          <p className="text-xs text-center text-muted-foreground pt-4">
+                            has successfully completed the requirements for this event.
                           </p>
-                          <CertificateNameZoneEditor
-                            imageUrl={uploadedTemplatePreview}
-                            zone={nameZone}
-                            onZoneChange={setNameZone}
-                            className="mt-2"
-                          />
+
+                          {/* Verification Zone */}
+                          <div className="flex justify-end mt-4">
+                            <div className="relative">
+                              <div className="border-2 border-dashed border-purple-400 bg-purple-50 dark:bg-purple-950/30 rounded-lg px-3 py-2 flex flex-col items-center gap-1">
+                                <div className="w-12 h-12 bg-purple-200 dark:bg-purple-800 rounded flex items-center justify-center">
+                                  <QrCode size={24} className="text-purple-600 dark:text-purple-400" />
+                                </div>
+                                <p className="text-[10px] text-purple-600 dark:text-purple-400">verification</p>
+                              </div>
+                              <div className="absolute -top-2 -right-2 bg-purple-500 text-white text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                                <Move size={10} />
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="w-full border-2 border-dashed border-border rounded-xl p-6 hover:border-primary/50 transition-colors"
-                      >
-                        <div className="flex flex-col items-center gap-3 text-muted-foreground">
-                          <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center">
-                            <Upload size={24} />
+
+                      {/* Parameter Boxes Explanation */}
+                      <div className="space-y-3">
+                        <h5 className="font-medium text-foreground text-sm">Parameter Boxes:</h5>
+                        
+                        <div className="grid gap-2">
+                          <div className="flex items-start gap-3 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                            <div className="w-3 h-3 rounded-full bg-blue-500 mt-1 flex-shrink-0" />
+                            <div>
+                              <p className="text-sm font-medium text-foreground">event_name</p>
+                              <p className="text-xs text-muted-foreground">
+                                Displays the event name. <span className="text-blue-600 dark:text-blue-400 font-medium">Movable only.</span>
+                              </p>
+                            </div>
                           </div>
-                          <div className="text-center">
-                            <p className="font-medium text-foreground">Upload certificate template</p>
-                            <p className="text-sm">PNG, JPG, or other image formats</p>
+
+                          <div className="flex items-start gap-3 p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+                            <div className="w-3 h-3 rounded-full bg-green-500 mt-1 flex-shrink-0" />
+                            <div>
+                              <p className="text-sm font-medium text-foreground">attendee_name</p>
+                              <p className="text-xs text-muted-foreground">
+                                Displays the attendee's name. <span className="text-green-600 dark:text-green-400 font-medium">Movable + Resizable</span> — adjust for max name alignment (vertical & horizontal).
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-start gap-3 p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                            <div className="w-3 h-3 rounded-full bg-purple-500 mt-1 flex-shrink-0" />
+                            <div>
+                              <p className="text-sm font-medium text-foreground">verification</p>
+                              <p className="text-xs text-muted-foreground">
+                                QR code / URL link to event detail page for verification. <span className="text-purple-600 dark:text-purple-400 font-medium">Movable only.</span>
+                              </p>
+                            </div>
                           </div>
                         </div>
-                      </button>
-                    )}
-                  </div>
 
-                  <Button
-                    className="w-full"
-                    onClick={handleSaveCertificate}
-                    disabled={savingCertificate}
-                  >
-                    {savingCertificate ? "Saving..." : "Save Certificate Settings"}
-                  </Button>
+                        <div className="bg-amber-50 dark:bg-amber-950/20 rounded-lg p-3 border border-amber-200 dark:border-amber-800">
+                          <p className="text-xs text-amber-800 dark:text-amber-200">
+                            <strong>Note:</strong> Our system only edits the text inside each parameter box. You can move all boxes freely, but only <strong>attendee_name</strong> can be resized.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Achievement Criteria */}
+                      <div className="bg-primary/5 rounded-xl p-4 border border-primary/20">
+                        <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
+                          <CheckCircle2 size={16} className="text-primary" />
+                          Achievement Criteria
+                        </h4>
+                        <p className="text-sm text-muted-foreground">
+                          Attendees who achieve <span className="font-medium text-foreground">80% attendance</span> will receive a certificate.
+                        </p>
+                      </div>
+
+                      <Button
+                        className="w-full"
+                        onClick={() => setCertificateStep(2)}
+                      >
+                        Next: Upload Template
+                        <ChevronRight size={18} className="ml-2" />
+                      </Button>
+                    </motion.div>
+                  )}
+
+                  {/* Step 2: Edit Zone */}
+                  {certificateStep === 2 && (
+                    <motion.div
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="space-y-4"
+                    >
+                      {/* Upload Template */}
+                      <div className="space-y-3">
+                        <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                          <FileImage size={16} />
+                          Certificate Template
+                        </label>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleTemplateUpload}
+                          className="hidden"
+                        />
+                        
+                        {uploadedTemplatePreview ? (
+                          <div className="space-y-4">
+                            <div className="p-3 flex items-center justify-between rounded-lg bg-primary/10 border border-primary/20">
+                              <div className="flex items-center gap-2 text-primary">
+                                <CheckCircle2 size={18} />
+                                <span className="text-sm font-medium">Template uploaded</span>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => fileInputRef.current?.click()}
+                              >
+                                Change
+                              </Button>
+                            </div>
+
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                                <Settings2 size={14} />
+                                Set Attendee Name Position & Size
+                              </label>
+                              <p className="text-xs text-muted-foreground">
+                                Drag to move, resize handles to adjust the name alignment area
+                              </p>
+                              <CertificateNameZoneEditor
+                                imageUrl={uploadedTemplatePreview}
+                                zone={nameZone}
+                                onZoneChange={setNameZone}
+                                className="mt-2"
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="w-full border-2 border-dashed border-border rounded-xl p-6 hover:border-primary/50 transition-colors"
+                          >
+                            <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                              <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center">
+                                <Upload size={24} />
+                              </div>
+                              <div className="text-center">
+                                <p className="font-medium text-foreground">Upload certificate template</p>
+                                <p className="text-sm">PNG, JPG, or other image formats</p>
+                              </div>
+                            </div>
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex gap-3">
+                        <Button
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => setCertificateStep(1)}
+                        >
+                          <ChevronLeft size={18} className="mr-2" />
+                          Back
+                        </Button>
+                        <Button
+                          className="flex-1"
+                          onClick={() => setCertificateStep(3)}
+                          disabled={!uploadedTemplatePreview}
+                        >
+                          Next: Preview
+                          <ChevronRight size={18} className="ml-2" />
+                        </Button>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Step 3: Preview */}
+                  {certificateStep === 3 && (
+                    <motion.div
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="space-y-4"
+                    >
+                      <div className="bg-primary/5 rounded-xl p-4 border border-primary/20">
+                        <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
+                          <Eye size={16} className="text-primary" />
+                          Certificate Preview
+                        </h4>
+                        <p className="text-sm text-muted-foreground">
+                          This is how the certificate will look with attendee information filled in.
+                        </p>
+                      </div>
+
+                      {/* Preview with zones */}
+                      {uploadedTemplatePreview && (
+                        <div className="relative rounded-xl overflow-hidden border border-border">
+                          <img
+                            src={uploadedTemplatePreview}
+                            alt="Certificate Preview"
+                            className="w-full h-auto"
+                          />
+                          
+                          {/* Event Name Zone Preview */}
+                          <div
+                            className="absolute border-2 border-blue-400 bg-blue-500/20 rounded flex items-center justify-center"
+                            style={{
+                              left: `${eventNameZone.x}%`,
+                              top: `${eventNameZone.y}%`,
+                              width: `${eventNameZone.width}%`,
+                              height: `${eventNameZone.height}%`,
+                            }}
+                          >
+                            <span className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-background/80 px-2 py-0.5 rounded">
+                              {event?.name || "Event Name"}
+                            </span>
+                          </div>
+
+                          {/* Attendee Name Zone Preview */}
+                          <div
+                            className="absolute border-2 border-green-400 bg-green-500/20 rounded flex items-center justify-center"
+                            style={{
+                              left: `${nameZone.x}%`,
+                              top: `${nameZone.y}%`,
+                              width: `${nameZone.width}%`,
+                              height: `${nameZone.height}%`,
+                            }}
+                          >
+                            <span className="text-sm font-bold text-green-600 dark:text-green-400 bg-background/80 px-2 py-0.5 rounded">
+                              John Doe
+                            </span>
+                          </div>
+
+                          {/* Verification Zone Preview */}
+                          <div
+                            className="absolute border-2 border-purple-400 bg-purple-500/20 rounded flex items-center justify-center"
+                            style={{
+                              left: `${verificationZone.x}%`,
+                              top: `${verificationZone.y}%`,
+                              width: `${verificationZone.width}%`,
+                              height: `${verificationZone.height}%`,
+                            }}
+                          >
+                            <QrCode size={20} className="text-purple-600 dark:text-purple-400" />
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="text-xs text-muted-foreground text-center">
+                        <span className="inline-flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full bg-blue-500" /> Event Name
+                        </span>
+                        <span className="mx-3">|</span>
+                        <span className="inline-flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full bg-green-500" /> Attendee Name
+                        </span>
+                        <span className="mx-3">|</span>
+                        <span className="inline-flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-full bg-purple-500" /> Verification
+                        </span>
+                      </div>
+
+                      <div className="flex gap-3">
+                        <Button
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => setCertificateStep(2)}
+                        >
+                          <ChevronLeft size={18} className="mr-2" />
+                          Back
+                        </Button>
+                        <Button
+                          className="flex-1"
+                          onClick={handleSaveCertificate}
+                          disabled={savingCertificate}
+                        >
+                          {savingCertificate ? "Saving..." : "Save Certificate"}
+                        </Button>
+                      </div>
+                    </motion.div>
+                  )}
                 </motion.div>
               )}
 
