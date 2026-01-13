@@ -38,7 +38,7 @@ import {
   Eye,
 } from "lucide-react";
 import LeafletLocationMap from "@/components/LeafletLocationMap";
-import CertificateNameZoneEditor from "@/components/CertificateNameZoneEditor";
+import CertificateMultiZoneEditor, { CertificateZones } from "@/components/CertificateMultiZoneEditor";
 
 interface Event {
   id: string;
@@ -89,9 +89,11 @@ const EventDetails = () => {
   // Certificate configuration state
   const [enableCertificate, setEnableCertificate] = useState(false);
   const [uploadedTemplatePreview, setUploadedTemplatePreview] = useState<string | null>(null);
-  const [nameZone, setNameZone] = useState({ x: 25, y: 45, width: 50, height: 10 });
-  const [eventNameZone, setEventNameZone] = useState({ x: 10, y: 15, width: 80, height: 8 });
-  const [verificationZone, setVerificationZone] = useState({ x: 70, y: 80, width: 20, height: 15 });
+  const [certificateZones, setCertificateZones] = useState<CertificateZones>({
+    eventName: { x: 10, y: 15, width: 80, height: 8 },
+    attendeeName: { x: 25, y: 45, width: 50, height: 10 },
+    verification: { x: 70, y: 80, width: 20, height: 15 },
+  });
   const [savingCertificate, setSavingCertificate] = useState(false);
   const [certificateStep, setCertificateStep] = useState<1 | 2 | 3>(1);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -854,15 +856,15 @@ const EventDetails = () => {
                             <div className="space-y-2">
                               <label className="text-sm font-medium text-foreground flex items-center gap-2">
                                 <Settings2 size={14} />
-                                Set Attendee Name Position & Size
+                                Configure Zone Positions
                               </label>
                               <p className="text-xs text-muted-foreground">
-                                Drag to move, resize handles to adjust the name alignment area
+                                Drag any zone to move. Only Attendee Name can be resized.
                               </p>
-                              <CertificateNameZoneEditor
+                              <CertificateMultiZoneEditor
                                 imageUrl={uploadedTemplatePreview}
-                                zone={nameZone}
-                                onZoneChange={setNameZone}
+                                zones={certificateZones}
+                                onZonesChange={setCertificateZones}
                                 className="mt-2"
                               />
                             </div>
@@ -937,10 +939,10 @@ const EventDetails = () => {
                           <div
                             className="absolute border-2 border-blue-400 bg-blue-500/20 rounded flex items-center justify-center"
                             style={{
-                              left: `${eventNameZone.x}%`,
-                              top: `${eventNameZone.y}%`,
-                              width: `${eventNameZone.width}%`,
-                              height: `${eventNameZone.height}%`,
+                              left: `${certificateZones.eventName.x}%`,
+                              top: `${certificateZones.eventName.y}%`,
+                              width: `${certificateZones.eventName.width}%`,
+                              height: `${certificateZones.eventName.height}%`,
                             }}
                           >
                             <span className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-background/80 px-2 py-0.5 rounded">
@@ -952,10 +954,10 @@ const EventDetails = () => {
                           <div
                             className="absolute border-2 border-green-400 bg-green-500/20 rounded flex items-center justify-center"
                             style={{
-                              left: `${nameZone.x}%`,
-                              top: `${nameZone.y}%`,
-                              width: `${nameZone.width}%`,
-                              height: `${nameZone.height}%`,
+                              left: `${certificateZones.attendeeName.x}%`,
+                              top: `${certificateZones.attendeeName.y}%`,
+                              width: `${certificateZones.attendeeName.width}%`,
+                              height: `${certificateZones.attendeeName.height}%`,
                             }}
                           >
                             <span className="text-sm font-bold text-green-600 dark:text-green-400 bg-background/80 px-2 py-0.5 rounded">
@@ -967,10 +969,10 @@ const EventDetails = () => {
                           <div
                             className="absolute border-2 border-purple-400 bg-purple-500/20 rounded flex items-center justify-center"
                             style={{
-                              left: `${verificationZone.x}%`,
-                              top: `${verificationZone.y}%`,
-                              width: `${verificationZone.width}%`,
-                              height: `${verificationZone.height}%`,
+                              left: `${certificateZones.verification.x}%`,
+                              top: `${certificateZones.verification.y}%`,
+                              width: `${certificateZones.verification.width}%`,
+                              height: `${certificateZones.verification.height}%`,
                             }}
                           >
                             <QrCode size={20} className="text-purple-600 dark:text-purple-400" />
