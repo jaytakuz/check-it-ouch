@@ -734,11 +734,6 @@ const EventDetails = () => {
                               <Move size={10} />
                               <Maximize2 size={10} />
                             </div>
-                            <div className="absolute -bottom-6 left-0 right-0 text-center">
-                              <span className="text-[10px] bg-green-500 text-white px-2 py-0.5 rounded-full">
-                                Resizable & Movable
-                              </span>
-                            </div>
                           </div>
 
                           <p className="text-xs text-center text-muted-foreground pt-4">
