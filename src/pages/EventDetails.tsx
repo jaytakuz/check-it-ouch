@@ -683,6 +683,17 @@ const EventDetails = () => {
                       animate={{ opacity: 1, x: 0 }}
                       className="space-y-4"
                     >
+                      {/* Achievement Criteria - Moved to top */}
+                      <div className="bg-primary/5 rounded-xl p-4 border border-primary/20">
+                        <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
+                          <CheckCircle2 size={16} className="text-primary" />
+                          Achievement Criteria
+                        </h4>
+                        <p className="text-sm text-muted-foreground">
+                          Attendees who achieve <span className="font-medium text-foreground">80% attendance</span> will receive a certificate.
+                        </p>
+                      </div>
+
                       <div className="bg-primary/5 rounded-xl p-4 border border-primary/20">
                         <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
                           <Info size={18} className="text-primary" />
@@ -792,17 +803,6 @@ const EventDetails = () => {
                             <strong>Note:</strong> Our system only edits the text inside each parameter box. You can move all boxes freely, but only <strong>attendee_name</strong> can be resized.
                           </p>
                         </div>
-                      </div>
-
-                      {/* Achievement Criteria */}
-                      <div className="bg-primary/5 rounded-xl p-4 border border-primary/20">
-                        <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
-                          <CheckCircle2 size={16} className="text-primary" />
-                          Achievement Criteria
-                        </h4>
-                        <p className="text-sm text-muted-foreground">
-                          Attendees who achieve <span className="font-medium text-foreground">80% attendance</span> will receive a certificate.
-                        </p>
                       </div>
 
                       <Button
