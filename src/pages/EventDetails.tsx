@@ -36,7 +36,10 @@ import {
   Move,
   Maximize2,
   Eye,
+  Download,
+  Loader2,
 } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
 import LeafletLocationMap from "@/components/LeafletLocationMap";
 import CertificateMultiZoneEditor, { CertificateZones } from "@/components/CertificateMultiZoneEditor";
 
@@ -58,6 +61,8 @@ interface Event {
   host_id: string;
   certificate_url: string | null;
   event_tag: string | null;
+  certificate_threshold: number;
+  certificate_zones: CertificateZones | null;
 }
 
 interface HostProfile {
@@ -96,6 +101,9 @@ const EventDetails = () => {
   });
   const [savingCertificate, setSavingCertificate] = useState(false);
   const [certificateStep, setCertificateStep] = useState<1 | 2 | 3>(1);
+  const [certificateThreshold, setCertificateThreshold] = useState(80);
+  const [generatingCertificate, setGeneratingCertificate] = useState(false);
+  const [generatedCertificate, setGeneratedCertificate] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Detect if viewing as host (from /host/event/... route)
@@ -126,11 +134,27 @@ const EventDetails = () => {
       return;
     }
 
-    setEvent(eventData);
+    // Cast certificate_zones to CertificateZones type
+    const parsedEvent: Event = {
+      ...eventData,
+      certificate_zones: eventData.certificate_zones as unknown as CertificateZones | null,
+    };
+
+    setEvent(parsedEvent);
     
     // Initialize certificate state based on event data
     if (eventData.certificate_url) {
       setEnableCertificate(true);
+    }
+    
+    // Initialize certificate threshold from event data
+    if (eventData.certificate_threshold) {
+      setCertificateThreshold(eventData.certificate_threshold);
+    }
+    
+    // Initialize certificate zones from event data
+    if (eventData.certificate_zones) {
+      setCertificateZones(eventData.certificate_zones as unknown as CertificateZones);
     }
 
     // Fetch host profile
@@ -221,6 +245,93 @@ const EventDetails = () => {
   const getAttendanceProgress = (): number => {
     if (!event?.max_attendees) return 0;
     return Math.min(100, Math.round((checkInStats.total / event.max_attendees) * 100));
+  };
+
+  // Calculate user's attendance percentage
+  const getUserAttendancePercentage = (): number => {
+    if (!event) return 0;
+    
+    // For now, use a simple calculation based on total sessions
+    // In a real scenario, this would need to count total available sessions
+    if (event.is_recurring) {
+      // For recurring events, we'd need to calculate based on recurring_days and date range
+      // For simplicity, just use check-in count / estimated sessions
+      const estimatedTotalSessions = 10; // Placeholder - should be calculated
+      return Math.min(100, Math.round((checkInStats.userCheckIns / estimatedTotalSessions) * 100));
+    }
+    // For one-time events, if they checked in, it's 100%
+    return checkInStats.userCheckIns > 0 ? 100 : 0;
+  };
+
+  const canDownloadCertificate = (): boolean => {
+    if (!event || !enableCertificate) return false;
+    const attendancePercentage = getUserAttendancePercentage();
+    return attendancePercentage >= event.certificate_threshold;
+  };
+
+  const handleGenerateCertificate = async () => {
+    if (!event || !user) return;
+
+    setGeneratingCertificate(true);
+    try {
+      const response = await supabase.functions.invoke('generate-certificate', {
+        body: {
+          eventId: event.id,
+          userId: user.id,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      const data = response.data;
+      
+      if (data.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      if (data.certificate) {
+        setGeneratedCertificate(data.certificate);
+        // Create download link
+        const blob = new Blob([data.certificate], { type: 'image/svg+xml' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `certificate-${event.name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.svg`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success('Certificate downloaded!');
+      }
+    } catch (error) {
+      console.error('Error generating certificate:', error);
+      toast.error('Failed to generate certificate');
+    } finally {
+      setGeneratingCertificate(false);
+    }
+  };
+
+  const handleSaveThreshold = async () => {
+    if (!event) return;
+    
+    setSavingCertificate(true);
+    try {
+      const { error } = await supabase
+        .from('events')
+        .update({ certificate_threshold: certificateThreshold })
+        .eq('id', event.id);
+
+      if (error) throw error;
+      toast.success('Certificate threshold saved!');
+    } catch (error) {
+      console.error('Error saving threshold:', error);
+      toast.error('Failed to save threshold');
+    } finally {
+      setSavingCertificate(false);
+    }
   };
 
   const handleShare = async () => {
@@ -492,6 +603,53 @@ const EventDetails = () => {
             </ul>
           </div>
 
+          {/* Certificate Download - Attendee View Only */}
+          {!isHostView && enableCertificate && isEnrolled && user && (
+            <div className="bg-card rounded-xl p-4 border border-border">
+              <div className="flex items-center gap-2 mb-3">
+                <Award size={18} className="text-primary" />
+                <h3 className="font-semibold text-foreground">Certificate</h3>
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Your Attendance</span>
+                  <span className="font-medium text-foreground">{getUserAttendancePercentage()}%</span>
+                </div>
+                <Progress value={getUserAttendancePercentage()} className="h-2" />
+                <p className="text-xs text-muted-foreground">
+                  Required: {event.certificate_threshold}% to earn certificate
+                </p>
+                
+                {canDownloadCertificate() ? (
+                  <Button
+                    onClick={handleGenerateCertificate}
+                    disabled={generatingCertificate}
+                    className="w-full"
+                  >
+                    {generatingCertificate ? (
+                      <>
+                        <Loader2 size={16} className="mr-2 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Download size={16} className="mr-2" />
+                        Download Certificate
+                      </>
+                    )}
+                  </Button>
+                ) : (
+                  <div className="bg-muted/50 rounded-lg p-3 text-center">
+                    <p className="text-sm text-muted-foreground">
+                      Attend more sessions to earn your certificate
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Capacity */}
           {event.max_attendees && (
             <div className="bg-card rounded-xl p-4 border border-border">
@@ -683,15 +841,47 @@ const EventDetails = () => {
                       animate={{ opacity: 1, x: 0 }}
                       className="space-y-4"
                     >
-                      {/* Achievement Criteria - Moved to top */}
+                      {/* Achievement Criteria with Slider */}
                       <div className="bg-primary/5 rounded-xl p-4 border border-primary/20">
-                        <h4 className="font-medium text-foreground mb-2 flex items-center gap-2">
+                        <h4 className="font-medium text-foreground mb-3 flex items-center gap-2">
                           <CheckCircle2 size={16} className="text-primary" />
                           Achievement Criteria
                         </h4>
-                        <p className="text-sm text-muted-foreground">
-                          Attendees who achieve <span className="font-medium text-foreground">80% attendance</span> will receive a certificate.
-                        </p>
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">Required Attendance</span>
+                            <span className="text-lg font-bold text-primary">{certificateThreshold}%</span>
+                          </div>
+                          <Slider
+                            value={[certificateThreshold]}
+                            onValueChange={(value) => setCertificateThreshold(value[0])}
+                            min={50}
+                            max={100}
+                            step={5}
+                            className="w-full"
+                          />
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>50%</span>
+                            <span>75%</span>
+                            <span>100%</span>
+                          </div>
+                          <Button
+                            onClick={handleSaveThreshold}
+                            disabled={savingCertificate}
+                            variant="outline"
+                            size="sm"
+                            className="w-full"
+                          >
+                            {savingCertificate ? (
+                              <>
+                                <Loader2 size={14} className="mr-2 animate-spin" />
+                                Saving...
+                              </>
+                            ) : (
+                              'Save Threshold'
+                            )}
+                          </Button>
+                        </div>
                       </div>
 
                       <div className="bg-primary/5 rounded-xl p-4 border border-primary/20">

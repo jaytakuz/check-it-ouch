@@ -1,1 +1,4 @@
 project_id = "ilkcqwjhmvtdpaththgp"
+
+[functions.generate-certificate]
+verify_jwt = false
