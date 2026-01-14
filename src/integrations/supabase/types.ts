@@ -60,7 +60,9 @@ export type Database = {
       }
       events: {
         Row: {
+          certificate_threshold: number
           certificate_url: string | null
+          certificate_zones: Json | null
           created_at: string
           description: string | null
           end_repeat_date: string | null
@@ -84,7 +86,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          certificate_threshold?: number
           certificate_url?: string | null
+          certificate_zones?: Json | null
           created_at?: string
           description?: string | null
           end_repeat_date?: string | null
@@ -108,7 +112,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          certificate_threshold?: number
           certificate_url?: string | null
+          certificate_zones?: Json | null
           created_at?: string
           description?: string | null
           end_repeat_date?: string | null
