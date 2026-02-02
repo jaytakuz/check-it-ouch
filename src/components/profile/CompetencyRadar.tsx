@@ -126,64 +126,107 @@ const CompetencyRadar = ({ skills }: CompetencyRadarProps) => {
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Left: Radar Chart */}
-        <div className="relative">
-          {/* Definition Popup */}
-          <AnimatePresence>
-            {selectedDimension && selectedMeta && (
-              <motion.div
-                initial={{ opacity: 0, y: 5, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 5, scale: 0.95 }}
-                className="absolute top-0 left-0 right-0 z-10 mx-2"
-              >
-                <div 
-                  className="rounded-lg p-3 text-xs shadow-lg border"
-                  style={{ 
-                    backgroundColor: `color-mix(in srgb, ${selectedMeta.color} 10%, hsl(var(--card)))`,
-                    borderColor: `color-mix(in srgb, ${selectedMeta.color} 30%, transparent)`
-                  }}
+        <div className="flex flex-col">
+          {/* Definition Box - Fixed height container to prevent layout shift */}
+          <div className="h-[72px] mb-2">
+            <AnimatePresence mode="wait">
+              {selectedDimension && selectedMeta ? (
+                <motion.div
+                  key={selectedDimension}
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  className="h-full"
                 >
-                  <div className="flex items-center gap-2 mb-1">
-                    <selectedMeta.icon 
-                      className="w-3.5 h-3.5" 
-                      style={{ color: selectedMeta.color }}
-                    />
-                    <span className="font-medium" style={{ color: selectedMeta.color }}>
-                      {selectedDimension}
-                    </span>
-                    <span className="ml-auto font-semibold">
-                      {selectedData?.displayScore} XP
-                    </span>
+                  <div 
+                    className="rounded-xl p-3 h-full border backdrop-blur-sm"
+                    style={{ 
+                      backgroundColor: `color-mix(in srgb, ${selectedMeta.color} 8%, hsl(var(--card)))`,
+                      borderColor: `color-mix(in srgb, ${selectedMeta.color} 25%, hsl(var(--border)))`
+                    }}
+                  >
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <div 
+                        className="w-6 h-6 rounded-lg flex items-center justify-center"
+                        style={{ backgroundColor: `color-mix(in srgb, ${selectedMeta.color} 15%, transparent)` }}
+                      >
+                        <selectedMeta.icon 
+                          className="w-3.5 h-3.5" 
+                          style={{ color: selectedMeta.color }}
+                        />
+                      </div>
+                      <span className="font-semibold text-sm" style={{ color: selectedMeta.color }}>
+                        {selectedDimension}
+                      </span>
+                      <span className="ml-auto text-sm font-bold text-foreground">
+                        {selectedData?.displayScore} XP
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                      {selectedMeta.definition}
+                    </p>
                   </div>
-                  <p className="text-muted-foreground leading-relaxed">
-                    {selectedMeta.definition}
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="placeholder"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="h-full flex items-center justify-center rounded-xl border border-dashed border-border/50 bg-muted/20"
+                >
+                  <p className="text-xs text-muted-foreground">
+                    Click a dimension to see details
                   </p>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
 
-          <div className={`h-56 transition-all duration-300 ${selectedDimension ? 'mt-20' : ''}`}>
+          {/* Radar Chart with enhanced visuals */}
+          <div className="h-52 relative">
             <ResponsiveContainer width="100%" height="100%">
-              <RadarChart cx="50%" cy="50%" outerRadius="70%" data={chartData}>
+              <RadarChart cx="50%" cy="50%" outerRadius="68%" data={chartData}>
                 <defs>
-                  <linearGradient id="radarGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.05} />
+                  {/* Base gradient with subtle pattern effect */}
+                  <linearGradient id="radarGradientBase" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.25} />
+                    <stop offset="50%" stopColor="hsl(var(--primary))" stopOpacity={0.15} />
+                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.08} />
                   </linearGradient>
+                  
+                  {/* Stroke gradient for depth */}
+                  <linearGradient id="strokeGradient" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={1} />
+                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.6} />
+                  </linearGradient>
+
                   {/* Highlighted gradient for selected dimension */}
                   {selectedDimension && selectedMeta && (
-                    <linearGradient id="highlightGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={selectedMeta.color} stopOpacity={0.5} />
+                    <linearGradient id="highlightGradient" x1="0" y1="0" x2="1" y2="1">
+                      <stop offset="0%" stopColor={selectedMeta.color} stopOpacity={0.4} />
+                      <stop offset="50%" stopColor={selectedMeta.color} stopOpacity={0.2} />
                       <stop offset="100%" stopColor={selectedMeta.color} stopOpacity={0.1} />
                     </linearGradient>
                   )}
+
+                  {/* Glow filter for selected state */}
+                  <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                    <feMerge>
+                      <feMergeNode in="coloredBlur"/>
+                      <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                  </filter>
                 </defs>
+                
                 <PolarGrid 
                   stroke="hsl(var(--border))" 
-                  strokeOpacity={0.4}
+                  strokeOpacity={0.3}
+                  gridType="polygon"
                 />
                 <PolarAngleAxis 
                   dataKey="category" 
@@ -196,25 +239,52 @@ const CompetencyRadar = ({ skills }: CompetencyRadarProps) => {
                   tick={false}
                   axisLine={false}
                 />
+                
+                {/* Background shape for depth */}
+                <Radar
+                  name="Background"
+                  dataKey="value"
+                  stroke="transparent"
+                  fill="url(#radarGradientBase)"
+                  fillOpacity={0.5}
+                />
+                
+                {/* Main radar shape */}
                 <Radar
                   name="Skills"
                   dataKey="value"
                   stroke={selectedDimension && selectedMeta ? selectedMeta.color : "hsl(var(--primary))"}
-                  fill={selectedDimension ? "url(#highlightGradient)" : "url(#radarGradient)"}
-                  strokeWidth={2}
+                  fill={selectedDimension ? "url(#highlightGradient)" : "url(#radarGradientBase)"}
+                  strokeWidth={2.5}
+                  strokeLinejoin="round"
+                  filter={selectedDimension ? "url(#glow)" : undefined}
                   dot={(props: any) => {
                     const isActive = selectedDimension === props.payload.category;
                     const meta = DIMENSION_META[props.payload.category];
+                    const dotColor = isActive && meta ? meta.color : "hsl(var(--primary))";
+                    
                     return (
-                      <circle
-                        cx={props.cx}
-                        cy={props.cy}
-                        r={isActive ? 6 : 4}
-                        fill={isActive && meta ? meta.color : "hsl(var(--primary))"}
-                        stroke="hsl(var(--background))"
-                        strokeWidth={2}
-                        className="transition-all duration-200"
-                      />
+                      <g>
+                        {/* Outer glow ring for active state */}
+                        {isActive && (
+                          <circle
+                            cx={props.cx}
+                            cy={props.cy}
+                            r={10}
+                            fill={meta?.color}
+                            fillOpacity={0.15}
+                          />
+                        )}
+                        {/* Main dot */}
+                        <circle
+                          cx={props.cx}
+                          cy={props.cy}
+                          r={isActive ? 5 : 3.5}
+                          fill={dotColor}
+                          stroke="hsl(var(--card))"
+                          strokeWidth={2}
+                        />
+                      </g>
                     );
                   }}
                 />
