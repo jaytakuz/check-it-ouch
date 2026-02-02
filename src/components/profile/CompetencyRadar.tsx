@@ -127,67 +127,61 @@ const CompetencyRadar = ({ skills }: CompetencyRadarProps) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Left: Radar Chart */}
-        <div className="flex flex-col">
-          {/* Definition Box - Fixed height container to prevent layout shift */}
-          <div className="h-[72px] mb-2">
-            <AnimatePresence mode="wait">
-              {selectedDimension && selectedMeta ? (
+        {/* Left: Radar Chart with Integrated Definition */}
+        <div className="relative flex flex-col">
+          {/* Radar Chart - Full height */}
+          <div className="h-64 relative">
+            {/* Definition Tooltip - Positioned dynamically at top of chart area */}
+            <AnimatePresence>
+              {selectedDimension && selectedMeta && (
                 <motion.div
                   key={selectedDimension}
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.2, ease: "easeOut" }}
-                  className="h-full"
+                  initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                  className="absolute top-2 left-2 right-2 z-20"
                 >
                   <div 
-                    className="rounded-xl p-3 h-full border backdrop-blur-sm"
+                    className="rounded-lg px-3 py-2 shadow-lg border backdrop-blur-md flex items-center gap-3"
                     style={{ 
-                      backgroundColor: `color-mix(in srgb, ${selectedMeta.color} 8%, hsl(var(--card)))`,
-                      borderColor: `color-mix(in srgb, ${selectedMeta.color} 25%, hsl(var(--border)))`
+                      backgroundColor: `color-mix(in srgb, ${selectedMeta.color} 12%, hsl(var(--card) / 0.95))`,
+                      borderColor: `color-mix(in srgb, ${selectedMeta.color} 30%, hsl(var(--border)))`
                     }}
                   >
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <div 
-                        className="w-6 h-6 rounded-lg flex items-center justify-center"
-                        style={{ backgroundColor: `color-mix(in srgb, ${selectedMeta.color} 15%, transparent)` }}
-                      >
-                        <selectedMeta.icon 
-                          className="w-3.5 h-3.5" 
-                          style={{ color: selectedMeta.color }}
-                        />
-                      </div>
-                      <span className="font-semibold text-sm" style={{ color: selectedMeta.color }}>
-                        {selectedDimension}
-                      </span>
-                      <span className="ml-auto text-sm font-bold text-foreground">
-                        {selectedData?.displayScore} XP
-                      </span>
+                    <div 
+                      className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: `color-mix(in srgb, ${selectedMeta.color} 20%, transparent)` }}
+                    >
+                      <selectedMeta.icon 
+                        className="w-4 h-4" 
+                        style={{ color: selectedMeta.color }}
+                      />
                     </div>
-                    <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
-                      {selectedMeta.definition}
-                    </p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-sm" style={{ color: selectedMeta.color }}>
+                          {selectedDimension}
+                        </span>
+                        <span className="text-xs font-bold px-1.5 py-0.5 rounded-md bg-background/50 text-foreground">
+                          {selectedData?.displayScore} XP
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground leading-tight mt-0.5 line-clamp-1">
+                        {selectedMeta.definition}
+                      </p>
+                    </div>
+                    <button 
+                      onClick={() => setSelectedDimension(null)}
+                      className="w-5 h-5 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors shrink-0"
+                    >
+                      ×
+                    </button>
                   </div>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="placeholder"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="h-full flex items-center justify-center rounded-xl border border-dashed border-border/50 bg-muted/20"
-                >
-                  <p className="text-xs text-muted-foreground">
-                    Click a dimension to see details
-                  </p>
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
-
-          {/* Radar Chart with enhanced visuals */}
-          <div className="h-52 relative">
+            
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart cx="50%" cy="50%" outerRadius="68%" data={chartData}>
                 <defs>
