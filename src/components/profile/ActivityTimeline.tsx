@@ -7,74 +7,119 @@ import {
   User,
   Users,
   Award,
-  Clock
+  Download,
+  Lightbulb,
+  Wrench,
+  Trophy
 } from "lucide-react";
-import { format, parseISO, isFuture } from "date-fns";
-
-interface Session {
-  date: string;
-  status: "present" | "absent" | "upcoming";
-}
-
-interface ActivityEvent {
-  id: string;
-  eventName: string;
-  eventDate: string;
-  role: "participant" | "staff";
-  sessions: Session[];
-  certificateStatus: "pass" | "incomplete" | "pending";
-  attendancePercentage: number;
-}
+import { format, parseISO } from "date-fns";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { TIER_CONFIG, type ActivityItem, type AttendanceStatus } from "@/data/profileMockData";
 
 interface ActivityTimelineProps {
-  activities: ActivityEvent[];
+  activities: ActivityItem[];
 }
 
-const AttendanceStrip = ({ sessions }: { sessions: Session[] }) => {
+const tierIcons: Record<number, React.ReactNode> = {
+  1: <Lightbulb size={12} />,
+  2: <Wrench size={12} />,
+  3: <Trophy size={12} />,
+};
+
+const AttendanceStrip = ({ sessions }: { sessions: { date: string; status: AttendanceStatus }[] }) => {
   return (
-    <div className="flex items-center gap-1">
-      {sessions.map((session, index) => (
-        <div
-          key={index}
-          className={`
-            w-2.5 h-2.5 rounded-full transition-all
-            ${session.status === "present" ? "bg-success" : ""}
-            ${session.status === "absent" ? "bg-destructive" : ""}
-            ${session.status === "upcoming" ? "bg-muted-foreground/30" : ""}
-          `}
-          title={`${format(parseISO(session.date), "MMM d")} - ${session.status}`}
-        />
-      ))}
-    </div>
+    <TooltipProvider>
+      <div className="flex items-center gap-1">
+        {sessions.map((session, index) => (
+          <Tooltip key={index}>
+            <TooltipTrigger asChild>
+              <div
+                className={`
+                  w-2.5 h-2.5 rounded-full transition-all cursor-help
+                  ${session.status === "present" ? "bg-success" : ""}
+                  ${session.status === "absent" ? "bg-destructive" : ""}
+                  ${session.status === "upcoming" ? "bg-muted-foreground/30" : ""}
+                `}
+              />
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="text-xs">
+                Session {index + 1}: {format(parseISO(session.date), "MMM d")} - 
+                <span className={`ml-1 font-medium ${
+                  session.status === "present" ? "text-success" : 
+                  session.status === "absent" ? "text-destructive" : 
+                  "text-muted-foreground"
+                }`}>
+                  {session.status.charAt(0).toUpperCase() + session.status.slice(1)}
+                </span>
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        ))}
+      </div>
+    </TooltipProvider>
   );
 };
 
-const CertificateStatusBadge = ({ status }: { status: ActivityEvent["certificateStatus"] }) => {
-  const statusConfig = {
-    pass: {
-      label: "Pass",
-      className: "bg-success/10 text-success border-success/20",
-      icon: <Award size={12} />,
-    },
-    incomplete: {
-      label: "Incomplete",
-      className: "bg-muted text-muted-foreground border-border",
-      icon: <Clock size={12} />,
-    },
-    pending: {
-      label: "Pending",
-      className: "bg-amber-500/10 text-amber-600 border-amber-500/20",
-      icon: <Clock size={12} />,
-    },
-  };
-
-  const config = statusConfig[status];
-
+const TierBadge = ({ tier }: { tier: 1 | 2 | 3 }) => {
+  const config = TIER_CONFIG[tier];
+  
   return (
-    <Badge variant="outline" className={`${config.className} gap-1 text-xs`}>
-      {config.icon}
+    <Badge 
+      variant="outline" 
+      className={`${config.color} gap-1 text-xs`}
+    >
+      {tierIcons[tier]}
       {config.label}
     </Badge>
+  );
+};
+
+const CertificateStatusBadge = ({ 
+  earned, 
+  attendancePercentage 
+}: { 
+  earned: boolean; 
+  attendancePercentage: number;
+}) => {
+  if (earned) {
+    return (
+      <div className="flex items-center gap-2">
+        <Badge variant="outline" className="bg-success/10 text-success border-success/20 gap-1 text-xs">
+          <Award size={12} />
+          Certified
+        </Badge>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-6 px-2 text-xs text-primary hover:text-primary"
+          onClick={(e) => {
+            e.stopPropagation();
+            // Download certificate logic
+          }}
+        >
+          <Download size={12} className="mr-1" />
+          Download
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger>
+          <Badge variant="outline" className="bg-muted text-muted-foreground border-border gap-1 text-xs cursor-help">
+            Incomplete
+          </Badge>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p className="text-xs">
+            Attendance: {attendancePercentage}% (Requires 80% for certificate)
+          </p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 };
 
@@ -101,7 +146,7 @@ const ActivityTimeline = ({ activities }: ActivityTimelineProps) => {
         </div>
       ) : (
         <div className="space-y-3">
-          {activities.map((activity, index) => (
+          {activities.slice(0, 5).map((activity, index) => (
             <motion.div
               key={activity.id}
               initial={{ opacity: 0, x: -10 }}
@@ -112,10 +157,12 @@ const ActivityTimeline = ({ activities }: ActivityTimelineProps) => {
               {/* Header */}
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-medium text-foreground text-sm truncate">
-                    {activity.eventName}
-                  </h4>
-                  <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h4 className="font-medium text-foreground text-sm truncate">
+                      {activity.eventName}
+                    </h4>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Calendar size={12} />
                     <span>{format(parseISO(activity.eventDate), "MMM d, yyyy")}</span>
                     <span className="text-border">•</span>
@@ -126,19 +173,8 @@ const ActivityTimeline = ({ activities }: ActivityTimelineProps) => {
                   </div>
                 </div>
                 
-                {/* Role Badge */}
-                <Badge 
-                  variant="outline" 
-                  className={`
-                    text-xs flex-shrink-0
-                    ${activity.role === "staff" 
-                      ? "bg-primary/10 text-primary border-primary/20" 
-                      : "bg-muted text-muted-foreground border-border"
-                    }
-                  `}
-                >
-                  {activity.role === "staff" ? "Staff" : "Participant"}
-                </Badge>
+                {/* Tier Badge */}
+                <TierBadge tier={activity.tierLevel} />
               </div>
 
               {/* Attendance Strip */}
@@ -149,10 +185,13 @@ const ActivityTimeline = ({ activities }: ActivityTimelineProps) => {
                     {activity.attendancePercentage}% attendance
                   </span>
                 </div>
-                <CertificateStatusBadge status={activity.certificateStatus} />
+                <CertificateStatusBadge 
+                  earned={activity.certificateEarned} 
+                  attendancePercentage={activity.attendancePercentage}
+                />
               </div>
 
-              {/* Legend for attendance strip */}
+              {/* Legend for first item only */}
               {index === 0 && (
                 <div className="flex items-center gap-4 mt-3 pt-2 border-t border-dashed border-border/50 text-xs text-muted-foreground">
                   <div className="flex items-center gap-1.5">
@@ -171,6 +210,36 @@ const ActivityTimeline = ({ activities }: ActivityTimelineProps) => {
               )}
             </motion.div>
           ))}
+        </div>
+      )}
+
+      {/* Summary Stats */}
+      {activities.length > 0 && (
+        <div className="mt-4 pt-4 border-t border-border">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <div className="flex items-center gap-4">
+              <span>
+                <span className="font-medium text-foreground">{activities.length}</span> total events
+              </span>
+              <span>
+                <span className="font-medium text-foreground">
+                  {activities.filter(a => a.certificateEarned).length}
+                </span> certificates
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {[3, 2, 1].map(tier => {
+                const count = activities.filter(a => a.tierLevel === tier).length;
+                if (count === 0) return null;
+                return (
+                  <span key={tier} className="flex items-center gap-1">
+                    {tierIcons[tier]}
+                    <span className="font-medium">{count}</span>
+                  </span>
+                );
+              })}
+            </div>
+          </div>
         </div>
       )}
     </motion.div>
