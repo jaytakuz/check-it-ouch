@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 // Profile components
@@ -20,104 +19,15 @@ import CompetencyRadar from "@/components/profile/CompetencyRadar";
 import SkillShowcase from "@/components/profile/SkillShowcase";
 import ActivityTimeline from "@/components/profile/ActivityTimeline";
 
-// ============================================
-// MOCK DATA: High Performing Student Scenario
-// ============================================
-const mockProfileData = {
-  name: "Alex Johnson",
-  studentId: "6510012345",
-  faculty: "Faculty of Engineering",
-  avatarUrl: undefined,
-  totalEvents: 24,
-  certificatesEarned: 8,
-  skills: [
-    { category: "Technology", count: 18 },
-    { category: "Social", count: 12 },
-    { category: "Cognitive", count: 14 },
-    { category: "Domain", count: 9 },
-    { category: "Self-Efficacy", count: 11 },
-  ],
-};
-
-const mockRadarData = [
-  { category: "Technology", score: 65, displayScore: 65 },
-  { category: "Social", score: 45, displayScore: 45 },
-  { category: "Cognitive", score: 52, displayScore: 52 },
-  { category: "Domain", score: 38, displayScore: 38 },
-  { category: "Self-Efficacy", score: 48, displayScore: 48 },
-];
-
-const mockSkills = [
-  { id: "1", name: "Python", count: 8, isVerified: true, isPinned: true, category: "Technology" },
-  { id: "2", name: "React", count: 6, isVerified: true, isPinned: false, category: "Technology" },
-  { id: "3", name: "Data Analysis", count: 5, isVerified: true, isPinned: true, category: "Cognitive" },
-  { id: "4", name: "Team Leadership", count: 4, isVerified: true, isPinned: false, category: "Social" },
-  { id: "5", name: "Public Speaking", count: 4, isVerified: false, isPinned: false, category: "Social" },
-  { id: "6", name: "Machine Learning", count: 3, isVerified: true, isPinned: false, category: "Technology" },
-  { id: "7", name: "Project Management", count: 3, isVerified: true, isPinned: false, category: "Self-Efficacy" },
-  { id: "8", name: "UI/UX Design", count: 2, isVerified: false, isPinned: false, category: "Technology" },
-  { id: "9", name: "Critical Thinking", count: 4, isVerified: true, isPinned: false, category: "Cognitive" },
-  { id: "10", name: "Research Methods", count: 3, isVerified: true, isPinned: false, category: "Domain" },
-];
-
-const mockActivities = [
-  {
-    id: "1",
-    eventName: "AI/ML Workshop Series 2025",
-    eventDate: "2025-01-15",
-    role: "participant" as const,
-    sessions: [
-      { date: "2025-01-15", status: "present" as const },
-      { date: "2025-01-16", status: "present" as const },
-      { date: "2025-01-17", status: "present" as const },
-      { date: "2025-01-18", status: "present" as const },
-      { date: "2025-01-19", status: "present" as const },
-    ],
-    certificateStatus: "pass" as const,
-    attendancePercentage: 100,
-  },
-  {
-    id: "2",
-    eventName: "Hackathon: Code for Change",
-    eventDate: "2025-01-10",
-    role: "staff" as const,
-    sessions: [
-      { date: "2025-01-10", status: "present" as const },
-      { date: "2025-01-11", status: "present" as const },
-      { date: "2025-01-12", status: "present" as const },
-    ],
-    certificateStatus: "pass" as const,
-    attendancePercentage: 100,
-  },
-  {
-    id: "3",
-    eventName: "Leadership Summit 2025",
-    eventDate: "2025-01-05",
-    role: "participant" as const,
-    sessions: [
-      { date: "2025-01-05", status: "present" as const },
-      { date: "2025-01-06", status: "absent" as const },
-      { date: "2025-01-07", status: "present" as const },
-      { date: "2025-01-08", status: "present" as const },
-    ],
-    certificateStatus: "pass" as const,
-    attendancePercentage: 75,
-  },
-  {
-    id: "4",
-    eventName: "Cloud Computing Bootcamp",
-    eventDate: "2024-12-20",
-    role: "participant" as const,
-    sessions: [
-      { date: "2024-12-20", status: "present" as const },
-      { date: "2024-12-21", status: "present" as const },
-      { date: "2024-12-22", status: "absent" as const },
-      { date: "2024-12-23", status: "absent" as const },
-    ],
-    certificateStatus: "incomplete" as const,
-    attendancePercentage: 50,
-  },
-];
+// Mock data
+import {
+  mockUser,
+  calculateCategoryScores,
+  calculateAggregatedSkills,
+  calculateProfileStats,
+  determinePersona,
+  generateActivityTimeline,
+} from "@/data/profileMockData";
 
 const UserProfile = () => {
   const navigate = useNavigate();
@@ -126,7 +36,14 @@ const UserProfile = () => {
   const [hasAttendeeRole, setHasAttendeeRole] = useState(false);
   const [loading, setLoading] = useState(true);
   const [addingRole, setAddingRole] = useState(false);
-  const [isPublicView, setIsPublicView] = useState(false);
+  const [isPublicView, setIsPublicView] = useState(mockUser.isPublic);
+
+  // Calculate data from mock
+  const categoryScores = calculateCategoryScores();
+  const aggregatedSkills = calculateAggregatedSkills();
+  const profileStats = calculateProfileStats();
+  const persona = determinePersona();
+  const activityTimeline = generateActivityTimeline();
 
   useEffect(() => {
     if (authLoading) return;
@@ -177,10 +94,10 @@ const UserProfile = () => {
     console.log("Toggle pin for skill:", skillId);
   };
 
-  // Use real user data where available, mock data for competency features
+  // Use real user data where available, mock data for profile details
   const profileData = {
-    ...mockProfileData,
-    name: user?.user_metadata?.full_name || mockProfileData.name,
+    ...mockUser,
+    name: user?.user_metadata?.full_name || mockUser.name,
     avatarUrl: user?.user_metadata?.avatar_url,
   };
 
@@ -213,21 +130,23 @@ const UserProfile = () => {
         {/* ZONE 1: Identity & Persona */}
         <ProfileIdentityHeader
           profile={profileData}
+          persona={persona}
+          stats={profileStats}
           isPublicView={isPublicView}
           onTogglePublicView={setIsPublicView}
         />
 
         {/* ZONE 2: Competency Radar */}
-        <CompetencyRadar skills={mockRadarData} />
+        <CompetencyRadar skills={categoryScores} />
 
         {/* ZONE 3: Skill Showcase */}
         <SkillShowcase 
-          skills={mockSkills} 
+          skills={aggregatedSkills} 
           onPinToggle={handlePinToggle}
         />
 
         {/* ZONE 4: Activity Timeline */}
-        <ActivityTimeline activities={mockActivities} />
+        <ActivityTimeline activities={activityTimeline} />
 
         {/* Roles Section */}
         <motion.div

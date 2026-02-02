@@ -1,82 +1,69 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { 
   Cpu, 
   Users, 
   Brain, 
   BookOpen, 
   Sparkles,
-  Calendar,
+  Target,
+  Zap,
   Award,
   Eye,
-  EyeOff
+  EyeOff,
+  Copy,
+  Check,
+  ExternalLink
 } from "lucide-react";
-
-interface ProfileData {
-  name: string;
-  studentId: string;
-  faculty: string;
-  avatarUrl?: string;
-  totalEvents: number;
-  certificatesEarned: number;
-  skills: { category: string; count: number }[];
-}
+import { toast } from "sonner";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import type { UserProfile, Persona } from "@/data/profileMockData";
 
 interface ProfileIdentityHeaderProps {
-  profile: ProfileData;
+  profile: UserProfile;
+  persona: Persona | null;
+  stats: {
+    totalXP: number;
+    totalEvents: number;
+    certificatesEarned: number;
+  };
   isPublicView: boolean;
   onTogglePublicView: (value: boolean) => void;
 }
 
-// Persona detection logic
-const detectPersona = (skills: { category: string; count: number }[]) => {
-  const sortedSkills = [...skills].sort((a, b) => b.count - a.count);
-  const topSkill = sortedSkills[0];
-  
-  if (!topSkill || topSkill.count < 10) return null;
-  
-  const personas: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-    Technology: { 
-      label: "Tech-Savvy Enthusiast", 
-      icon: <Cpu size={14} />, 
-      color: "bg-violet-500/10 text-violet-600 border-violet-500/20" 
-    },
-    Social: { 
-      label: "Social Connector", 
-      icon: <Users size={14} />, 
-      color: "bg-pink-500/10 text-pink-600 border-pink-500/20" 
-    },
-    Cognitive: { 
-      label: "Critical Thinker", 
-      icon: <Brain size={14} />, 
-      color: "bg-amber-500/10 text-amber-600 border-amber-500/20" 
-    },
-    Domain: { 
-      label: "Domain Expert", 
-      icon: <BookOpen size={14} />, 
-      color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" 
-    },
-    "Self-Efficacy": { 
-      label: "Self-Driven Achiever", 
-      icon: <Sparkles size={14} />, 
-      color: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20" 
-    },
-  };
-  
-  return personas[topSkill.category] || null;
+const iconMap: Record<string, React.ReactNode> = {
+  Cpu: <Cpu size={14} />,
+  Users: <Users size={14} />,
+  Brain: <Brain size={14} />,
+  BookOpen: <BookOpen size={14} />,
+  Sparkles: <Sparkles size={14} />,
+  Target: <Target size={14} />,
 };
 
 const ProfileIdentityHeader = ({ 
   profile, 
+  persona,
+  stats,
   isPublicView, 
   onTogglePublicView 
 }: ProfileIdentityHeaderProps) => {
-  const persona = detectPersona(profile.skills);
+  const [copied, setCopied] = useState(false);
+  
+  const publicUrl = `cmu.ac.th/p/${profile.username}`;
   
   const getInitials = (name: string) => {
     const parts = name.split(" ");
     return parts.map(p => p.charAt(0)).join("").toUpperCase().slice(0, 2);
+  };
+
+  const handleCopyUrl = () => {
+    navigator.clipboard.writeText(`https://${publicUrl}`);
+    setCopied(true);
+    toast.success("Profile URL copied!");
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -88,13 +75,13 @@ const ProfileIdentityHeader = ({
       {/* Top Row: Avatar + Info */}
       <div className="flex items-start gap-4">
         {/* Avatar */}
-        <div className="relative">
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-primary text-2xl font-bold border border-primary/10">
+        <div className="relative flex-shrink-0">
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-primary text-2xl font-bold border border-primary/10 overflow-hidden">
             {profile.avatarUrl ? (
               <img 
                 src={profile.avatarUrl} 
                 alt={profile.name} 
-                className="w-full h-full rounded-2xl object-cover"
+                className="w-full h-full object-cover"
               />
             ) : (
               getInitials(profile.name)
@@ -121,17 +108,33 @@ const ProfileIdentityHeader = ({
               transition={{ delay: 0.2 }}
               className="mt-2"
             >
-              <Badge 
-                variant="outline" 
-                className={`${persona.color} border gap-1.5 font-medium`}
-              >
-                {persona.icon}
-                {persona.label}
-              </Badge>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Badge 
+                      variant="outline" 
+                      className={`${persona.color} border gap-1.5 font-medium cursor-help`}
+                    >
+                      {iconMap[persona.icon] || <Sparkles size={14} />}
+                      {persona.label}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">Based on your highest weighted skill category</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </motion.div>
           )}
         </div>
       </div>
+
+      {/* Bio */}
+      {profile.bio && (
+        <p className="text-sm text-muted-foreground mt-4 line-clamp-2">
+          {profile.bio}
+        </p>
+      )}
 
       {/* Public View Toggle */}
       <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
@@ -145,21 +148,63 @@ const ProfileIdentityHeader = ({
         />
       </div>
 
+      {/* Public URL (shown when public) */}
+      {isPublicView && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          exit={{ opacity: 0, height: 0 }}
+          className="mt-3"
+        >
+          <div className="flex items-center gap-2 p-2.5 bg-muted/50 rounded-lg border border-border">
+            <ExternalLink size={14} className="text-muted-foreground flex-shrink-0" />
+            <span className="text-xs text-muted-foreground flex-1 truncate font-mono">
+              {publicUrl}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={handleCopyUrl}
+            >
+              {copied ? (
+                <>
+                  <Check size={12} className="mr-1 text-success" />
+                  Copied
+                </>
+              ) : (
+                <>
+                  <Copy size={12} className="mr-1" />
+                  Copy
+                </>
+              )}
+            </Button>
+          </div>
+        </motion.div>
+      )}
+
       {/* Stats Row */}
-      <div className="grid grid-cols-2 gap-3 mt-4">
+      <div className="grid grid-cols-3 gap-3 mt-4">
         <div className="bg-muted/50 rounded-xl p-3 text-center">
           <div className="flex items-center justify-center gap-1.5 text-primary mb-1">
-            <Calendar size={16} />
+            <Zap size={16} />
           </div>
-          <p className="text-2xl font-bold text-foreground">{profile.totalEvents}</p>
-          <p className="text-xs text-muted-foreground">Total Events</p>
+          <p className="text-xl font-bold text-foreground">{stats.totalXP}</p>
+          <p className="text-xs text-muted-foreground">Total XP</p>
+        </div>
+        <div className="bg-muted/50 rounded-xl p-3 text-center">
+          <div className="flex items-center justify-center gap-1.5 text-primary mb-1">
+            <Sparkles size={16} />
+          </div>
+          <p className="text-xl font-bold text-foreground">{stats.totalEvents}</p>
+          <p className="text-xs text-muted-foreground">Events</p>
         </div>
         <div className="bg-muted/50 rounded-xl p-3 text-center">
           <div className="flex items-center justify-center gap-1.5 text-primary mb-1">
             <Award size={16} />
           </div>
-          <p className="text-2xl font-bold text-foreground">{profile.certificatesEarned}</p>
-          <p className="text-xs text-muted-foreground">Certificates</p>
+          <p className="text-xl font-bold text-foreground">{stats.certificatesEarned}</p>
+          <p className="text-xs text-muted-foreground">Certs</p>
         </div>
       </div>
     </motion.div>
