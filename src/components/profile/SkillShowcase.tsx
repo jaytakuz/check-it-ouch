@@ -36,8 +36,8 @@ const SkillShowcase = ({ skills, onPinToggle }: SkillShowcaseProps) => {
       if (newSet.has(skillId)) {
         newSet.delete(skillId);
       } else {
-        // Max 5 pins
-        if (newSet.size >= 5) {
+        // Max 3 pins (reduced for focused showcase)
+        if (newSet.size >= 3) {
           return prev;
         }
         newSet.add(skillId);
@@ -64,7 +64,7 @@ const SkillShowcase = ({ skills, onPinToggle }: SkillShowcaseProps) => {
     >
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <h3 className="font-semibold text-foreground">Top Skills</h3>
+          <h3 className="font-semibold text-foreground">Key Skills</h3>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger>
@@ -133,12 +133,12 @@ const SkillShowcase = ({ skills, onPinToggle }: SkillShowcaseProps) => {
                     </div>
                   </motion.div>
                 </TooltipTrigger>
-                <TooltipContent>
+                <TooltipContent className="max-w-xs">
                   <div className="text-xs space-y-1">
                     <p className="font-medium">{skill.name}</p>
                     <p className="text-muted-foreground">
                       {skill.isVerified 
-                        ? "✓ Standardized Skill (LinkedIn)" 
+                        ? `Industry Standard: ${skill.name} is aligned with LinkedIn Skills Database to ensure market relevance.` 
                         : "Event-specific skill"}
                     </p>
                     <p className="text-muted-foreground">
@@ -165,7 +165,7 @@ const SkillShowcase = ({ skills, onPinToggle }: SkillShowcaseProps) => {
         </div>
         <div className="flex items-center gap-1.5">
           <Pin size={12} className="text-primary fill-primary" />
-          <span>Pinned ({localPins.size}/5)</span>
+          <span>Pinned ({localPins.size}/3)</span>
         </div>
       </div>
     </motion.div>

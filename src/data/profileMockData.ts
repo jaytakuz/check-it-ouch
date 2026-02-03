@@ -11,9 +11,9 @@ export const TIER_WEIGHTS = {
 } as const;
 
 export const TIER_CONFIG = {
-  1: { label: "Exposure", color: "bg-muted text-muted-foreground border-border" },
-  2: { label: "Practice", color: "bg-primary/10 text-primary border-primary/20" },
-  3: { label: "Impact", color: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
+  1: { label: "Participation", color: "bg-slate-100 text-slate-600 border-slate-200" },
+  2: { label: "Practice", color: "bg-blue-50 text-blue-600 border-blue-200" },
+  3: { label: "Implementation", color: "bg-amber-50 text-amber-700 border-amber-200" },
 } as const;
 
 // Master Skill Library (Standardized Skills - LinkedIn aligned)
@@ -35,6 +35,14 @@ export const MASTER_SKILL_LIBRARY = [
   { id: "ms_cloud", name: "Cloud Computing", category: "Technology", source: "LinkedIn" },
 ] as const;
 
+// Privacy Settings Interface
+export interface PrivacySettings {
+  showRadar: boolean;
+  showSkills: boolean;
+  showTimeline: boolean;
+  showTimelineDetails: boolean;
+}
+
 // User Profile
 export interface UserProfile {
   id: string;
@@ -44,7 +52,11 @@ export interface UserProfile {
   avatarUrl?: string;
   username: string; // For public URL
   bio?: string;
+  email?: string;
+  linkedinUrl?: string;
+  githubUrl?: string;
   isPublic: boolean;
+  privacySettings: PrivacySettings;
 }
 
 export const mockUser: UserProfile = {
@@ -53,8 +65,17 @@ export const mockUser: UserProfile = {
   studentId: "6510012345",
   faculty: "Faculty of Engineering",
   username: "alex-johnson-651",
-  bio: "Passionate about AI/ML and building products that matter. Always learning, always growing.",
+  bio: "Data Science Student passionate about AI and building impactful products.",
+  email: "alex.johnson@cmu.ac.th",
+  linkedinUrl: "https://linkedin.com/in/alex-johnson",
+  githubUrl: "https://github.com/alexjohnson",
   isPublic: true,
+  privacySettings: {
+    showRadar: true,
+    showSkills: true,
+    showTimeline: true,
+    showTimelineDetails: true,
+  },
 };
 
 // Events with Tier Levels
