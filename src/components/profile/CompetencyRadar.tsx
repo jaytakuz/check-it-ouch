@@ -16,6 +16,7 @@ import {
   Sparkles,
   Trophy
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface SkillCategory {
   category: string;
@@ -79,6 +80,9 @@ const CompetencyRadar = ({ skills }: CompetencyRadarProps) => {
     isOverflow: skill.score > 50,
   }));
 
+  // Check if all skills have 0 score (empty state)
+  const hasData = skills.some(skill => skill.score > 0);
+
   // Sort by score for ranking
   const rankedSkills = [...chartData].sort((a, b) => b.displayScore - a.displayScore);
 
@@ -115,7 +119,23 @@ const CompetencyRadar = ({ skills }: CompetencyRadarProps) => {
       className="bg-card rounded-2xl border border-border p-5 shadow-sm"
     >
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-foreground">Competency Radar</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="font-semibold text-foreground">Competency Radar</h3>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <div className="w-4 h-4 rounded-full bg-muted flex items-center justify-center cursor-help">
+                  <span className="text-[10px] text-muted-foreground font-medium">i</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="text-xs">
+                  The 5-Dimension Competency Framework is adapted from the World Economic Forum's (WEF) Future of Jobs Report, tailored to fit the student activity context.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         {selectedDimension && (
           <button 
             onClick={() => setSelectedDimension(null)}
@@ -131,6 +151,17 @@ const CompetencyRadar = ({ skills }: CompetencyRadarProps) => {
         <div className="relative flex flex-col">
           {/* Radar Chart - Full height */}
           <div className="h-64 relative">
+            {/* Empty state overlay when no data */}
+            {!hasData && (
+              <div className="absolute inset-0 flex items-center justify-center z-10">
+                <div className="text-center">
+                  <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-2">
+                    <Sparkles className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                  <p className="text-xs text-muted-foreground">No data yet</p>
+                </div>
+              </div>
+            )}
             {/* Definition Tooltip - Positioned dynamically at top of chart area */}
             <AnimatePresence>
               {selectedDimension && selectedMeta && (
