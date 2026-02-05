@@ -3,6 +3,10 @@
 // Decoupled Architecture with Weighted XP System
 // ============================================
 
+// Owner Mode Constant (Controls Edit Visibility)
+// Set to false to simulate public visitor view
+export const IS_OWNER = true;
+
 // Tier weights based on Bloom's Taxonomy adaptation
 export const TIER_WEIGHTS = {
   1: 1,  // Basic/Exposure (Talks, Seminars)
@@ -17,22 +21,31 @@ export const TIER_CONFIG = {
 } as const;
 
 // Master Skill Library (Standardized Skills - LinkedIn aligned)
-export const MASTER_SKILL_LIBRARY = [
-  { id: "ms_python", name: "Python", category: "Technology", source: "LinkedIn" },
-  { id: "ms_react", name: "React", category: "Technology", source: "LinkedIn" },
-  { id: "ms_javascript", name: "JavaScript", category: "Technology", source: "LinkedIn" },
-  { id: "ms_machine_learning", name: "Machine Learning", category: "Technology", source: "LinkedIn" },
-  { id: "ms_data_analysis", name: "Data Analysis", category: "Cognitive", source: "LinkedIn" },
-  { id: "ms_public_speaking", name: "Public Speaking", category: "Social", source: "LinkedIn" },
-  { id: "ms_team_leadership", name: "Team Leadership", category: "Social", source: "LinkedIn" },
-  { id: "ms_project_management", name: "Project Management", category: "Self-Efficacy", source: "LinkedIn" },
-  { id: "ms_critical_thinking", name: "Critical Thinking", category: "Cognitive", source: "LinkedIn" },
-  { id: "ms_research", name: "Research Methods", category: "Domain", source: "LinkedIn" },
-  { id: "ms_ui_ux", name: "UI/UX Design", category: "Technology", source: "LinkedIn" },
-  { id: "ms_agile", name: "Agile Methodology", category: "Self-Efficacy", source: "LinkedIn" },
-  { id: "ms_communication", name: "Communication", category: "Social", source: "LinkedIn" },
-  { id: "ms_problem_solving", name: "Problem Solving", category: "Cognitive", source: "LinkedIn" },
-  { id: "ms_cloud", name: "Cloud Computing", category: "Technology", source: "LinkedIn" },
+// Skills tagged as is_market_aligned: true (Simulating LinkedIn Taxonomy matching)
+export interface MasterSkill {
+  id: string;
+  name: string;
+  category: string;
+  source: string;
+  is_market_aligned: boolean;
+}
+
+export const MASTER_SKILL_LIBRARY: MasterSkill[] = [
+  { id: "ms_python", name: "Python", category: "Digital & Tech Literacy", source: "LinkedIn", is_market_aligned: true },
+  { id: "ms_react", name: "React", category: "Digital & Tech Literacy", source: "LinkedIn", is_market_aligned: true },
+  { id: "ms_javascript", name: "JavaScript", category: "Digital & Tech Literacy", source: "LinkedIn", is_market_aligned: true },
+  { id: "ms_machine_learning", name: "Machine Learning", category: "Digital & Tech Literacy", source: "LinkedIn", is_market_aligned: true },
+  { id: "ms_data_analysis", name: "Data Analysis", category: "Critical Thinking", source: "LinkedIn", is_market_aligned: true },
+  { id: "ms_public_speaking", name: "Public Speaking", category: "Collaboration & Leadership", source: "LinkedIn", is_market_aligned: true },
+  { id: "ms_team_leadership", name: "Team Leadership", category: "Collaboration & Leadership", source: "LinkedIn", is_market_aligned: true },
+  { id: "ms_project_management", name: "Project Management", category: "Adaptability & Resilience", source: "LinkedIn", is_market_aligned: true },
+  { id: "ms_critical_thinking", name: "Critical Thinking", category: "Critical Thinking", source: "LinkedIn", is_market_aligned: true },
+  { id: "ms_research", name: "Research Methods", category: "Domain Expertise", source: "LinkedIn", is_market_aligned: true },
+  { id: "ms_ui_ux", name: "UI/UX Design", category: "Digital & Tech Literacy", source: "LinkedIn", is_market_aligned: true },
+  { id: "ms_agile", name: "Agile Methodology", category: "Adaptability & Resilience", source: "LinkedIn", is_market_aligned: true },
+  { id: "ms_communication", name: "Communication", category: "Collaboration & Leadership", source: "LinkedIn", is_market_aligned: true },
+  { id: "ms_problem_solving", name: "Problem Solving", category: "Critical Thinking", source: "LinkedIn", is_market_aligned: true },
+  { id: "ms_cloud", name: "Cloud Computing", category: "Digital & Tech Literacy", source: "LinkedIn", is_market_aligned: true },
 ] as const;
 
 // Privacy Settings Interface
@@ -97,7 +110,7 @@ export const mockEvents: EventData[] = [
     date: "2025-01-15",
     skillsAwarded: ["ms_python", "ms_machine_learning", "ms_data_analysis"],
     totalSessions: 5,
-    category: "Technology",
+    category: "Digital & Tech Literacy",
   },
   {
     id: "evt_002",
@@ -106,7 +119,7 @@ export const mockEvents: EventData[] = [
     date: "2025-01-10",
     skillsAwarded: ["ms_react", "ms_team_leadership", "ms_problem_solving"],
     totalSessions: 3,
-    category: "Technology",
+    category: "Digital & Tech Literacy",
   },
   {
     id: "evt_003",
@@ -115,7 +128,7 @@ export const mockEvents: EventData[] = [
     date: "2025-01-05",
     skillsAwarded: ["ms_public_speaking", "ms_communication", "ms_team_leadership"],
     totalSessions: 4,
-    category: "Social",
+    category: "Collaboration & Leadership",
   },
   {
     id: "evt_004",
@@ -124,7 +137,7 @@ export const mockEvents: EventData[] = [
     date: "2024-12-20",
     skillsAwarded: ["ms_cloud", "ms_agile"],
     totalSessions: 4,
-    category: "Technology",
+    category: "Digital & Tech Literacy",
   },
   {
     id: "evt_005",
@@ -133,7 +146,7 @@ export const mockEvents: EventData[] = [
     date: "2024-12-15",
     skillsAwarded: ["tech_web3"], // Local/Event-specific skill
     totalSessions: 1,
-    category: "Technology",
+    category: "Digital & Tech Literacy",
   },
   {
     id: "evt_006",
@@ -142,7 +155,7 @@ export const mockEvents: EventData[] = [
     date: "2024-12-10",
     skillsAwarded: ["ms_research", "ms_critical_thinking"],
     totalSessions: 3,
-    category: "Domain",
+    category: "Domain Expertise",
   },
   {
     id: "evt_007",
@@ -151,7 +164,7 @@ export const mockEvents: EventData[] = [
     date: "2024-11-25",
     skillsAwarded: ["ms_python", "ms_javascript", "ms_problem_solving"],
     totalSessions: 2,
-    category: "Technology",
+    category: "Digital & Tech Literacy",
   },
   {
     id: "evt_008",
@@ -160,7 +173,7 @@ export const mockEvents: EventData[] = [
     date: "2024-11-15",
     skillsAwarded: ["ms_ui_ux", "ms_problem_solving"],
     totalSessions: 2,
-    category: "Cognitive",
+    category: "Critical Thinking",
   },
 ];
 
@@ -173,6 +186,8 @@ export interface AttendanceLog {
   role: "participant" | "staff";
   sessions: { date: string; status: AttendanceStatus }[];
   certificateEarned: boolean;
+  certificateUrl?: string; // Mock URL for certificate download
+  proofUrl?: string; // Mock URL for Tier 3 project proof
 }
 
 export const mockAttendanceLogs: AttendanceLog[] = [
@@ -188,6 +203,7 @@ export const mockAttendanceLogs: AttendanceLog[] = [
       { date: "2025-01-19", status: "present" },
     ],
     certificateEarned: true,
+    certificateUrl: "/certificates/ai-ml-workshop-2025.pdf",
   },
   {
     eventId: "evt_002",
@@ -199,6 +215,7 @@ export const mockAttendanceLogs: AttendanceLog[] = [
       { date: "2025-01-12", status: "present" },
     ],
     certificateEarned: true,
+    proofUrl: "https://github.com/alexjohnson/code-for-change",
   },
   {
     eventId: "evt_003",
@@ -211,6 +228,7 @@ export const mockAttendanceLogs: AttendanceLog[] = [
       { date: "2025-01-08", status: "present" },
     ],
     certificateEarned: true,
+    certificateUrl: "/certificates/leadership-summit-2025.pdf",
   },
   {
     eventId: "evt_004",
@@ -230,6 +248,7 @@ export const mockAttendanceLogs: AttendanceLog[] = [
     role: "participant",
     sessions: [{ date: "2024-12-15", status: "present" }],
     certificateEarned: true,
+    certificateUrl: "/certificates/web3-tech-talk.pdf",
   },
   {
     eventId: "evt_006",
@@ -241,6 +260,7 @@ export const mockAttendanceLogs: AttendanceLog[] = [
       { date: "2024-12-12", status: "present" },
     ],
     certificateEarned: true,
+    certificateUrl: "/certificates/research-methodology.pdf",
   },
   {
     eventId: "evt_007",
@@ -251,6 +271,7 @@ export const mockAttendanceLogs: AttendanceLog[] = [
       { date: "2024-11-26", status: "present" },
     ],
     certificateEarned: true,
+    proofUrl: "https://devpost.com/software/national-coding-2024",
   },
   {
     eventId: "evt_008",
@@ -261,6 +282,7 @@ export const mockAttendanceLogs: AttendanceLog[] = [
       { date: "2024-11-16", status: "present" },
     ],
     certificateEarned: true,
+    certificateUrl: "/certificates/design-thinking.pdf",
   },
 ];
 
@@ -312,7 +334,7 @@ export interface AggregatedSkill {
   category: string;
   totalXP: number;
   eventCount: number;
-  isVerified: boolean; // Exists in Master Library
+  isMarketAligned: boolean; // Matches global recruitment databases
   isPinned: boolean;
 }
 
@@ -330,7 +352,7 @@ export const calculateAggregatedSkills = (): AggregatedSkill[] => {
     } else {
       // Determine skill name and category
       let name = tx.skillId;
-      let category = "Technology";
+      let category = "Digital & Tech Literacy";
 
       if (masterSkill) {
         name = masterSkill.name;
@@ -347,7 +369,7 @@ export const calculateAggregatedSkills = (): AggregatedSkill[] => {
         category,
         totalXP: tx.xpEarned,
         eventCount: 1,
-        isVerified: !!masterSkill,
+        isMarketAligned: masterSkill?.is_market_aligned || false,
         isPinned: ["ms_python", "ms_react", "ms_machine_learning"].includes(tx.skillId), // Default pins
       });
     }
@@ -357,6 +379,7 @@ export const calculateAggregatedSkills = (): AggregatedSkill[] => {
 };
 
 // Calculate category scores for radar chart
+// Updated dimension names to match WEF/OECD framework
 export interface CategoryScore {
   category: string;
   score: number;
@@ -367,7 +390,14 @@ export const calculateCategoryScores = (): CategoryScore[] => {
   const skills = calculateAggregatedSkills();
   const categoryMap = new Map<string, number>();
 
-  const categories = ["Technology", "Social", "Cognitive", "Domain", "Self-Efficacy"];
+  // Updated category names matching WEF/OECD framework
+  const categories = [
+    "Digital & Tech Literacy",
+    "Collaboration & Leadership", 
+    "Critical Thinking",
+    "Domain Expertise",
+    "Adaptability & Resilience"
+  ];
   categories.forEach(cat => categoryMap.set(cat, 0));
 
   skills.forEach(skill => {
@@ -467,12 +497,14 @@ export interface ActivityItem {
   sessions: { date: string; status: AttendanceStatus }[];
   attendancePercentage: number;
   certificateEarned: boolean;
+  certificateUrl?: string;
+  proofUrl?: string;
   category: string;
 }
 
 export const generateActivityTimeline = (): ActivityItem[] => {
   return mockAttendanceLogs
-    .map(log => {
+    .map((log): ActivityItem | null => {
       const event = mockEvents.find(e => e.id === log.eventId);
       if (!event) return null;
 
@@ -488,8 +520,10 @@ export const generateActivityTimeline = (): ActivityItem[] => {
         sessions: log.sessions,
         attendancePercentage: Math.round((presentCount / totalSessions) * 100),
         certificateEarned: log.certificateEarned,
+        certificateUrl: log.certificateUrl,
+        proofUrl: log.proofUrl,
         category: event.category,
-      };
+      } as ActivityItem;
     })
     .filter((item): item is ActivityItem => item !== null)
     .sort((a, b) => new Date(b.eventDate).getTime() - new Date(a.eventDate).getTime());

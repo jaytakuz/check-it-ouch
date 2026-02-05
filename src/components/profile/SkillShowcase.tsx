@@ -15,22 +15,24 @@ import type { AggregatedSkill } from "@/data/profileMockData";
 interface SkillShowcaseProps {
   skills: AggregatedSkill[];
   onPinToggle?: (skillId: string) => void;
+  isOwner?: boolean;
 }
 
 const categoryColors: Record<string, string> = {
-  Technology: "bg-violet-500/10 text-violet-600 border-violet-500/20 hover:bg-violet-500/20",
-  Social: "bg-pink-500/10 text-pink-600 border-pink-500/20 hover:bg-pink-500/20",
-  Cognitive: "bg-amber-500/10 text-amber-600 border-amber-500/20 hover:bg-amber-500/20",
-  Domain: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20",
-  "Self-Efficacy": "bg-indigo-500/10 text-indigo-600 border-indigo-500/20 hover:bg-indigo-500/20",
+  "Digital & Tech Literacy": "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100",
+  "Collaboration & Leadership": "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100",
+  "Critical Thinking": "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100",
+  "Domain Expertise": "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100",
+  "Adaptability & Resilience": "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100",
 };
 
-const SkillShowcase = ({ skills, onPinToggle }: SkillShowcaseProps) => {
+const SkillShowcase = ({ skills, onPinToggle, isOwner = true }: SkillShowcaseProps) => {
   const [localPins, setLocalPins] = useState<Set<string>>(
     new Set(skills.filter(s => s.isPinned).map(s => s.id))
   );
 
   const handlePinToggle = (skillId: string) => {
+    if (!isOwner) return;
     setLocalPins(prev => {
       const newSet = new Set(prev);
       if (newSet.has(skillId)) {
@@ -104,8 +106,9 @@ const SkillShowcase = ({ skills, onPinToggle }: SkillShowcaseProps) => {
                         transition-all duration-200
                         ${categoryColors[skill.category] || "bg-muted/50 text-foreground border-border"}
                         ${localPins.has(skill.id) ? "ring-2 ring-primary/30" : ""}
+                      ${!isOwner ? "cursor-default" : ""}
                       `}
-                      onClick={() => handlePinToggle(skill.id)}
+                      onClick={() => isOwner && handlePinToggle(skill.id)}
                     >
                       {/* Pin indicator */}
                       {localPins.has(skill.id) && (
@@ -122,10 +125,10 @@ const SkillShowcase = ({ skills, onPinToggle }: SkillShowcaseProps) => {
                       </Badge>
                       
                       {/* Verified badge */}
-                      {skill.isVerified ? (
+                      {skill.isMarketAligned ? (
                         <ShieldCheck 
                           size={14} 
-                          className="text-primary flex-shrink-0" 
+                          className="text-blue-600 flex-shrink-0" 
                         />
                       ) : (
                         <span className="w-3.5 h-3.5 rounded-full bg-muted-foreground/20 flex-shrink-0" />
@@ -137,8 +140,8 @@ const SkillShowcase = ({ skills, onPinToggle }: SkillShowcaseProps) => {
                   <div className="text-xs space-y-1">
                     <p className="font-medium">{skill.name}</p>
                     <p className="text-muted-foreground">
-                      {skill.isVerified 
-                        ? `Industry Standard: ${skill.name} is aligned with LinkedIn Skills Database to ensure market relevance.` 
+                      {skill.isMarketAligned 
+                        ? `Market-Aligned: Skill nomenclature matches global recruitment databases.` 
                         : "Event-specific skill"}
                     </p>
                     <p className="text-muted-foreground">
@@ -156,17 +159,19 @@ const SkillShowcase = ({ skills, onPinToggle }: SkillShowcaseProps) => {
       {/* Legend */}
       <div className="flex items-center gap-4 mt-4 pt-3 border-t border-border text-xs text-muted-foreground">
         <div className="flex items-center gap-1.5">
-          <ShieldCheck size={12} className="text-primary" />
-          <span>Standardized</span>
+          <ShieldCheck size={12} className="text-blue-600" />
+          <span>Market-Aligned</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded-full bg-muted-foreground/20" />
           <span>Event-specific</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <Pin size={12} className="text-primary fill-primary" />
-          <span>Pinned ({localPins.size}/3)</span>
-        </div>
+        {isOwner && (
+          <div className="flex items-center gap-1.5">
+            <Pin size={12} className="text-primary fill-primary" />
+            <span>Pinned ({localPins.size}/3)</span>
+          </div>
+        )}
       </div>
     </motion.div>
   );

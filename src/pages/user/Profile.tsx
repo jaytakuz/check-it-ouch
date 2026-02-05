@@ -20,6 +20,7 @@ import {
   calculateAggregatedSkills,
   calculateProfileStats,
   generateActivityTimeline,
+  IS_OWNER,
   type PrivacySettings,
   type UserProfile,
 } from "@/data/profileMockData";
@@ -33,6 +34,9 @@ const UserProfile = () => {
   const [addingRole, setAddingRole] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   
+  // Owner mode - controls visibility of edit controls
+  const isOwner = IS_OWNER;
+
   // Profile state with local updates
   const [profileData, setProfileData] = useState<UserProfile>(mockUser);
   const [privacySettings, setPrivacySettings] = useState<PrivacySettings>(mockUser.privacySettings);
@@ -131,9 +135,11 @@ const UserProfile = () => {
             </Button>
             <h1 className="text-lg font-semibold text-foreground">My Competency Passport</h1>
           </div>
-          <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)}>
-            <Settings size={20} />
-          </Button>
+          {isOwner && (
+            <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)}>
+              <Settings size={20} />
+            </Button>
+          )}
         </div>
       </header>
 
@@ -151,7 +157,7 @@ const UserProfile = () => {
 
         {/* ZONE 3: Skill Showcase */}
         {privacySettings.showSkills && (
-          <SkillShowcase skills={aggregatedSkills} onPinToggle={handlePinToggle} />
+          <SkillShowcase skills={aggregatedSkills} onPinToggle={handlePinToggle} isOwner={isOwner} />
         )}
 
         {/* ZONE 4: Activity Timeline */}
@@ -164,19 +170,21 @@ const UserProfile = () => {
       </div>
 
       {/* Settings Modal */}
-      <PrivacySettingsModal
-        open={settingsOpen}
-        onOpenChange={setSettingsOpen}
-        profile={profileData}
-        privacySettings={privacySettings}
-        onPrivacyChange={handlePrivacyChange}
-        onProfileUpdate={handleProfileUpdate}
-        onSignOut={handleSignOut}
-        hasHostRole={hasHostRole}
-        hasAttendeeRole={hasAttendeeRole}
-        onAddRole={handleAddRole}
-        addingRole={addingRole}
-      />
+      {isOwner && (
+        <PrivacySettingsModal
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          profile={profileData}
+          privacySettings={privacySettings}
+          onPrivacyChange={handlePrivacyChange}
+          onProfileUpdate={handleProfileUpdate}
+          onSignOut={handleSignOut}
+          hasHostRole={hasHostRole}
+          hasAttendeeRole={hasAttendeeRole}
+          onAddRole={handleAddRole}
+          addingRole={addingRole}
+        />
+      )}
     </div>
   );
 };

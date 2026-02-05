@@ -13,9 +13,10 @@ import {
   Users, 
   Brain, 
   BookOpen, 
-  Sparkles,
+  Target,
   Trophy
 } from "lucide-react";
+import { Inbox } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface SkillCategory {
@@ -34,30 +35,30 @@ const DIMENSION_META: Record<string, {
   color: string;
   definition: string;
 }> = {
-  Technology: {
+  "Digital & Tech Literacy": {
     icon: Cpu,
     color: "hsl(221, 83%, 53%)",
-    definition: "Technical skills including programming, data analysis, and digital tools proficiency."
+    definition: "Technical skills including programming, data analysis, and digital tools proficiency for the modern workforce."
   },
-  Social: {
+  "Collaboration & Leadership": {
     icon: Users,
     color: "hsl(142, 71%, 45%)",
-    definition: "Interpersonal abilities like teamwork, communication, and networking skills."
+    definition: "Interpersonal abilities including teamwork, communication, networking, and leading diverse teams."
   },
-  Cognitive: {
+  "Critical Thinking": {
     icon: Brain,
     color: "hsl(262, 83%, 58%)",
-    definition: "Critical thinking, problem-solving, and analytical reasoning capabilities."
+    definition: "Analytical reasoning, problem-solving, and evidence-based decision making capabilities."
   },
-  Domain: {
+  "Domain Expertise": {
     icon: BookOpen,
     color: "hsl(25, 95%, 53%)",
-    definition: "Specialized knowledge and expertise in your field of study or profession."
+    definition: "Specialized knowledge and expertise in your field of study, research, or professional domain."
   },
-  "Self-Efficacy": {
-    icon: Sparkles,
+  "Adaptability & Resilience": {
+    icon: Target,
     color: "hsl(328, 85%, 57%)",
-    definition: "Self-management, adaptability, and confidence in handling challenges."
+    definition: "Self-management, growth mindset, and confidence in handling challenges and change."
   }
 };
 
@@ -130,7 +131,7 @@ const CompetencyRadar = ({ skills }: CompetencyRadarProps) => {
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
                 <p className="text-xs">
-                  The 5-Dimension Competency Framework is adapted from the World Economic Forum's (WEF) Future of Jobs Report, tailored to fit the student activity context.
+                  The competency framework integrates global standards from WEF and OECD to measure holistic career readiness.
                 </p>
               </TooltipContent>
             </Tooltip>
@@ -155,10 +156,10 @@ const CompetencyRadar = ({ skills }: CompetencyRadarProps) => {
             {!hasData && (
               <div className="absolute inset-0 flex items-center justify-center z-10">
                 <div className="text-center">
-                  <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-2">
-                    <Sparkles className="w-6 h-6 text-muted-foreground" />
+                  <div className="w-12 h-12 rounded-md bg-muted flex items-center justify-center mx-auto mb-2">
+                    <Inbox className="w-6 h-6 text-muted-foreground" />
                   </div>
-                  <p className="text-xs text-muted-foreground">No data yet</p>
+                  <p className="text-xs text-muted-foreground">No competency data recorded</p>
                 </div>
               </div>
             )}
@@ -327,7 +328,7 @@ const CompetencyRadar = ({ skills }: CompetencyRadarProps) => {
           
           {rankedSkills.map((skill, index) => {
             const meta = DIMENSION_META[skill.category];
-            const Icon = meta?.icon || Sparkles;
+            const Icon = meta?.icon || Inbox;
             const isSelected = selectedDimension === skill.category;
             
             return (
