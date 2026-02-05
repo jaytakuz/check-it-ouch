@@ -10,12 +10,10 @@ import {
   Users,
   Award,
   Download,
-  ExternalLink,
   Lightbulb,
   Wrench,
   Star,
-  Inbox,
-  FileX
+  Sparkles
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -91,43 +89,12 @@ const TierBadge = ({ tier }: { tier: 1 | 2 | 3 }) => {
 
 const CertificateStatusBadge = ({ 
   earned, 
-  attendancePercentage,
-  tierLevel,
-  certificateUrl,
-  proofUrl
+  attendancePercentage 
 }: { 
   earned: boolean; 
   attendancePercentage: number;
-  tierLevel: 1 | 2 | 3;
-  certificateUrl?: string;
-  proofUrl?: string;
 }) => {
-  // Tier 3: Show View Proof button
-  if (tierLevel === 3 && proofUrl) {
-    return (
-      <div className="flex items-center gap-2">
-        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 gap-1 text-xs">
-          <Award size={12} />
-          Completed
-        </Badge>
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="h-6 px-2 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
-          onClick={(e) => {
-            e.stopPropagation();
-            window.open(proofUrl, '_blank');
-          }}
-        >
-          <ExternalLink size={12} className="mr-1" />
-          View Proof
-        </Button>
-      </div>
-    );
-  }
-  
-  // Tier 1 & 2: Show Download Certificate button if certified
-  if (earned && certificateUrl) {
+  if (earned) {
     return (
       <div className="flex items-center gap-2">
         <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 gap-1 text-xs">
@@ -137,27 +104,16 @@ const CertificateStatusBadge = ({
         <Button 
           variant="ghost" 
           size="sm" 
-          className="h-6 px-2 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+          className="h-6 px-2 text-xs text-primary hover:text-primary"
           onClick={(e) => {
             e.stopPropagation();
             // Download certificate logic
-            console.log("Downloading certificate:", certificateUrl);
           }}
         >
           <Download size={12} className="mr-1" />
           Download
         </Button>
       </div>
-    );
-  }
-  
-  // Just show certified badge without download if no URL
-  if (earned) {
-    return (
-      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 gap-1 text-xs">
-        <Award size={12} />
-        Certified
-      </Badge>
     );
   }
 
@@ -230,11 +186,14 @@ const ActivityTimeline = ({ activities, showDetails = true }: ActivityTimelinePr
 
       {/* Empty State */}
       {filteredActivities.length === 0 ? (
-        <div className="text-center py-12 bg-slate-50 rounded-lg border border-slate-200">
-          <div className="w-14 h-14 rounded-md bg-slate-100 flex items-center justify-center mx-auto mb-3">
-            <FileX className="h-7 w-7 text-slate-400" />
+        <div className="text-center py-12">
+          <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+            <Sparkles className="h-8 w-8 text-muted-foreground" />
           </div>
-          <p className="text-sm text-slate-400 font-medium">No records found in this category.</p>
+          <h4 className="font-medium text-foreground mb-2">No activities yet</h4>
+          <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+            Join your first event to start building your passport!
+          </p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -281,9 +240,6 @@ const ActivityTimeline = ({ activities, showDetails = true }: ActivityTimelinePr
                   <CertificateStatusBadge 
                     earned={activity.certificateEarned} 
                     attendancePercentage={activity.attendancePercentage}
-                    tierLevel={activity.tierLevel}
-                    certificateUrl={activity.certificateUrl}
-                    proofUrl={activity.proofUrl}
                   />
                 </div>
               )}
@@ -343,7 +299,7 @@ const ActivityTimeline = ({ activities, showDetails = true }: ActivityTimelinePr
       {/* Footer Credit */}
       <div className="mt-4 pt-3 border-t border-dashed border-border/50">
         <p className="text-[10px] text-muted-foreground text-center leading-relaxed">
-          Verification Standards • Powered by CMU Check-in
+          Taxonomy developed by CMU Check-in Project, referencing frameworks from WEF and LinkedIn for educational purposes.
         </p>
       </div>
     </motion.div>
