@@ -35,6 +35,21 @@ export const MASTER_SKILL_LIBRARY = [
   { id: "ms_cloud", name: "Cloud Computing", category: "Technology", source: "LinkedIn" },
 ] as const;
 
+// Dimension Color System
+export const DIMENSION_COLORS: Record<string, {
+  primary: string;
+  bg: string;
+  text: string;
+  border: string;
+  fill: string;
+}> = {
+  Technology: { primary: "#8b5cf6", bg: "bg-violet-50", text: "text-violet-600", border: "border-violet-200", fill: "#8b5cf6" },
+  Social: { primary: "#f43f5e", bg: "bg-rose-50", text: "text-rose-600", border: "border-rose-200", fill: "#f43f5e" },
+  Cognitive: { primary: "#f59e0b", bg: "bg-amber-50", text: "text-amber-600", border: "border-amber-200", fill: "#f59e0b" },
+  Domain: { primary: "#10b981", bg: "bg-emerald-50", text: "text-emerald-600", border: "border-emerald-200", fill: "#10b981" },
+  "Self-Efficacy": { primary: "#0ea5e9", bg: "bg-sky-50", text: "text-sky-600", border: "border-sky-200", fill: "#0ea5e9" },
+};
+
 // Privacy Settings Interface
 export interface PrivacySettings {
   showRadar: boolean;
@@ -50,13 +65,14 @@ export interface UserProfile {
   studentId: string;
   faculty: string;
   avatarUrl?: string;
-  username: string; // For public URL
+  username: string;
   bio?: string;
   email?: string;
   linkedinUrl?: string;
   githubUrl?: string;
   isPublic: boolean;
   privacySettings: PrivacySettings;
+  sectionOrder: string[];
 }
 
 export const mockUser: UserProfile = {
@@ -70,6 +86,7 @@ export const mockUser: UserProfile = {
   linkedinUrl: "https://linkedin.com/in/alex-johnson",
   githubUrl: "https://github.com/alexjohnson",
   isPublic: true,
+  sectionOrder: ["radar", "skills", "timeline"],
   privacySettings: {
     showRadar: true,
     showSkills: true,

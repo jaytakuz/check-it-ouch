@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Zap,
   Sparkles,
@@ -11,6 +12,9 @@ import {
   Mail,
   Linkedin,
   Github,
+  Pencil,
+  Camera,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { UserProfile } from "@/data/profileMockData";
@@ -22,10 +26,14 @@ interface ProfileIdentityHeaderProps {
     totalEvents: number;
     certificatesEarned: number;
   };
+  isOwner?: boolean;
+  onProfileUpdate?: (updates: Partial<UserProfile>) => void;
 }
 
-const ProfileIdentityHeader = ({ profile, stats }: ProfileIdentityHeaderProps) => {
+const ProfileIdentityHeader = ({ profile, stats, isOwner = true, onProfileUpdate }: ProfileIdentityHeaderProps) => {
   const [copied, setCopied] = useState(false);
+  const [editingBio, setEditingBio] = useState(false);
+  const [localBio, setLocalBio] = useState(profile.bio || "");
 
   const publicUrl = `cmu.ac.th/in/${profile.username}`;
 
@@ -45,6 +53,17 @@ const ProfileIdentityHeader = ({ profile, stats }: ProfileIdentityHeaderProps) =
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleSaveBio = () => {
+    onProfileUpdate?.({ bio: localBio });
+    setEditingBio(false);
+    toast.success("Bio updated!");
+  };
+
+  const handleCancelBio = () => {
+    setLocalBio(profile.bio || "");
+    setEditingBio(false);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: -10 }}
@@ -53,8 +72,8 @@ const ProfileIdentityHeader = ({ profile, stats }: ProfileIdentityHeaderProps) =
     >
       {/* Top Row: Avatar + Info */}
       <div className="flex items-start gap-4">
-        {/* Avatar */}
-        <div className="relative flex-shrink-0">
+        {/* Avatar with camera overlay for owner */}
+        <div className="relative flex-shrink-0 group">
           <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-primary text-2xl font-bold border border-primary/10 overflow-hidden">
             {profile.avatarUrl ? (
               <img
@@ -66,6 +85,11 @@ const ProfileIdentityHeader = ({ profile, stats }: ProfileIdentityHeaderProps) =
               getInitials(profile.name)
             )}
           </div>
+          {isOwner && (
+            <div className="absolute inset-0 rounded-2xl bg-foreground/0 group-hover:bg-foreground/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all cursor-pointer">
+              <Camera size={20} className="text-background" />
+            </div>
+          )}
         </div>
 
         {/* Info */}
@@ -108,10 +132,45 @@ const ProfileIdentityHeader = ({ profile, stats }: ProfileIdentityHeaderProps) =
         </div>
       </div>
 
-      {/* Bio */}
-      {profile.bio && (
-        <p className="text-sm text-muted-foreground mt-4 line-clamp-2">{profile.bio}</p>
-      )}
+      {/* Bio - Inline Editable */}
+      <div className="mt-4">
+        {editingBio ? (
+          <div className="space-y-2">
+            <Textarea
+              value={localBio}
+              onChange={(e) => setLocalBio(e.target.value.slice(0, 150))}
+              placeholder="Write a short bio..."
+              className="h-16 resize-none text-sm"
+              autoFocus
+            />
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-muted-foreground">{localBio.length}/150</span>
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={handleCancelBio}>
+                  <X size={12} className="mr-1" /> Cancel
+                </Button>
+                <Button size="sm" className="h-7 text-xs" onClick={handleSaveBio}>
+                  Save
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="group relative">
+            <p className="text-sm text-muted-foreground line-clamp-2">
+              {profile.bio || (isOwner ? "Add a short bio..." : "")}
+            </p>
+            {isOwner && (
+              <button
+                onClick={() => setEditingBio(true)}
+                className="absolute -right-1 -top-1 w-6 h-6 rounded-full bg-muted/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Pencil size={12} className="text-muted-foreground" />
+              </button>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Public URL */}
       {profile.isPublic && (

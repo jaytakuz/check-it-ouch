@@ -21,7 +21,8 @@ import {
   LogOut,
   Users,
   Presentation,
-  ChevronRight,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import type { PrivacySettings, UserProfile } from "@/data/profileMockData";
 
@@ -37,6 +38,8 @@ interface PrivacySettingsModalProps {
   hasAttendeeRole: boolean;
   onAddRole: (role: "host" | "attendee") => void;
   addingRole: boolean;
+  sectionOrder: string[];
+  onSectionOrderChange: (order: string[]) => void;
 }
 
 const PrivacySettingsModal = ({
@@ -51,6 +54,8 @@ const PrivacySettingsModal = ({
   hasAttendeeRole,
   onAddRole,
   addingRole,
+  sectionOrder,
+  onSectionOrderChange,
 }: PrivacySettingsModalProps) => {
   const [copied, setCopied] = useState(false);
   const [localBio, setLocalBio] = useState(profile.bio || "");
@@ -185,6 +190,58 @@ const PrivacySettingsModal = ({
                   disabled={!privacySettings.showTimeline}
                 />
               </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Section Order */}
+          <div>
+            <h4 className="font-medium text-foreground mb-3">Section Order</h4>
+            <p className="text-xs text-muted-foreground mb-3">
+              Reorder how sections appear on your profile.
+            </p>
+            <div className="space-y-2">
+              {sectionOrder.map((key, index) => {
+                const labels: Record<string, string> = {
+                  radar: "Competency Radar",
+                  skills: "Key Skills",
+                  timeline: "Activity Timeline",
+                };
+                return (
+                  <div key={key} className="flex items-center justify-between p-2.5 bg-muted/50 rounded-lg">
+                    <span className="text-sm">{labels[key] || key}</span>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        disabled={index === 0}
+                        onClick={() => {
+                          const newOrder = [...sectionOrder];
+                          [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
+                          onSectionOrderChange(newOrder);
+                        }}
+                      >
+                        <ArrowUp size={14} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        disabled={index === sectionOrder.length - 1}
+                        onClick={() => {
+                          const newOrder = [...sectionOrder];
+                          [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+                          onSectionOrderChange(newOrder);
+                        }}
+                      >
+                        <ArrowDown size={14} />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 

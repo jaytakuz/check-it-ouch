@@ -36,6 +36,7 @@ const UserProfile = () => {
   // Profile state with local updates
   const [profileData, setProfileData] = useState<UserProfile>(mockUser);
   const [privacySettings, setPrivacySettings] = useState<PrivacySettings>(mockUser.privacySettings);
+  const [sectionOrder, setSectionOrder] = useState<string[]>(mockUser.sectionOrder);
 
   // Calculate data from mock
   const categoryScores = calculateCategoryScores();
@@ -142,25 +143,29 @@ const UserProfile = () => {
         <ProfileIdentityHeader
           profile={profileData}
           stats={profileStats}
+          isOwner={true}
+          onProfileUpdate={handleProfileUpdate}
         />
 
-        {/* ZONE 2: Competency Radar */}
-        {privacySettings.showRadar && (
-          <CompetencyRadar skills={categoryScores} />
-        )}
-
-        {/* ZONE 3: Skill Showcase */}
-        {privacySettings.showSkills && (
-          <SkillShowcase skills={aggregatedSkills} onPinToggle={handlePinToggle} />
-        )}
-
-        {/* ZONE 4: Activity Timeline */}
-        {privacySettings.showTimeline && (
-          <ActivityTimeline 
-            activities={activityTimeline} 
-            showDetails={privacySettings.showTimelineDetails}
-          />
-        )}
+        {/* Dynamic Section Rendering */}
+        {sectionOrder.map((sectionKey) => {
+          if (sectionKey === "radar" && privacySettings.showRadar) {
+            return <CompetencyRadar key="radar" skills={categoryScores} />;
+          }
+          if (sectionKey === "skills" && privacySettings.showSkills) {
+            return <SkillShowcase key="skills" skills={aggregatedSkills} onPinToggle={handlePinToggle} />;
+          }
+          if (sectionKey === "timeline" && privacySettings.showTimeline) {
+            return (
+              <ActivityTimeline
+                key="timeline"
+                activities={activityTimeline}
+                showDetails={privacySettings.showTimelineDetails}
+              />
+            );
+          }
+          return null;
+        })}
       </div>
 
       {/* Settings Modal */}
@@ -176,6 +181,8 @@ const UserProfile = () => {
         hasAttendeeRole={hasAttendeeRole}
         onAddRole={handleAddRole}
         addingRole={addingRole}
+        sectionOrder={sectionOrder}
+        onSectionOrderChange={setSectionOrder}
       />
     </div>
   );
