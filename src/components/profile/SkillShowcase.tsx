@@ -10,19 +10,17 @@ import {
 } from "lucide-react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import type { AggregatedSkill } from "@/data/profileMockData";
+import { DIMENSION_COLORS, type AggregatedSkill } from "@/data/profileMockData";
 
 interface SkillShowcaseProps {
   skills: AggregatedSkill[];
   onPinToggle?: (skillId: string) => void;
 }
 
-const categoryColors: Record<string, string> = {
-  Technology: "bg-violet-500/10 text-violet-600 border-violet-500/20 hover:bg-violet-500/20",
-  Social: "bg-pink-500/10 text-pink-600 border-pink-500/20 hover:bg-pink-500/20",
-  Cognitive: "bg-amber-500/10 text-amber-600 border-amber-500/20 hover:bg-amber-500/20",
-  Domain: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20",
-  "Self-Efficacy": "bg-indigo-500/10 text-indigo-600 border-indigo-500/20 hover:bg-indigo-500/20",
+const getCategoryColors = (category: string): string => {
+  const c = DIMENSION_COLORS[category];
+  if (!c) return "bg-muted/50 text-foreground border-border";
+  return `${c.bg} ${c.text} ${c.border} hover:opacity-80`;
 };
 
 const SkillShowcase = ({ skills, onPinToggle }: SkillShowcaseProps) => {
@@ -102,7 +100,7 @@ const SkillShowcase = ({ skills, onPinToggle }: SkillShowcaseProps) => {
                       className={`
                         relative group flex items-center gap-2 px-3 py-2 rounded-xl border cursor-pointer
                         transition-all duration-200
-                        ${categoryColors[skill.category] || "bg-muted/50 text-foreground border-border"}
+                        ${getCategoryColors(skill.category)}
                         ${localPins.has(skill.id) ? "ring-2 ring-primary/30" : ""}
                       `}
                       onClick={() => handlePinToggle(skill.id)}
