@@ -20,6 +20,7 @@ const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 type EventType = "one-time" | "recurring";
 type TrackingMode = "count-only" | "full-tracking";
 type ScheduleMode = "basic" | "advanced";
+type EventTier = 1 | 2 | 3;
 
 interface AdvancedScheduleEntry {
   id: string;
@@ -41,6 +42,9 @@ const CreateEvent = () => {
   
   // eCertificate state (simplified - just enable/disable toggle)
   const [enableCertificate, setEnableCertificate] = useState(false);
+  
+  // Event tier state
+  const [eventTier, setEventTier] = useState<EventTier | null>(null);
   
   // Schedule mode state
   const [scheduleMode, setScheduleMode] = useState<ScheduleMode>("basic");
@@ -70,6 +74,12 @@ const CreateEvent = () => {
     "Orientation",
     "Ceremony",
     "Exhibition",
+  ];
+
+  const TIER_OPTIONS: { value: EventTier; label: string; icon: React.ReactNode }[] = [
+    { value: 1, label: "Participation", icon: <Users size={18} /> },
+    { value: 2, label: "Practice", icon: <UserCheck size={18} /> },
+    { value: 3, label: "Implementation", icon: <Award size={18} /> },
   ];
 
   const [formData, setFormData] = useState({
@@ -474,7 +484,7 @@ const CreateEvent = () => {
               </div>
 
               {/* Summary badges */}
-              <div className="flex gap-2 justify-center mb-6">
+              <div className="flex gap-2 justify-center flex-wrap mb-6">
                 <span className="text-xs bg-primary/10 px-3 py-1.5 rounded-full text-primary font-medium flex items-center gap-1">
                   {eventType === "one-time" ? <CalendarDays size={12} /> : <Repeat size={12} />}
                   {eventType === "one-time" ? "One-time" : "Recurring"}
@@ -483,9 +493,57 @@ const CreateEvent = () => {
                   {trackingMode === "count-only" ? <Users size={12} /> : <UserCheck size={12} />}
                   {trackingMode === "count-only" ? "Count only" : "Full tracking"}
                 </span>
+                {eventTier && (
+                  <span className="text-xs bg-primary/10 px-3 py-1.5 rounded-full text-primary font-medium flex items-center gap-1">
+                    {TIER_OPTIONS.find(t => t.value === eventTier)?.label}
+                  </span>
+                )}
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Event Tier Selection */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-card rounded-2xl p-4 border border-border space-y-3"
+                >
+                  <h3 className="font-medium text-foreground flex items-center gap-2">
+                    <Tag size={18} />
+                    Event Tier
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Select the engagement level for this event.
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {TIER_OPTIONS.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setEventTier(option.value)}
+                        className={cn(
+                          "p-3 rounded-xl border-2 text-center transition-all flex flex-col items-center gap-2",
+                          eventTier === option.value
+                            ? "border-primary bg-primary/5"
+                            : "border-border bg-card hover:border-primary/50"
+                        )}
+                      >
+                        <div className={cn(
+                          "w-9 h-9 rounded-lg flex items-center justify-center",
+                          eventTier === option.value ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                        )}>
+                          {option.icon}
+                        </div>
+                        <span className={cn(
+                          "text-xs font-medium",
+                          eventTier === option.value ? "text-primary" : "text-muted-foreground"
+                        )}>
+                          {option.label}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+
                 {/* Basic Info */}
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}

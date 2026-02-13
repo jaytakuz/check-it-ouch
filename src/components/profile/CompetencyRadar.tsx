@@ -97,8 +97,8 @@ const CompetencyRadar = ({ skills }: CompetencyRadarProps) => {
           y={0}
           textAnchor="middle"
           fill={isExpanded ? color?.primary || "#64748b" : "#64748b"}
-          fontSize={10}
-          fontWeight={isExpanded ? 600 : 500}
+          fontSize={isExpanded ? 12 : 10}
+          fontWeight={isExpanded ? 700 : 500}
         >
           {payload.value}
         </text>
@@ -114,8 +114,8 @@ const CompetencyRadar = ({ skills }: CompetencyRadarProps) => {
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger>
-              <div className="w-4 h-4 rounded-full bg-slate-100 flex items-center justify-center cursor-help">
-                <Info className="w-2.5 h-2.5 text-slate-500" />
+              <div className="w-4 h-4 rounded-full bg-muted flex items-center justify-center cursor-help">
+                <Info className="w-2.5 h-2.5 text-muted-foreground" />
               </div>
             </TooltipTrigger>
             <TooltipContent className="max-w-xs">
@@ -127,137 +127,135 @@ const CompetencyRadar = ({ skills }: CompetencyRadarProps) => {
         </TooltipProvider>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Left: Radar Chart */}
-        <div className="h-64 relative">
-          {!hasData && (
-            <div className="absolute inset-0 flex items-center justify-center z-10">
-              <div className="text-center">
-                <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-2">
-                  <Sparkles className="w-6 h-6 text-slate-400" />
-                </div>
-                <p className="text-xs text-slate-500">No data yet</p>
+      {/* Radar Chart - Full width on mobile */}
+      <div className="h-56 md:h-64 relative mb-4">
+        {!hasData && (
+          <div className="absolute inset-0 flex items-center justify-center z-10">
+            <div className="text-center">
+              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-2">
+                <Sparkles className="w-6 h-6 text-muted-foreground" />
               </div>
+              <p className="text-xs text-muted-foreground">No data yet</p>
             </div>
-          )}
+          </div>
+        )}
 
-          <ResponsiveContainer width="100%" height="100%">
-            <RadarChart cx="50%" cy="50%" outerRadius="68%" data={chartData}>
-              <PolarGrid stroke="#e5e7eb" strokeOpacity={1} gridType="polygon" />
-              <PolarAngleAxis dataKey="category" tick={<CustomTick />} tickLine={false} />
-              <PolarRadiusAxis angle={90} domain={[0, 50]} tick={false} axisLine={false} />
-              <Radar
-                name="Skills"
-                dataKey="value"
-                stroke="#4f46e5"
-                fill="#6366f1"
-                fillOpacity={0.2}
-                strokeWidth={2}
-                strokeLinejoin="round"
-                isAnimationActive={false}
-                dot={(props: any) => {
-                  const cat = props.payload.category;
-                  const isActive = expandedDimension === cat;
-                  const color = DIMENSION_COLORS[cat]?.primary || "#4f46e5";
+        <ResponsiveContainer width="100%" height="100%">
+          <RadarChart cx="50%" cy="50%" outerRadius="68%" data={chartData}>
+            <PolarGrid stroke="#e5e7eb" strokeOpacity={1} gridType="polygon" />
+            <PolarAngleAxis dataKey="category" tick={<CustomTick />} tickLine={false} />
+            <PolarRadiusAxis angle={90} domain={[0, 50]} tick={false} axisLine={false} />
+            <Radar
+              name="Skills"
+              dataKey="value"
+              stroke="#4f46e5"
+              fill="#6366f1"
+              fillOpacity={0.25}
+              strokeWidth={2.5}
+              strokeLinejoin="round"
+              isAnimationActive={false}
+              dot={(props: any) => {
+                const cat = props.payload.category;
+                const isActive = expandedDimension === cat;
+                const color = DIMENSION_COLORS[cat]?.primary || "#4f46e5";
 
-                  return (
-                    <g>
-                      {isActive && (
-                        <circle cx={props.cx} cy={props.cy} r={10} fill={color} fillOpacity={0.15} />
-                      )}
-                      <circle
-                        cx={props.cx}
-                        cy={props.cy}
-                        r={isActive ? 5 : 3.5}
-                        fill={color}
-                        stroke="hsl(var(--card))"
-                        strokeWidth={2}
-                      />
-                    </g>
-                  );
-                }}
-              />
-            </RadarChart>
-          </ResponsiveContainer>
-        </div>
+                return (
+                  <g>
+                    {isActive && (
+                      <circle cx={props.cx} cy={props.cy} r={12} fill={color} fillOpacity={0.15} />
+                    )}
+                    <circle
+                      cx={props.cx}
+                      cy={props.cy}
+                      r={isActive ? 5 : 3.5}
+                      fill={color}
+                      stroke="hsl(var(--card))"
+                      strokeWidth={2}
+                    />
+                  </g>
+                );
+              }}
+            />
+          </RadarChart>
+        </ResponsiveContainer>
+      </div>
 
-        {/* Right: Dimension Breakdown */}
-        <div className="flex flex-col justify-center space-y-1.5">
-          <span className="text-sm font-medium text-foreground mb-2">Dimension Breakdown</span>
+      {/* Dimension Breakdown - below chart */}
+      <div className="space-y-1.5">
+        <span className="text-sm font-medium text-foreground mb-2 block">Dimension Breakdown</span>
 
-          {rankedSkills.map((skill) => {
-            const meta = DIMENSION_META[skill.category];
-            const Icon = meta?.icon || Sparkles;
-            const color = DIMENSION_COLORS[skill.category];
-            const isExpanded = expandedDimension === skill.category;
-            const percentage = maxScore > 0 ? (skill.displayScore / maxScore) * 100 : 0;
+        {rankedSkills.map((skill) => {
+          const meta = DIMENSION_META[skill.category];
+          const Icon = meta?.icon || Sparkles;
+          const color = DIMENSION_COLORS[skill.category];
+          const isExpanded = expandedDimension === skill.category;
+          const percentage = maxScore > 0 ? (skill.displayScore / maxScore) * 100 : 0;
 
-            return (
-              <Collapsible
-                key={skill.category}
-                open={isExpanded}
-                onOpenChange={() => handleDimensionClick(skill.category)}
-              >
-                <CollapsibleTrigger asChild>
-                  <button
-                    className={`
-                      w-full p-2.5 rounded-xl text-left transition-all duration-200 border
-                      ${isExpanded
-                        ? `${color?.bg || "bg-muted"} ${color?.border || "border-border"} shadow-sm`
-                        : "bg-muted/30 border-transparent hover:bg-muted/50"
-                      }
-                    `}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${isExpanded ? color?.bg || "bg-muted" : "bg-slate-100"}`}>
-                        <Icon className={`w-3.5 h-3.5 ${isExpanded ? color?.text || "text-foreground" : "text-slate-500"}`} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm font-medium text-foreground truncate">{skill.category}</span>
-                          <div className="flex items-center gap-1.5">
-                            <span className={`text-xs font-bold ${isExpanded ? color?.text || "text-foreground" : "text-slate-600"}`}>
-                              {skill.displayScore} XP
-                            </span>
-                            <ChevronDown
-                              size={14}
-                              className={`text-muted-foreground transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
-                            />
-                          </div>
-                        </div>
-                        {/* Progress Bar */}
-                        <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all duration-300"
-                            style={{
-                              width: `${percentage}%`,
-                              backgroundColor: color?.primary || "#6366f1",
-                            }}
+          return (
+            <Collapsible
+              key={skill.category}
+              open={isExpanded}
+              onOpenChange={() => handleDimensionClick(skill.category)}
+            >
+              <CollapsibleTrigger asChild>
+                <button
+                  className={`
+                    w-full p-2.5 rounded-xl text-left transition-all duration-200 border
+                    ${isExpanded
+                      ? `${color?.bg || "bg-muted"} ${color?.border || "border-border"} shadow-sm`
+                      : "bg-muted/30 border-transparent hover:bg-muted/50"
+                    }
+                  `}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${isExpanded ? color?.bg || "bg-muted" : "bg-muted"}`}>
+                      <Icon className={`w-3.5 h-3.5 ${isExpanded ? color?.text || "text-foreground" : "text-muted-foreground"}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium text-foreground truncate">{skill.category}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className={`text-xs font-bold ${isExpanded ? color?.text || "text-foreground" : "text-muted-foreground"}`}>
+                            {skill.displayScore} XP
+                          </span>
+                          <ChevronDown
+                            size={14}
+                            className={`text-muted-foreground transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
                           />
                         </div>
                       </div>
-                    </div>
-                  </button>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <div className={`mt-1 p-3 rounded-lg ${color?.bg || "bg-muted/50"} border ${color?.border || "border-border"}`}>
-                    <p className="text-xs text-muted-foreground leading-relaxed mb-2">
-                      {meta?.definition}
-                    </p>
-                    {meta?.topEvents && meta.topEvents.length > 0 && (
-                      <div>
-                        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1">Top Contributing Events</p>
-                        {meta.topEvents.slice(0, 2).map((evt, i) => (
-                          <p key={i} className="text-xs text-foreground">• {evt}</p>
-                        ))}
+                      {/* Progress Bar */}
+                      <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-300"
+                          style={{
+                            width: `${percentage}%`,
+                            backgroundColor: color?.primary || "#6366f1",
+                          }}
+                        />
                       </div>
-                    )}
+                    </div>
                   </div>
-                </CollapsibleContent>
-              </Collapsible>
-            );
-          })}
-        </div>
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className={`mt-1 p-3 rounded-lg ${color?.bg || "bg-muted/50"} border ${color?.border || "border-border"}`}>
+                  <p className="text-xs text-muted-foreground leading-relaxed mb-2">
+                    {meta?.definition}
+                  </p>
+                  {meta?.topEvents && meta.topEvents.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1">Top Contributing Events</p>
+                      {meta.topEvents.slice(0, 2).map((evt, i) => (
+                        <p key={i} className="text-xs text-foreground">• {evt}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          );
+        })}
       </div>
     </div>
   );
