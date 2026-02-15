@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Settings } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 // Profile components
@@ -13,7 +14,7 @@ import SkillShowcase from "@/components/profile/SkillShowcase";
 import ActivityTimeline from "@/components/profile/ActivityTimeline";
 import PrivacySettingsModal from "@/components/profile/PrivacySettingsModal";
 
-// Mock data
+// Mock data (XP/skills/events still come from mock)
 import {
   mockUser,
   calculateCategoryScores,
@@ -24,7 +25,7 @@ import {
   type UserProfile,
 } from "@/data/profileMockData";
 
-const UserProfile = () => {
+const UserProfilePage = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading, signOut, getUserRoles, setUserRole } = useAuth();
   const [hasHostRole, setHasHostRole] = useState(false);
@@ -32,8 +33,8 @@ const UserProfile = () => {
   const [loading, setLoading] = useState(true);
   const [addingRole, setAddingRole] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  
-  // Profile state with local updates
+
+  // Profile state - loaded from DB
   const [profileData, setProfileData] = useState<UserProfile>(mockUser);
   const [privacySettings, setPrivacySettings] = useState<PrivacySettings>(mockUser.privacySettings);
   const [sectionOrder, setSectionOrder] = useState<string[]>(mockUser.sectionOrder);
@@ -53,28 +54,61 @@ const UserProfile = () => {
     fetchData();
   }, [user, authLoading, navigate]);
 
-  // Update profile data when user changes
-  useEffect(() => {
-    if (user) {
-      setProfileData((prev) => ({
-        ...prev,
-        name: user.user_metadata?.full_name || prev.name,
-        avatarUrl: user.user_metadata?.avatar_url,
-      }));
-    }
-  }, [user]);
-
   const fetchData = async () => {
     if (!user) return;
 
-    // Get user roles
-    const { data: roles } = await getUserRoles();
-    if (roles) {
-      setHasHostRole(roles.some((r: any) => r.role === "host"));
-      setHasAttendeeRole(roles.some((r: any) => r.role === "attendee"));
+    // Fetch roles and profile in parallel
+    const [rolesResult, profileResult] = await Promise.all([
+      getUserRoles(),
+      supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", user.id)
+        .single(),
+    ]);
+
+    if (rolesResult.data) {
+      setHasHostRole(rolesResult.data.some((r: any) => r.role === "host"));
+      setHasAttendeeRole(rolesResult.data.some((r: any) => r.role === "attendee"));
+    }
+
+    if (profileResult.data) {
+      const db = profileResult.data as any;
+      const dbPrivacy = db.privacy_settings as PrivacySettings | null;
+      const dbSectionOrder = db.section_order as string[] | null;
+
+      setProfileData((prev) => ({
+        ...prev,
+        name: db.full_name || user.user_metadata?.full_name || prev.name,
+        avatarUrl: db.avatar_url || user.user_metadata?.avatar_url,
+        username: db.username || prev.username,
+        bio: db.bio || "",
+        linkedinUrl: db.linkedin_url || "",
+        githubUrl: db.github_url || "",
+        isPublic: db.is_public ?? false,
+      }));
+
+      if (dbPrivacy) {
+        setPrivacySettings(dbPrivacy);
+      }
+      if (dbSectionOrder && dbSectionOrder.length > 0) {
+        setSectionOrder(dbSectionOrder);
+      }
     }
 
     setLoading(false);
+  };
+
+  const saveProfileToDb = async (updates: Record<string, any>) => {
+    if (!user) return;
+    const { error } = await supabase
+      .from("profiles")
+      .update(updates)
+      .eq("user_id", user.id);
+    if (error) {
+      console.error("Failed to save profile:", error);
+      toast.error("Failed to save changes");
+    }
   };
 
   const handleAddRole = async (role: "host" | "attendee") => {
@@ -100,17 +134,31 @@ const UserProfile = () => {
   };
 
   const handlePinToggle = (skillId: string) => {
-    // In production, this would persist to the database
     console.log("Toggle pin for skill:", skillId);
   };
 
   const handleProfileUpdate = (updates: Partial<UserProfile>) => {
     setProfileData((prev) => ({ ...prev, ...updates }));
+    // Map to DB columns and save
+    const dbUpdates: Record<string, any> = {};
+    if (updates.bio !== undefined) dbUpdates.bio = updates.bio;
+    if (updates.linkedinUrl !== undefined) dbUpdates.linkedin_url = updates.linkedinUrl;
+    if (updates.githubUrl !== undefined) dbUpdates.github_url = updates.githubUrl;
+    if (updates.isPublic !== undefined) dbUpdates.is_public = updates.isPublic;
+    if (updates.username !== undefined) dbUpdates.username = updates.username;
+    if (Object.keys(dbUpdates).length > 0) {
+      saveProfileToDb(dbUpdates);
+    }
   };
 
   const handlePrivacyChange = (settings: PrivacySettings) => {
     setPrivacySettings(settings);
-    // In production, persist to database
+    saveProfileToDb({ privacy_settings: settings });
+  };
+
+  const handleSectionOrderChange = (order: string[]) => {
+    setSectionOrder(order);
+    saveProfileToDb({ section_order: order });
   };
 
   if (authLoading || loading) {
@@ -123,7 +171,6 @@ const UserProfile = () => {
 
   return (
     <div className="min-h-screen bg-background pb-8">
-      {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -139,7 +186,6 @@ const UserProfile = () => {
       </header>
 
       <div className="max-w-2xl mx-auto px-4 space-y-4 pt-6">
-        {/* ZONE 1: Identity Header */}
         <ProfileIdentityHeader
           profile={profileData}
           stats={profileStats}
@@ -147,7 +193,6 @@ const UserProfile = () => {
           onProfileUpdate={handleProfileUpdate}
         />
 
-        {/* Dynamic Section Rendering */}
         {sectionOrder.map((sectionKey) => {
           if (sectionKey === "radar" && privacySettings.showRadar) {
             return <CompetencyRadar key="radar" skills={categoryScores} />;
@@ -168,7 +213,6 @@ const UserProfile = () => {
         })}
       </div>
 
-      {/* Settings Modal */}
       <PrivacySettingsModal
         open={settingsOpen}
         onOpenChange={setSettingsOpen}
@@ -182,10 +226,10 @@ const UserProfile = () => {
         onAddRole={handleAddRole}
         addingRole={addingRole}
         sectionOrder={sectionOrder}
-        onSectionOrderChange={setSectionOrder}
+        onSectionOrderChange={handleSectionOrderChange}
       />
     </div>
   );
 };
 
-export default UserProfile;
+export default UserProfilePage;

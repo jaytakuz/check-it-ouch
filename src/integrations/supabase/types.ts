@@ -192,27 +192,48 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          bio: string | null
           created_at: string
           full_name: string | null
+          github_url: string | null
           id: string
+          is_public: boolean
+          linkedin_url: string | null
+          privacy_settings: Json
+          section_order: string[]
           updated_at: string
           user_id: string
+          username: string | null
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
           full_name?: string | null
+          github_url?: string | null
           id?: string
+          is_public?: boolean
+          linkedin_url?: string | null
+          privacy_settings?: Json
+          section_order?: string[]
           updated_at?: string
           user_id: string
+          username?: string | null
         }
         Update: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
           full_name?: string | null
+          github_url?: string | null
           id?: string
+          is_public?: boolean
+          linkedin_url?: string | null
+          privacy_settings?: Json
+          section_order?: string[]
           updated_at?: string
           user_id?: string
+          username?: string | null
         }
         Relationships: []
       }

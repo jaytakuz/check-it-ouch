@@ -16,6 +16,7 @@ import UserProfile from "./pages/user/Profile";
 import CheckIn from "./pages/CheckIn";
 import EventDetails from "./pages/EventDetails";
 import Scan from "./pages/Scan";
+import PublicProfile from "./pages/PublicProfile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -53,6 +54,9 @@ const App = () => (
           <Route path="/event/:eventId" element={<EventDetails />} />
           <Route path="/checkin" element={<CheckIn />} />
           <Route path="/scan" element={<Scan />} />
+          
+          {/* Public profile (no auth required) */}
+          <Route path="/p/:username" element={<PublicProfile />} />
           
           <Route path="*" element={<NotFound />} />
         </Routes>
