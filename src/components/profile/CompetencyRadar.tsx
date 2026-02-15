@@ -96,7 +96,7 @@ const CompetencyRadar = ({ skills }: CompetencyRadarProps) => {
           x={0}
           y={0}
           textAnchor="middle"
-          fill={isExpanded ? color?.primary || "#64748b" : "#64748b"}
+          fill={isExpanded ? color?.primary || "#475569" : "#475569"}
           fontSize={isExpanded ? 12 : 10}
           fontWeight={isExpanded ? 700 : 500}
         >
@@ -120,14 +120,14 @@ const CompetencyRadar = ({ skills }: CompetencyRadarProps) => {
             </TooltipTrigger>
             <TooltipContent className="max-w-xs">
               <p className="text-xs">
-                Based on WEF & OECD standards. The 5-Dimension Competency Framework is adapted from the World Economic Forum's Future of Jobs Report, tailored to fit the student activity context.
+                Based on WEF & OECD standards. The 5-Dimension Competency Framework is adapted from the World Economic Forum's Future of Jobs Report.
               </p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
       </div>
 
-      {/* Radar Chart - Full width on mobile */}
+      {/* Radar Chart */}
       <div className="h-56 md:h-64 relative mb-4">
         {!hasData && (
           <div className="absolute inset-0 flex items-center justify-center z-10">
@@ -142,22 +142,22 @@ const CompetencyRadar = ({ skills }: CompetencyRadarProps) => {
 
         <ResponsiveContainer width="100%" height="100%">
           <RadarChart cx="50%" cy="50%" outerRadius="68%" data={chartData}>
-            <PolarGrid stroke="#e5e7eb" strokeOpacity={1} gridType="polygon" />
+            <PolarGrid stroke="#e2e8f0" strokeWidth={0.5} gridType="polygon" />
             <PolarAngleAxis dataKey="category" tick={<CustomTick />} tickLine={false} />
             <PolarRadiusAxis angle={90} domain={[0, 50]} tick={false} axisLine={false} />
             <Radar
               name="Skills"
               dataKey="value"
-              stroke="#4f46e5"
-              fill="#6366f1"
-              fillOpacity={0.25}
-              strokeWidth={2.5}
+              stroke="#334155"
+              fill="#334155"
+              fillOpacity={0.08}
+              strokeWidth={2}
               strokeLinejoin="round"
               isAnimationActive={false}
               dot={(props: any) => {
                 const cat = props.payload.category;
                 const isActive = expandedDimension === cat;
-                const color = DIMENSION_COLORS[cat]?.primary || "#4f46e5";
+                const color = DIMENSION_COLORS[cat]?.primary || "#334155";
 
                 return (
                   <g>
@@ -180,7 +180,7 @@ const CompetencyRadar = ({ skills }: CompetencyRadarProps) => {
         </ResponsiveContainer>
       </div>
 
-      {/* Dimension Breakdown - below chart */}
+      {/* Dimension Breakdown */}
       <div className="space-y-1.5">
         <span className="text-sm font-medium text-foreground mb-2 block">Dimension Breakdown</span>
 
@@ -202,20 +202,30 @@ const CompetencyRadar = ({ skills }: CompetencyRadarProps) => {
                   className={`
                     w-full p-2.5 rounded-xl text-left transition-all duration-200 border
                     ${isExpanded
-                      ? `${color?.bg || "bg-muted"} ${color?.border || "border-border"} shadow-sm`
+                      ? `bg-muted/60 shadow-sm`
                       : "bg-muted/30 border-transparent hover:bg-muted/50"
                     }
                   `}
+                  style={isExpanded ? { borderColor: color?.primary + "40" } : {}}
                 >
                   <div className="flex items-center gap-2.5">
-                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${isExpanded ? color?.bg || "bg-muted" : "bg-muted"}`}>
-                      <Icon className={`w-3.5 h-3.5 ${isExpanded ? color?.text || "text-foreground" : "text-muted-foreground"}`} />
+                    <div
+                      className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={isExpanded ? { backgroundColor: color?.primary + "15" } : {}}
+                    >
+                      <Icon
+                        className="w-3.5 h-3.5"
+                        style={isExpanded ? { color: color?.primary } : {}}
+                      />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-sm font-medium text-foreground truncate">{skill.category}</span>
                         <div className="flex items-center gap-1.5">
-                          <span className={`text-xs font-bold ${isExpanded ? color?.text || "text-foreground" : "text-muted-foreground"}`}>
+                          <span
+                            className="text-xs font-bold"
+                            style={{ color: isExpanded ? color?.primary : undefined }}
+                          >
                             {skill.displayScore} XP
                           </span>
                           <ChevronDown
@@ -224,13 +234,12 @@ const CompetencyRadar = ({ skills }: CompetencyRadarProps) => {
                           />
                         </div>
                       </div>
-                      {/* Progress Bar */}
                       <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all duration-300"
                           style={{
                             width: `${percentage}%`,
-                            backgroundColor: color?.primary || "#6366f1",
+                            background: `linear-gradient(90deg, ${color?.primary}cc, ${color?.primary})`,
                           }}
                         />
                       </div>
@@ -239,7 +248,10 @@ const CompetencyRadar = ({ skills }: CompetencyRadarProps) => {
                 </button>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                <div className={`mt-1 p-3 rounded-lg ${color?.bg || "bg-muted/50"} border ${color?.border || "border-border"}`}>
+                <div
+                  className="mt-1 p-3 rounded-lg bg-muted/30 border-l-[3px]"
+                  style={{ borderLeftColor: color?.primary }}
+                >
                   <p className="text-xs text-muted-foreground leading-relaxed mb-2">
                     {meta?.definition}
                   </p>

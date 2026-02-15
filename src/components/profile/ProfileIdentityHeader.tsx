@@ -6,15 +6,13 @@ import {
   Zap,
   Sparkles,
   Award,
-  Copy,
-  Check,
-  ExternalLink,
   Mail,
   Linkedin,
   Github,
   Pencil,
   Camera,
   X,
+  Share2,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { UserProfile } from "@/data/profileMockData";
@@ -31,11 +29,8 @@ interface ProfileIdentityHeaderProps {
 }
 
 const ProfileIdentityHeader = ({ profile, stats, isOwner = true, onProfileUpdate }: ProfileIdentityHeaderProps) => {
-  const [copied, setCopied] = useState(false);
   const [editingBio, setEditingBio] = useState(false);
   const [localBio, setLocalBio] = useState(profile.bio || "");
-
-  const publicUrl = `cmu.ac.th/in/${profile.username}`;
 
   const getInitials = (name: string) => {
     const parts = name.split(" ");
@@ -46,11 +41,10 @@ const ProfileIdentityHeader = ({ profile, stats, isOwner = true, onProfileUpdate
       .slice(0, 2);
   };
 
-  const handleCopyUrl = () => {
-    navigator.clipboard.writeText(`https://${publicUrl}`);
-    setCopied(true);
-    toast.success("Profile URL copied!");
-    setTimeout(() => setCopied(false), 2000);
+  const handleShareProfile = () => {
+    const publicUrl = `${window.location.origin}/p/${profile.username}`;
+    navigator.clipboard.writeText(publicUrl);
+    toast.success("Profile link copied!");
   };
 
   const handleSaveBio = () => {
@@ -72,15 +66,10 @@ const ProfileIdentityHeader = ({ profile, stats, isOwner = true, onProfileUpdate
     >
       {/* Top Row: Avatar + Info */}
       <div className="flex items-start gap-4">
-        {/* Avatar with camera overlay for owner */}
         <div className="relative flex-shrink-0 group">
           <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-primary text-2xl font-bold border border-primary/10 overflow-hidden">
             {profile.avatarUrl ? (
-              <img
-                src={profile.avatarUrl}
-                alt={profile.name}
-                className="w-full h-full object-cover"
-              />
+              <img src={profile.avatarUrl} alt={profile.name} className="w-full h-full object-cover" />
             ) : (
               getInitials(profile.name)
             )}
@@ -92,13 +81,12 @@ const ProfileIdentityHeader = ({ profile, stats, isOwner = true, onProfileUpdate
           )}
         </div>
 
-        {/* Info */}
         <div className="flex-1 min-w-0">
           <h2 className="text-xl font-bold text-foreground truncate">{profile.name}</h2>
-          <p className="text-sm text-muted-foreground">{profile.studentId}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">{profile.faculty}</p>
+          {profile.studentId && <p className="text-sm text-muted-foreground">{profile.studentId}</p>}
+          {profile.faculty && <p className="text-xs text-muted-foreground mt-0.5">{profile.faculty}</p>}
 
-          {/* Contact Icons */}
+          {/* Contact Icons + Share */}
           <div className="flex items-center gap-2 mt-2">
             {profile.email && (
               <a
@@ -113,7 +101,7 @@ const ProfileIdentityHeader = ({ profile, stats, isOwner = true, onProfileUpdate
                 href={profile.linkedinUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center text-muted-foreground hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                className="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               >
                 <Linkedin size={16} />
               </a>
@@ -128,13 +116,22 @@ const ProfileIdentityHeader = ({ profile, stats, isOwner = true, onProfileUpdate
                 <Github size={16} />
               </a>
             )}
+            {profile.isPublic && profile.username && (
+              <button
+                onClick={handleShareProfile}
+                className="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                title="Copy profile link"
+              >
+                <Share2 size={16} />
+              </button>
+            )}
           </div>
         </div>
       </div>
 
       {/* Bio - Inline Editable */}
       <div className="mt-4">
-        {editingBio ? (
+        {editingBio && isOwner ? (
           <div className="space-y-2">
             <Textarea
               value={localBio}
@@ -171,40 +168,6 @@ const ProfileIdentityHeader = ({ profile, stats, isOwner = true, onProfileUpdate
           </div>
         )}
       </div>
-
-      {/* Public URL */}
-      {profile.isPublic && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          className="mt-4"
-        >
-          <div className="flex items-center gap-2 p-2.5 bg-muted/50 rounded-lg border border-border">
-            <ExternalLink size={14} className="text-muted-foreground flex-shrink-0" />
-            <span className="text-xs text-muted-foreground flex-1 truncate font-mono">
-              {publicUrl}
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2 text-xs"
-              onClick={handleCopyUrl}
-            >
-              {copied ? (
-                <>
-                  <Check size={12} className="mr-1 text-emerald-600" />
-                  Copied
-                </>
-              ) : (
-                <>
-                  <Copy size={12} className="mr-1" />
-                  Copy
-                </>
-              )}
-            </Button>
-          </div>
-        </motion.div>
-      )}
 
       {/* Stats Row */}
       <div className="grid grid-cols-3 gap-3 mt-4">
