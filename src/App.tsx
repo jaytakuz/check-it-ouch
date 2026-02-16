@@ -12,11 +12,10 @@ import CreateEvent from "./pages/host/CreateEvent";
 import EditEvent from "./pages/host/EditEvent";
 import LiveMonitor from "./pages/host/LiveMonitor";
 import AttendanceLogs from "./pages/host/AttendanceLogs";
-import UserProfile from "./pages/user/Profile";
+import ProfileUnified from "./pages/user/ProfileUnified";
 import CheckIn from "./pages/CheckIn";
 import EventDetails from "./pages/EventDetails";
 import Scan from "./pages/Scan";
-import PublicProfile from "./pages/PublicProfile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,17 +46,18 @@ const App = () => (
           <Route path="/host/attendance/:eventId" element={<AttendanceLogs />} />
           <Route path="/host/event/:eventId" element={<EventDetails />} />
           
-          {/* User-specific pages */}
-          <Route path="/user/profile" element={<UserProfile />} />
+          {/* Unified profile: own profile or public view */}
+          <Route path="/user/profile" element={<ProfileUnified />} />
+          <Route path="/user/profile/:username" element={<ProfileUnified />} />
+          
+          {/* Legacy public profile routes - redirect */}
+          <Route path="/p/:username" element={<ProfileUnified />} />
+          <Route path="/profile/:username" element={<ProfileUnified />} />
           
           {/* Shared pages */}
           <Route path="/event/:eventId" element={<EventDetails />} />
           <Route path="/checkin" element={<CheckIn />} />
           <Route path="/scan" element={<Scan />} />
-          
-          {/* Public profile (no auth required) */}
-          <Route path="/p/:username" element={<PublicProfile />} />
-          <Route path="/profile/:username" element={<PublicProfile />} />
           
           <Route path="*" element={<NotFound />} />
         </Routes>

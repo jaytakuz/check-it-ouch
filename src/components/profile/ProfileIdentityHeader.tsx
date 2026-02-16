@@ -42,7 +42,7 @@ const ProfileIdentityHeader = ({ profile, stats, isOwner = true, onProfileUpdate
   };
 
   const handleShareProfile = () => {
-    const publicUrl = `${window.location.origin}/profile/${profile.username}`;
+    const publicUrl = `${window.location.origin}/user/profile/${profile.username}`;
     navigator.clipboard.writeText(publicUrl);
     toast.success("Profile link copied!");
   };
