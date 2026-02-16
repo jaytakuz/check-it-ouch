@@ -57,6 +57,7 @@ const App = () => (
           
           {/* Public profile (no auth required) */}
           <Route path="/p/:username" element={<PublicProfile />} />
+          <Route path="/profile/:username" element={<PublicProfile />} />
           
           <Route path="*" element={<NotFound />} />
         </Routes>
