@@ -61,7 +61,7 @@ const PrivacySettingsModal = ({
   const [localLinkedin, setLocalLinkedin] = useState(profile.linkedinUrl || "");
   const [localGithub, setLocalGithub] = useState(profile.githubUrl || "");
 
-  const publicUrl = `${window.location.origin}/p/${profile.username}`;
+  const publicUrl = `${window.location.origin}/profile/${profile.username}`;
 
   useEffect(() => {
     setLocalBio(profile.bio || "");
@@ -83,6 +83,7 @@ const PrivacySettingsModal = ({
       githubUrl: localGithub,
     });
     toast.success("Profile saved!");
+    onOpenChange(false);
   };
 
   const handleToggle = (key: keyof PrivacySettings) => {
@@ -98,7 +99,7 @@ const PrivacySettingsModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[calc(100%-2rem)] max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
         </DialogHeader>
@@ -143,14 +144,10 @@ const PrivacySettingsModal = ({
             </div>
 
             {profile.isPublic && profile.username && (
-              <div className="mt-2 p-3 bg-muted/30 rounded-lg border border-border">
-                <div className="flex items-center gap-2">
-                  <ExternalLink size={14} className="text-muted-foreground flex-shrink-0" />
-                  <span className="text-xs font-mono text-foreground flex-1 truncate">{publicUrl}</span>
-                  <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={handleCopyUrl}>
-                    {copied ? <><Check size={12} className="mr-1" />Copied</> : <><Copy size={12} className="mr-1" />Copy</>}
-                  </Button>
-                </div>
+              <div className="mt-2">
+                <Button variant="outline" size="sm" className="w-full h-8 text-xs gap-1.5" onClick={handleCopyUrl}>
+                  {copied ? <><Check size={12} />Copied!</> : <><Copy size={12} />Copy Public Link</>}
+                </Button>
               </div>
             )}
           </div>

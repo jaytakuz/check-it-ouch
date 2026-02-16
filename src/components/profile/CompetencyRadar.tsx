@@ -89,6 +89,7 @@ const CompetencyRadar = ({ skills }: CompetencyRadarProps) => {
   const CustomTick = ({ x, y, payload }: any) => {
     const isExpanded = expandedDimension === payload.value;
     const color = DIMENSION_COLORS[payload.value];
+    const dataItem = chartData.find(d => d.category === payload.value);
 
     return (
       <g transform={`translate(${x},${y})`}>
@@ -102,6 +103,18 @@ const CompetencyRadar = ({ skills }: CompetencyRadarProps) => {
         >
           {payload.value}
         </text>
+        {isExpanded && dataItem && (
+          <text
+            x={0}
+            y={14}
+            textAnchor="middle"
+            fill={color?.primary || "#475569"}
+            fontSize={10}
+            fontWeight={600}
+          >
+            {dataItem.displayScore} XP
+          </text>
+        )}
       </g>
     );
   };
@@ -148,8 +161,8 @@ const CompetencyRadar = ({ skills }: CompetencyRadarProps) => {
             <Radar
               name="Skills"
               dataKey="value"
-              stroke="#334155"
-              fill="#334155"
+              stroke={expandedDimension ? (DIMENSION_COLORS[expandedDimension]?.primary || "#334155") : "#334155"}
+              fill={expandedDimension ? (DIMENSION_COLORS[expandedDimension]?.primary || "#334155") : "#334155"}
               fillOpacity={0.08}
               strokeWidth={2}
               strokeLinejoin="round"
