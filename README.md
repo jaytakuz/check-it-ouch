@@ -7,20 +7,19 @@ A secure, evidence-based competency portfolio platform aimed at solving attendan
 ## 👥 Team & Responsibilities
 
 * **[S] - Product Manager & System Analyst**
-  Managed the end-to-end product lifecycle, balancing technical constraints with business viability and user experience:
 * **Business Strategy & Modeling:** Drafted the PRD, defined precise User Personas, and strategized a sustainable **Freemium Business/Monetization Model** for institutional and external event hosts.
-* **System Architecture & Logic:** Designed the database schema and architected the **"3-Tier Engagement Framework"** (Participation, Practice, Implementation), mapping attendance data to global competency dimensions (WEF/OCED with LinkedIn standards).
+* **System Architecture & Logic:** Designed the database schema and architected the **"3-Tier Engagement Framework"** (Participation, Practice, Implementation), mapping attendance data to global competency dimensions (WEF/OECD with LinkedIn standards).
 * **Risk Mitigation & QA:** Identified technical bottlenecks (e.g., Indoor GPS inaccuracy/drift) and designed logical fallbacks. Executed comprehensive QA testing and UAT protocols to ensure system integrity before deployment.
-* 📄 *[Link to Product Requirement Document (PRD) PDF]*
+* 📄 *[Check-in_PRD : [PRD_Check-in.pdf](https://github.com/user-attachments/files/25371486/PRD_Check-in.pdf)]*
+
+* **[Jay] - UX/UI Designer**
+  * Analyzed system requirements alongside the PM to architect the platform's visual logic.
+  * Designed a "Mobile-First" experience, ensuring large, accessible touch targets for rapid on-site check-ins and intuitive schedule-setup dashboards for hosts.
 
 * **[View] - Lead Developer**
   * Executed the core system architecture and prepared the application for final deployment.
   * Fine-tuned critical features such as the Dynamic QR generator and GPS location-fetching accuracy.
   * Bridged the gap between the generated code and custom deployment server requirements.
-
-* **[Jay] - UX/UI Designer**
-  * Analyzed system requirements alongside the PM to architect the platform's visual logic.
-  * Designed a "Mobile-First" experience, ensuring large, accessible touch targets for rapid on-site check-ins and intuitive schedule-setup dashboards for hosts.
 
 ## 🛠️ Tech Stack & Tools
 * **Frontend/Backend:** [React, Vite, TypeScript, Tailwind CSS, JavaScript, Docker, Mapbox, Lovable]
