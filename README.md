@@ -1,73 +1,28 @@
-# Welcome to your Lovable project
+# ✅ Check-in: Universal Presence Verification System
+> 🚀 **Current Status:** MVP Phase (Preparing for Deployment)
 
-## Project info
+## 🎯 Project Overview
+A secure, evidence-based competency portfolio platform aimed at solving attendance fraud. The system utilizes Dynamic QR codes and GPS validation to capture trusted data, transforming raw attendance logs into a verified, 3-tier professional skill portfolio for students.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## 👥 Team & Responsibilities
 
-## How can I edit this code?
+* **[S] - Product Manager & System Analyst**
+  Managed the end-to-end product lifecycle, balancing technical constraints with business viability and user experience:
+* **Business Strategy & Modeling:** Drafted the PRD, defined precise User Personas, and strategized a sustainable **Freemium Business/Monetization Model** for institutional and external event hosts.
+* **System Architecture & Logic:** Designed the database schema and architected the **"3-Tier Engagement Framework"** (Participation, Practice, Implementation), mapping attendance data to global competency dimensions (WEF/OCED with LinkedIn standards).
+* **Risk Mitigation & QA:** Identified technical bottlenecks (e.g., Indoor GPS inaccuracy/drift) and designed logical fallbacks. Executed comprehensive QA testing and UAT protocols to ensure system integrity before deployment.
+* 📄 *[Link to Product Requirement Document (PRD) PDF]*
 
-There are several ways of editing your application.
+* **[View] - Lead Developer**
+  * Executed the core system architecture and prepared the application for final deployment.
+  * Fine-tuned critical features such as the Dynamic QR generator and GPS location-fetching accuracy.
+  * Bridged the gap between the generated code and custom deployment server requirements.
 
-**Use Lovable**
+* **[Jay] - UX/UI Designer**
+  * Analyzed system requirements alongside the PM to architect the platform's visual logic.
+  * Designed a "Mobile-First" experience, ensuring large, accessible touch targets for rapid on-site check-ins and intuitive schedule-setup dashboards for hosts.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## 🛠️ Tech Stack & Tools
+* **Frontend/Backend:** [React, Vite, TypeScript, Tailwind CSS, JavaScript, Docker, Mapbox, Lovable]
+* **Database & Infrastructure:** [Supabase]
+* **Workflow:** [Agile/Scrum, Lovable integration, Git Flow]
