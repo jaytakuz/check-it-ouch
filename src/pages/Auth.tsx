@@ -9,6 +9,7 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { z } from "zod";
+import { PageLoading } from "@/components/ui/PageLoading";
 
 const authSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").optional(),
@@ -116,11 +117,7 @@ const Auth = () => {
   };
 
   if (authLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <PageLoading />;
   }
 
   return (

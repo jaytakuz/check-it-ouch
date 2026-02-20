@@ -9,7 +9,6 @@ import {
   Users,
   Clock,
   MapPin,
-  Bell,
   User,
   Plus,
   Play,
@@ -29,6 +28,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { format, isToday, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { RoleSwitcher } from "@/components/RoleSwitcher";
+import { PageLoading } from "@/components/ui/PageLoading";
 
 type ViewMode = "host" | "attendee";
 
@@ -350,11 +350,7 @@ const UnifiedDashboard = () => {
     : 0;
 
   if (authLoading || loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
+    return <PageLoading />;
   }
 
   return (
@@ -369,9 +365,6 @@ const UnifiedDashboard = () => {
                 currentView={viewMode} 
                 onViewChange={setViewMode}
               />
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell size={20} />
-              </Button>
               <Button variant="ghost" size="icon" onClick={() => navigate("/user/profile")}>
                 <User size={20} />
               </Button>
@@ -747,7 +740,7 @@ const UnifiedDashboard = () => {
       </div>
 
       {/* FAB for host mode */}
-      {(viewMode === "host" || hasHostRole) && (
+      {viewMode === "host" && (
         <motion.button
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}

@@ -42,6 +42,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import LeafletLocationMap from "@/components/LeafletLocationMap";
 import CertificateMultiZoneEditor, { CertificateZones } from "@/components/CertificateMultiZoneEditor";
+import { PageLoading } from "@/components/ui/PageLoading";
 
 interface Event {
   id: string;
@@ -399,11 +400,7 @@ const EventDetails = () => {
   };
 
   if (authLoading || loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
+    return <PageLoading />;
   }
 
   if (!event) {

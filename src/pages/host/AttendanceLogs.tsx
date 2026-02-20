@@ -22,7 +22,6 @@ import {
   Users,
   Clock,
   TrendingUp,
-  ChevronRight,
   CheckCircle2,
   User,
   MapPin,
@@ -30,6 +29,7 @@ import {
   UsersRound,
   Mail,
 } from "lucide-react";
+import { PageLoading } from "@/components/ui/PageLoading";
 
 type TrackingMode = "count_only" | "full_tracking";
 
@@ -254,11 +254,7 @@ const AttendanceLogs = () => {
   };
 
   if (authLoading || loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
+    return <PageLoading />;
   }
 
   if (!event) {
@@ -564,15 +560,6 @@ const AttendanceLogs = () => {
         </div>
       )}
 
-      {/* View All Sessions Link */}
-      {sessionLogs.length > 7 && (
-        <div className="px-4 mt-4">
-          <Button variant="outline" className="w-full" onClick={() => {}}>
-            View all {sessionLogs.length} sessions
-            <ChevronRight size={16} className="ml-2" />
-          </Button>
-        </div>
-      )}
     </div>
   );
 };

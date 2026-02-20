@@ -280,13 +280,6 @@ const CheckIn = () => {
           className="space-y-3 w-full max-w-xs"
         >
           <Button
-            variant="secondary"
-            className="w-full bg-success-foreground/20 hover:bg-success-foreground/30 text-success-foreground border-0"
-            size="lg"
-          >
-            Download Certificate
-          </Button>
-          <Button
             variant="ghost"
             className="w-full text-success-foreground/80 hover:bg-success-foreground/10"
             onClick={() => navigate("/dashboard")}
@@ -465,9 +458,9 @@ const CheckIn = () => {
 
         {/* Location Preview */}
         <div className="max-w-2xl mx-auto w-full p-6 border-t border-border">
-          <LeafletLocationMap
-            eventLocation={{ lat: 13.7563, lng: 100.5018 }}
-            radiusMeters={50}
+        <LeafletLocationMap
+            eventLocation={{ lat: eventData?.location_lat || 0, lng: eventData?.location_lng || 0 }}
+            radiusMeters={eventData?.radius_meters || 50}
             onLocationVerified={(within, dist) => {
               setIsWithinRadius(within);
               setDistance(dist);
