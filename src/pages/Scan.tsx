@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Loader2, QrCode, Scan as ScanIcon } from "lucide-react";
+import { QrCode, Scan as ScanIcon } from "lucide-react";
+import { PageLoading } from "@/components/ui/PageLoading";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import QRScanner from "@/components/QRScanner";
@@ -84,20 +85,7 @@ const Scan = () => {
   }
 
   if (checkingAuth || processing) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="text-center"
-        >
-          <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">
-            {processing ? "Processing QR code..." : "Loading..."}
-          </p>
-        </motion.div>
-      </div>
-    );
+    return <PageLoading message={processing ? "Processing QR code..." : undefined} />;
   }
 
   return (

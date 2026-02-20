@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Users, RefreshCw, Maximize2, UserCheck, UsersRound } from "lucide-react";
+import { ArrowLeft, Users, RefreshCw, UserCheck, UsersRound } from "lucide-react";
+import { PageLoading } from "@/components/ui/PageLoading";
 import { QRCodeSVG } from "qrcode.react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
@@ -176,11 +177,7 @@ const LiveMonitor = () => {
   const progress = (totalCheckedIn / maxAttendees) * 100;
 
   if (authLoading || loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
+    return <PageLoading />;
   }
 
   return (
@@ -206,9 +203,8 @@ const LiveMonitor = () => {
               <p className="text-sm text-muted-foreground">Live Monitor</p>
             </div>
           </div>
-          <Button variant="outline" size="icon">
-            <Maximize2 size={18} />
-          </Button>
+          {/* Spacer to maintain layout */}
+          <div className="w-10" />
         </div>
       </header>
 

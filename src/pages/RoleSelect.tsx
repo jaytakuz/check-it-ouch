@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { PageLoading } from "@/components/ui/PageLoading";
 
 type Role = "host" | "attendee";
 
@@ -107,11 +108,7 @@ const RoleSelect = () => {
   };
 
   if (authLoading || checkingRoles) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <PageLoading />;
   }
 
   return (

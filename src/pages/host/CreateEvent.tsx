@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import LeafletLocationPicker from "@/components/LeafletLocationPicker";
+import { PageLoading } from "@/components/ui/PageLoading";
 
 const DAYS = ["M", "T", "W", "T", "F", "S", "S"];
 const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -236,11 +237,7 @@ const CreateEvent = () => {
   };
 
   if (authLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <PageLoading />;
   }
 
   return (
