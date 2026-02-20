@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Users, RefreshCw, UserCheck, UsersRound } from "lucide-react";
+import { ArrowLeft, Users, RefreshCw, UserCheck, UsersRound, Maximize2, Minimize2 } from "lucide-react";
 import { PageLoading } from "@/components/ui/PageLoading";
 import { QRCodeSVG } from "qrcode.react";
 import { motion } from "framer-motion";
@@ -25,6 +25,7 @@ const LiveMonitor = () => {
   const [eventName, setEventName] = useState("Loading...");
   const [trackingMode, setTrackingMode] = useState<TrackingMode>("count_only");
   const [loading, setLoading] = useState(true);
+  const [fullscreen, setFullscreen] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -180,6 +181,52 @@ const LiveMonitor = () => {
     return <PageLoading />;
   }
 
+  if (fullscreen) {
+    return (
+      <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center p-8">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-4 right-4"
+          onClick={() => setFullscreen(false)}
+        >
+          <Minimize2 size={24} />
+        </Button>
+
+        <div className="bg-card p-10 rounded-3xl shadow-lg border border-border mb-8">
+          <QRCodeSVG
+            value={qrValue}
+            size={400}
+            bgColor="transparent"
+            fgColor="hsl(var(--foreground))"
+            level="M"
+            includeMargin
+          />
+        </div>
+
+        <div className="w-full max-w-md">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-muted-foreground">Refreshes in</span>
+            <span className="text-sm font-medium text-foreground">{timeLeft}s</span>
+          </div>
+          <div className="h-2 bg-muted rounded-full overflow-hidden">
+            <motion.div
+              className="h-full bg-primary rounded-full"
+              initial={{ width: "100%" }}
+              animate={{ width: `${(timeLeft / 7) * 100}%` }}
+              transition={{ duration: 0.3 }}
+            />
+          </div>
+        </div>
+
+        <div className="mt-8 text-center">
+          <p className="text-4xl font-bold text-foreground">{totalCheckedIn} <span className="text-muted-foreground text-xl">/ {maxAttendees}</span></p>
+          <p className="text-muted-foreground mt-1">Checked in</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
@@ -203,8 +250,9 @@ const LiveMonitor = () => {
               <p className="text-sm text-muted-foreground">Live Monitor</p>
             </div>
           </div>
-          {/* Spacer to maintain layout */}
-          <div className="w-10" />
+          <Button variant="ghost" size="icon" onClick={() => setFullscreen(true)}>
+            <Maximize2 size={20} />
+          </Button>
         </div>
       </header>
 

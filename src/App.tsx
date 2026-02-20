@@ -17,6 +17,7 @@ import CheckIn from "./pages/CheckIn";
 import EventDetails from "./pages/EventDetails";
 import Scan from "./pages/Scan";
 import NotFound from "./pages/NotFound";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +30,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/role-select" element={<RoleSelect />} />
           <Route path="/guest-join" element={<GuestJoin />} />
           

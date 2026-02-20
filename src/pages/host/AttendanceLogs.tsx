@@ -28,8 +28,10 @@ import {
   UserCheck,
   UsersRound,
   Mail,
+  Download,
 } from "lucide-react";
 import { PageLoading } from "@/components/ui/PageLoading";
+import * as XLSX from "xlsx";
 
 type TrackingMode = "count_only" | "full_tracking";
 
@@ -233,6 +235,44 @@ const AttendanceLogs = () => {
     setLoading(false);
   };
 
+  const exportToExcel = () => {
+    if (sessionLogs.length === 0) {
+      toast.error("No data to export");
+      return;
+    }
+
+    const rows: Record<string, string | number>[] = [];
+
+    sessionLogs.forEach((session) => {
+      session.checkIns.forEach((c) => {
+        rows.push({
+          Date: session.date,
+          Name: c.user_name || "Unknown",
+          Email: c.user_email || "-",
+          Type: "Registered",
+          "Check-in Time": format(new Date(c.checked_in_at), "h:mm a"),
+          "Distance (m)": Math.round(c.distance_meters),
+        });
+      });
+      session.guestCheckIns.forEach((g) => {
+        rows.push({
+          Date: session.date,
+          Name: g.guestName,
+          Email: g.guestEmail || "-",
+          Type: "Guest",
+          "Check-in Time": format(new Date(g.checkedInAt), "h:mm a"),
+          "Distance (m)": Math.round(g.distance),
+        });
+      });
+    });
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Attendance");
+    XLSX.writeFile(wb, `${event?.name || "attendance"}-logs.xlsx`);
+    toast.success("Exported successfully");
+  };
+
   const formatSessionDate = (dateStr: string): string => {
     const date = parseISO(dateStr);
     if (isToday(date)) return "Today";
@@ -287,6 +327,10 @@ const AttendanceLogs = () => {
               </div>
               <p className="text-sm text-muted-foreground">Attendance Logs</p>
             </div>
+            <Button variant="outline" size="sm" className="gap-2" onClick={exportToExcel}>
+              <Download size={16} />
+              Export
+            </Button>
           </div>
         </div>
       </header>
