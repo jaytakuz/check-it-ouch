@@ -41,7 +41,7 @@ const CreateEvent = () => {
   const [eventType, setEventType] = useState<EventType | null>(null);
   const [trackingMode, setTrackingMode] = useState<TrackingMode | null>(null);
   
-  // eCertificate state (simplified - just enable/disable toggle)
+  // eCertificate state
   const [enableCertificate, setEnableCertificate] = useState(false);
   
   // Event tier state
@@ -60,21 +60,9 @@ const CreateEvent = () => {
   
   // Predefined event tags
   const EVENT_TAGS = [
-    "Workshop",
-    "Seminar",
-    "Conference",
-    "Training",
-    "Meeting",
-    "Class",
-    "Lecture",
-    "Webinar",
-    "Networking",
-    "Team Building",
-    "Hackathon",
-    "Bootcamp",
-    "Orientation",
-    "Ceremony",
-    "Exhibition",
+    "Workshop", "Seminar", "Conference", "Training", "Meeting",
+    "Class", "Lecture", "Webinar", "Networking", "Team Building",
+    "Hackathon", "Bootcamp", "Orientation", "Ceremony", "Exhibition",
   ];
 
   const TIER_OPTIONS: { value: EventTier; label: string; icon: React.ReactNode }[] = [
@@ -115,8 +103,7 @@ const CreateEvent = () => {
     }
   }, [formData.eventTag]);
 
-  // Calculate total steps (now always 3 - no Step 4 for certificate)
-  const totalSteps = 3;
+  const totalSteps = 5;
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -161,7 +148,6 @@ const CreateEvent = () => {
     }));
   };
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -182,7 +168,6 @@ const CreateEvent = () => {
 
     setLoading(true);
 
-    // Certificate URL will be set later when host configures certificate in EventDetails
     const certificateUrl: string | null = enableCertificate ? "pending" : null;
 
     const { error } = await supabase.from('events').insert({
@@ -219,13 +204,16 @@ const CreateEvent = () => {
 
   const canProceedToStep2 = eventType !== null;
   const canProceedToStep3 = trackingMode !== null;
+  const canProceedToStep4 = formData.name.trim() !== "";
+  const canProceedToStep5 = eventType === "one-time"
+    ? !!formData.date
+    : selectedDays.length > 0;
 
   const handleNextStep = () => {
-    if (currentStep === 1 && canProceedToStep2) {
-      setCurrentStep(2);
-    } else if (currentStep === 2 && canProceedToStep3) {
-      setCurrentStep(3);
-    }
+    if (currentStep === 1 && canProceedToStep2) setCurrentStep(2);
+    else if (currentStep === 2 && canProceedToStep3) setCurrentStep(3);
+    else if (currentStep === 3 && canProceedToStep4) setCurrentStep(4);
+    else if (currentStep === 4 && canProceedToStep5) setCurrentStep(5);
   };
 
   const handleBack = () => {
@@ -239,6 +227,26 @@ const CreateEvent = () => {
   if (authLoading) {
     return <PageLoading />;
   }
+
+  // Summary badges component used on steps 4 and 5
+  const SummaryBadges = () => (
+    <div className="flex gap-2 justify-center flex-wrap mb-6">
+      <span className="text-xs bg-primary/10 px-3 py-1.5 rounded-full text-primary font-medium flex items-center gap-1">
+        {eventType === "one-time" ? <CalendarDays size={12} /> : <Repeat size={12} />}
+        {eventType === "one-time" ? "One-time" : "Recurring"}
+      </span>
+      <span className="text-xs bg-primary/10 px-3 py-1.5 rounded-full text-primary font-medium flex items-center gap-1">
+        {trackingMode === "count-only" ? <Users size={12} /> : <UserCheck size={12} />}
+        {trackingMode === "count-only" ? "Count only" : "Full tracking"}
+      </span>
+      {eventTier && (
+        <span className="text-xs bg-primary/10 px-3 py-1.5 rounded-full text-primary font-medium flex items-center gap-1">
+          {TIER_OPTIONS.find(t => t.value === eventTier)?.icon}
+          {TIER_OPTIONS.find(t => t.value === eventTier)?.label}
+        </span>
+      )}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background pb-8">
@@ -465,437 +473,433 @@ const CreateEvent = () => {
             </motion.div>
           )}
 
-          {/* Step 3: Event Details Form */}
+          {/* Step 3: Event Identity */}
           {currentStep === 3 && (
             <motion.div
               key="step3"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
+              className="space-y-6"
             >
               <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold text-foreground mb-2">Event Details</h2>
-                <p className="text-muted-foreground">
-                  {eventType === "one-time" ? "Set up your one-time event" : "Configure your recurring event"}
+                <h2 className="text-2xl font-bold text-foreground mb-2">Describe your event</h2>
+                <p className="text-muted-foreground">Give your event an identity</p>
+              </div>
+
+              {/* Event Tier Selection */}
+              <div className="bg-card rounded-2xl p-4 border border-border space-y-3">
+                <h3 className="font-medium text-foreground flex items-center gap-2">
+                  <Tag size={18} />
+                  Event Tier
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Select the engagement level for this event.
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  {TIER_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setEventTier(option.value)}
+                      className={cn(
+                        "p-3 rounded-xl border-2 text-center transition-all flex flex-col items-center gap-2",
+                        eventTier === option.value
+                          ? "border-primary bg-primary/5"
+                          : "border-border bg-card hover:border-primary/50"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-9 h-9 rounded-lg flex items-center justify-center",
+                        eventTier === option.value ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                      )}>
+                        {option.icon}
+                      </div>
+                      <span className={cn(
+                        "text-xs font-medium",
+                        eventTier === option.value ? "text-primary" : "text-muted-foreground"
+                      )}>
+                        {option.label}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Event Name */}
+              <div className="space-y-2">
+                <Label htmlFor="name">Event Name</Label>
+                <Input
+                  id="name"
+                  placeholder={eventType === "recurring" ? "e.g., Web Development 101" : "e.g., Annual Conference 2025"}
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required
+                />
+              </div>
+
+              {/* Description */}
+              <div className="space-y-2">
+                <Label htmlFor="description">Description (Optional)</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Brief description of your event..."
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  rows={3}
+                />
+              </div>
+
+              {/* Event Tag */}
+              <div className="space-y-2 relative">
+                <Label htmlFor="eventTag" className="flex items-center gap-2">
+                  <Tag size={14} />
+                  Event Tag
+                </Label>
+                <Input
+                  ref={tagInputRef}
+                  id="eventTag"
+                  placeholder="Start typing to select a tag (e.g., Workshop, Seminar...)"
+                  value={formData.eventTag}
+                  onChange={(e) => setFormData({ ...formData, eventTag: e.target.value })}
+                  onFocus={() => {
+                    if (formData.eventTag.trim()) {
+                      setShowTagDropdown(filteredTags.length > 0);
+                    }
+                  }}
+                  onBlur={() => {
+                    setTimeout(() => setShowTagDropdown(false), 150);
+                  }}
+                  autoComplete="off"
+                />
+                {showTagDropdown && (
+                  <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-lg shadow-lg overflow-hidden">
+                    <div className="max-h-48 overflow-y-auto">
+                      {filteredTags.map((tag) => (
+                        <button
+                          key={tag}
+                          type="button"
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground transition-colors flex items-center gap-2"
+                          onClick={() => {
+                            setFormData({ ...formData, eventTag: tag });
+                            setShowTagDropdown(false);
+                          }}
+                        >
+                          <Tag size={14} className="text-muted-foreground" />
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Select or type a tag to categorize your event
                 </p>
               </div>
 
-              {/* Summary badges */}
-              <div className="flex gap-2 justify-center flex-wrap mb-6">
-                <span className="text-xs bg-primary/10 px-3 py-1.5 rounded-full text-primary font-medium flex items-center gap-1">
-                  {eventType === "one-time" ? <CalendarDays size={12} /> : <Repeat size={12} />}
-                  {eventType === "one-time" ? "One-time" : "Recurring"}
-                </span>
-                <span className="text-xs bg-primary/10 px-3 py-1.5 rounded-full text-primary font-medium flex items-center gap-1">
-                  {trackingMode === "count-only" ? <Users size={12} /> : <UserCheck size={12} />}
-                  {trackingMode === "count-only" ? "Count only" : "Full tracking"}
-                </span>
-                {eventTier && (
-                  <span className="text-xs bg-primary/10 px-3 py-1.5 rounded-full text-primary font-medium flex items-center gap-1">
-                    {TIER_OPTIONS.find(t => t.value === eventTier)?.label}
-                  </span>
-                )}
+              <Button
+                onClick={handleNextStep}
+                disabled={!canProceedToStep4}
+                className="w-full mt-4"
+                size="lg"
+              >
+                Continue
+                <ChevronRight size={18} className="ml-1" />
+              </Button>
+            </motion.div>
+          )}
+
+          {/* Step 4: Schedule */}
+          {currentStep === 4 && (
+            <motion.div
+              key="step4"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="space-y-6"
+            >
+              <div className="text-center mb-6">
+                <h2 className="text-2xl font-bold text-foreground mb-2">Set the schedule</h2>
+                <p className="text-muted-foreground">
+                  {eventType === "one-time" ? "Pick the date and time for your event" : "Configure recurring days and times"}
+                </p>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Event Tier Selection */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-card rounded-2xl p-4 border border-border space-y-3"
-                >
+              <SummaryBadges />
+
+              <div className="bg-card rounded-2xl p-4 border border-border space-y-4">
+                <div className="flex items-center justify-between">
                   <h3 className="font-medium text-foreground flex items-center gap-2">
-                    <Tag size={18} />
-                    Event Tier
+                    <Clock size={18} />
+                    Schedule
                   </h3>
-                  <p className="text-xs text-muted-foreground">
-                    Select the engagement level for this event.
-                  </p>
-                  <div className="grid grid-cols-3 gap-2">
-                    {TIER_OPTIONS.map((option) => (
+                  
+                  {eventType === "recurring" && (
+                    <div className="flex items-center bg-muted rounded-lg p-1">
                       <button
-                        key={option.value}
                         type="button"
-                        onClick={() => setEventTier(option.value)}
+                        onClick={() => setScheduleMode("basic")}
                         className={cn(
-                          "p-3 rounded-xl border-2 text-center transition-all flex flex-col items-center gap-2",
-                          eventTier === option.value
-                            ? "border-primary bg-primary/5"
-                            : "border-border bg-card hover:border-primary/50"
+                          "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                          scheduleMode === "basic"
+                            ? "bg-background text-foreground shadow-sm"
+                            : "text-muted-foreground hover:text-foreground"
                         )}
                       >
-                        <div className={cn(
-                          "w-9 h-9 rounded-lg flex items-center justify-center",
-                          eventTier === option.value ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                        )}>
-                          {option.icon}
-                        </div>
-                        <span className={cn(
-                          "text-xs font-medium",
-                          eventTier === option.value ? "text-primary" : "text-muted-foreground"
-                        )}>
-                          {option.label}
-                        </span>
+                        <List size={14} />
+                        Basic
                       </button>
-                    ))}
-                  </div>
-                </motion.div>
-
-                {/* Basic Info */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="space-y-4"
-                >
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Event Name</Label>
-                    <Input
-                      id="name"
-                      placeholder={eventType === "recurring" ? "e.g., Web Development 101" : "e.g., Annual Conference 2025"}
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="description">Description (Optional)</Label>
-                    <Textarea
-                      id="description"
-                      placeholder="Brief description of your event..."
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="space-y-2 relative">
-                    <Label htmlFor="eventTag" className="flex items-center gap-2">
-                      <Tag size={14} />
-                      Event Tag
-                    </Label>
-                    <Input
-                      ref={tagInputRef}
-                      id="eventTag"
-                      placeholder="Start typing to select a tag (e.g., Workshop, Seminar...)"
-                      value={formData.eventTag}
-                      onChange={(e) => setFormData({ ...formData, eventTag: e.target.value })}
-                      onFocus={() => {
-                        if (formData.eventTag.trim()) {
-                          setShowTagDropdown(filteredTags.length > 0);
-                        }
-                      }}
-                      onBlur={() => {
-                        // Delay to allow click on dropdown item
-                        setTimeout(() => setShowTagDropdown(false), 150);
-                      }}
-                      autoComplete="off"
-                    />
-                    {showTagDropdown && (
-                      <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-lg shadow-lg overflow-hidden">
-                        <div className="max-h-48 overflow-y-auto">
-                          {filteredTags.map((tag) => (
-                            <button
-                              key={tag}
-                              type="button"
-                              className="w-full px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground transition-colors flex items-center gap-2"
-                              onClick={() => {
-                                setFormData({ ...formData, eventTag: tag });
-                                setShowTagDropdown(false);
-                              }}
-                            >
-                              <Tag size={14} className="text-muted-foreground" />
-                              {tag}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    <p className="text-xs text-muted-foreground">
-                      Select or type a tag to categorize your event
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="maxAttendees">Expected Attendees</Label>
-                    <Input
-                      id="maxAttendees"
-                      type="number"
-                      placeholder="50"
-                      value={formData.maxAttendees}
-                      onChange={(e) => setFormData({ ...formData, maxAttendees: e.target.value })}
-                    />
-                  </div>
-                </motion.div>
-
-                {/* Schedule */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                  className="bg-card rounded-2xl p-4 border border-border space-y-4"
-                >
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-medium text-foreground flex items-center gap-2">
-                      <Clock size={18} />
-                      Schedule
-                    </h3>
-                    
-                    {/* Schedule Mode Toggle - Only show for recurring events */}
-                    {eventType === "recurring" && (
-                      <div className="flex items-center bg-muted rounded-lg p-1">
-                        <button
-                          type="button"
-                          onClick={() => setScheduleMode("basic")}
-                          className={cn(
-                            "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
-                            scheduleMode === "basic"
-                              ? "bg-background text-foreground shadow-sm"
-                              : "text-muted-foreground hover:text-foreground"
-                          )}
-                        >
-                          <List size={14} />
-                          Basic
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setScheduleMode("advanced")}
-                          className={cn(
-                            "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
-                            scheduleMode === "advanced"
-                              ? "bg-background text-foreground shadow-sm"
-                              : "text-muted-foreground hover:text-foreground"
-                          )}
-                        >
-                          <Settings2 size={14} />
-                          Advanced
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  <AnimatePresence mode="wait">
-                    {/* For one-time events, always show basic schedule */}
-                    {(eventType === "one-time" || scheduleMode === "basic") ? (
-                      <motion.div
-                        key="basic-schedule"
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="space-y-4"
+                      <button
+                        type="button"
+                        onClick={() => setScheduleMode("advanced")}
+                        className={cn(
+                          "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                          scheduleMode === "advanced"
+                            ? "bg-background text-foreground shadow-sm"
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
                       >
-                        {eventType === "recurring" ? (
-                          <div className="space-y-4">
-                            {/* Time Selection Slots */}
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                <Label htmlFor="startTime">Start Time</Label>
-                                <Input
-                                  id="startTime"
-                                  type="time"
-                                  placeholder="e.g. 09:00"
-                                  value={formData.startTime}
-                                  onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                                  required
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label htmlFor="endTime">End Time</Label>
-                                <Input
-                                  id="endTime"
-                                  type="time"
-                                  placeholder="e.g. 17:00"
-                                  value={formData.endTime}
-                                  onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                                  required
-                                />
-                              </div>
-                            </div>
-                            
-                            {/* Select Days */}
+                        <Settings2 size={14} />
+                        Advanced
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <AnimatePresence mode="wait">
+                  {(eventType === "one-time" || scheduleMode === "basic") ? (
+                    <motion.div
+                      key="basic-schedule"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-4"
+                    >
+                      {eventType === "recurring" ? (
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                              <Label>Select Days</Label>
-                              <div className="flex gap-2 justify-between">
-                                {DAYS.map((day, index) => (
-                                  <button
-                                    key={index}
-                                    type="button"
-                                    onClick={() => toggleDay(index)}
-                                    className={cn(
-                                      "w-10 h-10 rounded-full text-sm font-medium transition-all",
-                                      "flex items-center justify-center",
-                                      selectedDays.includes(index)
-                                        ? "bg-primary text-primary-foreground shadow-md"
-                                        : "bg-muted text-muted-foreground hover:bg-muted/80"
-                                    )}
-                                    title={DAY_LABELS[index]}
-                                  >
-                                    {day}
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                            
-                            {/* End Repeat Date */}
-                            <div className="space-y-2">
-                              <Label htmlFor="endRepeatDate">End Repeat</Label>
+                              <Label htmlFor="startTime">Start Time</Label>
                               <Input
-                                id="endRepeatDate"
-                                type="date"
-                                placeholder="Select end date"
-                                value={formData.endRepeatDate}
-                                onChange={(e) => setFormData({ ...formData, endRepeatDate: e.target.value })}
+                                id="startTime"
+                                type="time"
+                                value={formData.startTime}
+                                onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                                required
                               />
-                              <p className="text-xs text-muted-foreground">
-                                Leave empty for no end date
-                              </p>
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="endTime">End Time</Label>
+                              <Input
+                                id="endTime"
+                                type="time"
+                                value={formData.endTime}
+                                onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                                required
+                              />
                             </div>
                           </div>
-                        ) : (
-                          <>
+                          
+                          <div className="space-y-2">
+                            <Label>Select Days</Label>
+                            <div className="flex gap-2 justify-between">
+                              {DAYS.map((day, index) => (
+                                <button
+                                  key={index}
+                                  type="button"
+                                  onClick={() => toggleDay(index)}
+                                  className={cn(
+                                    "w-10 h-10 rounded-full text-sm font-medium transition-all",
+                                    "flex items-center justify-center",
+                                    selectedDays.includes(index)
+                                      ? "bg-primary text-primary-foreground shadow-md"
+                                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                                  )}
+                                  title={DAY_LABELS[index]}
+                                >
+                                  {day}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label htmlFor="endRepeatDate">End Repeat</Label>
+                            <Input
+                              id="endRepeatDate"
+                              type="date"
+                              value={formData.endRepeatDate}
+                              onChange={(e) => setFormData({ ...formData, endRepeatDate: e.target.value })}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Leave empty for no end date
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="space-y-2">
+                            <Label htmlFor="date">Date</Label>
+                            <Input
+                              id="date"
+                              type="date"
+                              value={formData.date}
+                              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                              required={eventType === "one-time"}
+                            />
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                              <Label htmlFor="date">Date</Label>
+                              <Label htmlFor="startTime">Start Time</Label>
                               <Input
-                                id="date"
-                                type="date"
-                                placeholder="Select event date"
-                                value={formData.date}
-                                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                                required={eventType === "one-time"}
+                                id="startTime"
+                                type="time"
+                                value={formData.startTime}
+                                onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                                required
                               />
                             </div>
-                            
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                <Label htmlFor="startTime">Start Time</Label>
-                                <Input
-                                  id="startTime"
-                                  type="time"
-                                  placeholder="e.g. 09:00"
-                                  value={formData.startTime}
-                                  onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                                  required
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label htmlFor="endTime">End Time</Label>
-                                <Input
-                                  id="endTime"
-                                  type="time"
-                                  placeholder="e.g. 17:00"
-                                  value={formData.endTime}
-                                  onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                                  required
-                                />
-                              </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="endTime">End Time</Label>
+                              <Input
+                                id="endTime"
+                                type="time"
+                                value={formData.endTime}
+                                onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                                required
+                              />
                             </div>
-                          </>
-                        )}
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        key="advanced-schedule"
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="space-y-4"
-                      >
-                        <p className="text-xs text-muted-foreground">
-                          Configure detailed schedule with multiple sessions. Topic will be appended to event name.
-                        </p>
-                        
-                        {/* Schedule Table */}
-                        <div className="space-y-3">
-                          {advancedSchedule.map((entry, index) => (
-                            <motion.div
-                              key={entry.id}
-                              initial={{ opacity: 0, y: -10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -10 }}
-                              className="bg-muted/50 rounded-xl p-3 space-y-3"
-                            >
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs font-medium text-muted-foreground">
-                                  Session {index + 1}
-                                </span>
-                                {advancedSchedule.length > 1 && (
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6 text-destructive hover:text-destructive"
-                                    onClick={() => removeScheduleEntry(entry.id)}
-                                  >
-                                    <Trash2 size={14} />
-                                  </Button>
-                                )}
-                              </div>
-                              
-                              <div className="grid grid-cols-3 gap-2">
-                                <div className="space-y-1">
-                                  <Label className="text-xs">Date</Label>
-                                  <Input
-                                    type="date"
-                                    value={entry.date}
-                                    onChange={(e) => updateScheduleEntry(entry.id, "date", e.target.value)}
-                                    className="h-9 text-sm"
-                                  />
-                                </div>
-                                <div className="space-y-1">
-                                  <Label className="text-xs">Start</Label>
-                                  <Input
-                                    type="time"
-                                    value={entry.startTime}
-                                    onChange={(e) => updateScheduleEntry(entry.id, "startTime", e.target.value)}
-                                    className="h-9 text-sm"
-                                  />
-                                </div>
-                                <div className="space-y-1">
-                                  <Label className="text-xs">End</Label>
-                                  <Input
-                                    type="time"
-                                    value={entry.endTime}
-                                    onChange={(e) => updateScheduleEntry(entry.id, "endTime", e.target.value)}
-                                    className="h-9 text-sm"
-                                  />
-                                </div>
-                              </div>
-                              
+                          </div>
+                        </>
+                      )}
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="advanced-schedule"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-4"
+                    >
+                      <p className="text-xs text-muted-foreground">
+                        Configure detailed schedule with multiple sessions. Topic will be appended to event name.
+                      </p>
+                      
+                      <div className="space-y-3">
+                        {advancedSchedule.map((entry, index) => (
+                          <motion.div
+                            key={entry.id}
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            className="bg-muted/50 rounded-xl p-3 space-y-3"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-medium text-muted-foreground">
+                                Session {index + 1}
+                              </span>
+                              {advancedSchedule.length > 1 && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 text-destructive hover:text-destructive"
+                                  onClick={() => removeScheduleEntry(entry.id)}
+                                >
+                                  <Trash2 size={14} />
+                                </Button>
+                              )}
+                            </div>
+                            
+                            <div className="grid grid-cols-3 gap-2">
                               <div className="space-y-1">
-                                <Label className="text-xs">Topic (Optional)</Label>
+                                <Label className="text-xs">Date</Label>
                                 <Input
-                                  placeholder="e.g., Introduction, Workshop, etc."
-                                  value={entry.topic}
-                                  onChange={(e) => updateScheduleEntry(entry.id, "topic", e.target.value)}
+                                  type="date"
+                                  value={entry.date}
+                                  onChange={(e) => updateScheduleEntry(entry.id, "date", e.target.value)}
                                   className="h-9 text-sm"
                                 />
                               </div>
-                            </motion.div>
-                          ))}
-                        </div>
-                        
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={addScheduleEntry}
-                          className="w-full"
-                        >
-                          <Plus size={16} className="mr-1" />
-                          Add Session
-                        </Button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
+                              <div className="space-y-1">
+                                <Label className="text-xs">Start</Label>
+                                <Input
+                                  type="time"
+                                  value={entry.startTime}
+                                  onChange={(e) => updateScheduleEntry(entry.id, "startTime", e.target.value)}
+                                  className="h-9 text-sm"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs">End</Label>
+                                <Input
+                                  type="time"
+                                  value={entry.endTime}
+                                  onChange={(e) => updateScheduleEntry(entry.id, "endTime", e.target.value)}
+                                  className="h-9 text-sm"
+                                />
+                              </div>
+                            </div>
+                            
+                            <div className="space-y-1">
+                              <Label className="text-xs">Topic (Optional)</Label>
+                              <Input
+                                placeholder="e.g., Introduction, Workshop, etc."
+                                value={entry.topic}
+                                onChange={(e) => updateScheduleEntry(entry.id, "topic", e.target.value)}
+                                className="h-9 text-sm"
+                              />
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                      
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addScheduleEntry}
+                        className="w-full"
+                      >
+                        <Plus size={16} className="mr-1" />
+                        Add Session
+                      </Button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
+              <Button
+                onClick={handleNextStep}
+                disabled={!canProceedToStep5}
+                className="w-full mt-4"
+                size="lg"
+              >
+                Continue
+                <ChevronRight size={18} className="ml-1" />
+              </Button>
+            </motion.div>
+          )}
+
+          {/* Step 5: Location & Finalize */}
+          {currentStep === 5 && (
+            <motion.div
+              key="step5"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+            >
+              <div className="text-center mb-6">
+                <h2 className="text-2xl font-bold text-foreground mb-2">Set the location</h2>
+                <p className="text-muted-foreground">Pin your event on the map and finalize</p>
+              </div>
+
+              <SummaryBadges />
+
+              <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Location */}
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="bg-card rounded-2xl p-4 border border-border space-y-4"
-                >
+                <div className="bg-card rounded-2xl p-4 border border-border space-y-4">
                   <h3 className="font-medium text-foreground flex items-center gap-2">
                     <MapPin size={18} />
                     Location
@@ -934,16 +938,23 @@ const CreateEvent = () => {
                       Attendees must be within this radius to check in
                     </p>
                   </div>
-                </motion.div>
+                </div>
+
+                {/* Max Attendees */}
+                <div className="space-y-2">
+                  <Label htmlFor="maxAttendees">Expected Attendees</Label>
+                  <Input
+                    id="maxAttendees"
+                    type="number"
+                    placeholder="50"
+                    value={formData.maxAttendees}
+                    onChange={(e) => setFormData({ ...formData, maxAttendees: e.target.value })}
+                  />
+                </div>
 
                 {/* eCertificate Toggle - Only for Full Tracking */}
                 {trackingMode === "full-tracking" && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="bg-card rounded-2xl p-4 border border-border"
-                  >
+                  <div className="bg-card rounded-2xl p-4 border border-border">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -966,7 +977,7 @@ const CreateEvent = () => {
                         💡 You can configure the certificate design later from the Event Details page
                       </p>
                     )}
-                  </motion.div>
+                  </div>
                 )}
 
                 {/* Submit */}
