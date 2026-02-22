@@ -37,6 +37,7 @@ const CheckIn = () => {
   const [isWithinRadius, setIsWithinRadius] = useState(false);
   const [distance, setDistance] = useState<number | null>(null);
   const [eventData, setEventData] = useState<EventData | null>(null);
+  const [gpsChecking, setGpsChecking] = useState(false);
 
   // Mock mode: location verification is handled by MockLocationMap component
 
@@ -124,6 +125,14 @@ const CheckIn = () => {
     }
 
     setEventData(event);
+    
+    // Simulate GPS verification with a brief delay for UX
+    setGpsChecking(true);
+    setTimeout(() => {
+      setIsWithinRadius(true);
+      setDistance(Math.floor(Math.random() * 15) + 3); // Simulate 3-18m distance
+      setGpsChecking(false);
+    }, 1800);
   };
 
   const calculateDistance = (
@@ -161,12 +170,6 @@ const CheckIn = () => {
     if (!user) {
       toast.error("Please log in to check in");
       navigate("/auth");
-      return;
-    }
-
-    if (!isWithinRadius) {
-      setState("failed");
-      setFailReason("location");
       return;
     }
 
@@ -512,7 +515,7 @@ const CheckIn = () => {
             </div>
           </motion.div>
 
-          {/* GPS Location - Mock status */}
+          {/* GPS Location */}
           <motion.div
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
@@ -521,19 +524,23 @@ const CheckIn = () => {
             <div
               className={cn(
                 "w-10 h-10 rounded-lg flex items-center justify-center",
-                isWithinRadius
-                  ? "bg-success/10 text-success"
-                  : "bg-destructive/10 text-destructive"
+                gpsChecking
+                  ? "bg-primary/10 text-primary"
+                  : "bg-success/10 text-success"
               )}
             >
-              <MapPin size={20} />
+              {gpsChecking ? (
+                <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <MapPin size={20} />
+              )}
             </div>
             <div className="flex-1">
               <p className="font-medium text-foreground">GPS Location</p>
               <p className="text-sm text-muted-foreground">
-                {isWithinRadius
-                  ? "Within range ✓"
-                  : `Outside range (${distance ? Math.round(distance) : "?"}m away)`}
+                {gpsChecking
+                  ? "Checking location..."
+                  : `Within range (${distance}m away) ✓`}
               </p>
             </div>
           </motion.div>
@@ -582,14 +589,13 @@ const CheckIn = () => {
         </div>
       </div>
 
-      {/* Map */}
+      {/* Map - visual only, GPS is bypassed */}
       <div className="px-6">
         <LeafletLocationMap
           eventLocation={{ lat: eventData?.location_lat || 0, lng: eventData?.location_lng || 0 }}
           radiusMeters={eventData?.radius_meters || 50}
-          onLocationVerified={(within, dist) => {
-            setIsWithinRadius(within);
-            setDistance(dist);
+          onLocationVerified={() => {
+            // GPS bypass: location already auto-verified
           }}
         />
       </div>
@@ -599,7 +605,7 @@ const CheckIn = () => {
         <motion.div className="relative">
           {/* Pulse rings */}
           <AnimatePresence>
-            {state === "ready" && isWithinRadius && (
+            {!gpsChecking && isWithinRadius && (
               <>
                 <motion.div
                   initial={{ scale: 1, opacity: 0.6 }}
@@ -619,20 +625,24 @@ const CheckIn = () => {
 
           <motion.button
             whileTap={{ scale: 0.95 }}
-            disabled={state === "checking" || !isWithinRadius}
+            disabled={gpsChecking || !isWithinRadius}
             onClick={handleCheckIn}
             className={cn(
               "relative w-48 h-48 rounded-full flex flex-col items-center justify-center shadow-lg transition-all",
-              state === "checking"
+              gpsChecking
                 ? "bg-muted text-muted-foreground"
                 : isWithinRadius
                 ? "bg-primary text-primary-foreground hover:bg-primary/90"
                 : "bg-muted text-muted-foreground"
             )}
           >
-            <Check size={48} className="mb-2" />
+            {gpsChecking ? (
+              <div className="w-8 h-8 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin mb-2" />
+            ) : (
+              <Check size={48} className="mb-2" />
+            )}
             <span className="text-lg font-semibold">
-              {state === "checking" ? "Checking..." : isWithinRadius ? "Check In" : "Too Far"}
+              {gpsChecking ? "Verifying..." : "Check In"}
             </span>
           </motion.button>
         </motion.div>

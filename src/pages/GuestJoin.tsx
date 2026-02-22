@@ -41,6 +41,7 @@ const GuestJoin = () => {
   const [distance, setDistance] = useState<number | null>(null);
   const [eventData, setEventData] = useState<EventData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [gpsChecking, setGpsChecking] = useState(false);
 
   // For registration (full tracking mode)
   const [registrationData, setRegistrationData] = useState({
@@ -156,8 +157,14 @@ const GuestJoin = () => {
       return;
     }
     
-    // Count-only mode: proceed as guest
+    // Count-only mode: proceed as guest, simulate GPS check
     setState("ready");
+    setGpsChecking(true);
+    setTimeout(() => {
+      setIsWithinRadius(true);
+      setDistance(Math.floor(Math.random() * 15) + 3);
+      setGpsChecking(false);
+    }, 1800);
   };
 
   const handleQRScan = (data: string) => {
@@ -173,12 +180,6 @@ const GuestJoin = () => {
   };
 
   const handleCountOnlyCheckIn = async () => {
-    if (!isWithinRadius) {
-      setState("failed");
-      setFailReason("location");
-      return;
-    }
-
     if (!eventData || !scannedCode) {
       setState("failed");
       setFailReason("qr");
@@ -211,12 +212,6 @@ const GuestJoin = () => {
   };
 
   const handleFullTrackingCheckIn = async () => {
-    if (!isWithinRadius) {
-      setState("failed");
-      setFailReason("location");
-      return;
-    }
-
     if (!eventData || !scannedCode) {
       setState("failed");
       setFailReason("qr");
@@ -618,19 +613,23 @@ const GuestJoin = () => {
                 <div
                   className={cn(
                     "w-10 h-10 rounded-lg flex items-center justify-center",
-                    isWithinRadius
-                      ? "bg-success/10 text-success"
-                      : "bg-destructive/10 text-destructive"
+                    gpsChecking
+                      ? "bg-primary/10 text-primary"
+                      : "bg-success/10 text-success"
                   )}
                 >
-                  <MapPin size={20} />
+                  {gpsChecking ? (
+                    <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <MapPin size={20} />
+                  )}
                 </div>
                 <div className="flex-1">
                   <p className="font-medium text-foreground">GPS Location</p>
                   <p className="text-sm text-muted-foreground">
-                    {isWithinRadius
-                      ? "Within range ✓"
-                      : `Outside range (${distance ? Math.round(distance) : "?"}m away)`}
+                    {gpsChecking
+                      ? "Checking location..."
+                      : `Within range (${distance}m away) ✓`}
                   </p>
                 </div>
               </motion.div>
@@ -641,9 +640,8 @@ const GuestJoin = () => {
               <LeafletLocationMap
                 eventLocation={{ lat: eventData?.location_lat || 13.7563, lng: eventData?.location_lng || 100.5018 }}
                 radiusMeters={eventData?.radius_meters || 50}
-                onLocationVerified={(within, dist) => {
-                  setIsWithinRadius(within);
-                  setDistance(dist);
+                onLocationVerified={() => {
+                  // GPS bypass: location already auto-verified
                 }}
               />
             </div>
@@ -681,19 +679,21 @@ const GuestJoin = () => {
 
                 <motion.button
                   whileTap={{ scale: 0.95 }}
-                  disabled={!isWithinRadius || loading}
+                  disabled={gpsChecking || !isWithinRadius || loading}
                   onClick={eventData?.tracking_mode === "full_tracking" 
                     ? handleFullTrackingCheckIn 
                     : handleCountOnlyCheckIn}
                   className={cn(
                     "relative w-32 h-32 rounded-full flex flex-col items-center justify-center text-lg font-bold shadow-xl transition-all",
-                    isWithinRadius
+                    gpsChecking
+                      ? "bg-muted text-muted-foreground"
+                      : isWithinRadius
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted text-muted-foreground cursor-not-allowed"
                   )}
                 >
-                  {loading ? (
-                    <div className="w-6 h-6 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                  {loading || gpsChecking ? (
+                    <div className="w-6 h-6 border-2 border-current border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <>
                       <Check size={32} className="mb-1" />

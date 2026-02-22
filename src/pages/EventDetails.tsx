@@ -893,51 +893,73 @@ const EventDetails = () => {
                       </div>
 
                       {/* Example Certificate Diagram */}
-                      <div className="relative bg-gradient-to-br from-muted/50 to-muted rounded-xl p-6 border-2 border-dashed border-border overflow-hidden">
-                        {/* Mock Certificate */}
-                        <div className="bg-background rounded-lg shadow-lg p-6 space-y-4 relative">
-                          <div className="text-center space-y-2">
-                            <p className="text-xs text-muted-foreground uppercase tracking-wider">Certificate of Attendance</p>
-                            
+                      <div className="relative rounded-xl overflow-hidden border border-border shadow-lg">
+                        {/* Certificate background with elegant styling */}
+                        <div className="bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 dark:from-amber-950/40 dark:via-yellow-950/30 dark:to-orange-950/40 p-1">
+                          <div className="border-2 border-amber-300/60 dark:border-amber-600/40 rounded-lg p-6 space-y-4 relative">
+                            {/* Decorative corner ornaments */}
+                            <div className="absolute top-2 left-2 w-8 h-8 border-t-2 border-l-2 border-amber-400/50 rounded-tl-sm" />
+                            <div className="absolute top-2 right-2 w-8 h-8 border-t-2 border-r-2 border-amber-400/50 rounded-tr-sm" />
+                            <div className="absolute bottom-2 left-2 w-8 h-8 border-b-2 border-l-2 border-amber-400/50 rounded-bl-sm" />
+                            <div className="absolute bottom-2 right-2 w-8 h-8 border-b-2 border-r-2 border-amber-400/50 rounded-br-sm" />
+
+                            {/* Header */}
+                            <div className="text-center space-y-1 pt-2">
+                              <p className="text-[10px] text-amber-700/60 dark:text-amber-400/60 uppercase tracking-[0.3em] font-medium">Certificate</p>
+                              <p className="text-xs text-amber-800/80 dark:text-amber-300/80 uppercase tracking-[0.2em]">of Attendance</p>
+                              <div className="w-24 h-px bg-gradient-to-r from-transparent via-amber-400/60 to-transparent mx-auto mt-2" />
+                            </div>
+
                             {/* Event Name Zone */}
-                            <div className="relative inline-block w-full">
-                              <div className="border-2 border-dashed border-blue-400 bg-blue-50 dark:bg-blue-950/30 rounded-lg px-4 py-2">
-                                <p className="text-lg font-bold text-blue-600 dark:text-blue-400">event_name</p>
+                            <div className="relative inline-block w-full text-center">
+                              <div className="border-2 border-dashed border-blue-400 bg-blue-500/10 rounded-lg px-4 py-2">
+                                <p className="text-lg font-bold text-blue-600 dark:text-blue-400 font-serif">event_name</p>
                               </div>
                               <div className="absolute -top-2 -right-2 bg-blue-500 text-white text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-1">
                                 <Move size={10} />
                               </div>
                             </div>
-                          </div>
 
-                          <p className="text-xs text-center text-muted-foreground">This is to certify that</p>
+                            <p className="text-[11px] text-center text-amber-800/60 dark:text-amber-300/60 italic">This is to certify that</p>
 
-                          {/* Attendee Name Zone - Highlighted as editable */}
-                          <div className="relative">
-                            <div className="border-2 border-dashed border-green-400 bg-green-50 dark:bg-green-950/30 rounded-lg px-4 py-3">
-                              <p className="text-xl font-bold text-center text-green-600 dark:text-green-400">attendee_name</p>
-                            </div>
-                            <div className="absolute -top-2 -right-2 bg-green-500 text-white text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-1">
-                              <Move size={10} />
-                              <Maximize2 size={10} />
-                            </div>
-                          </div>
-
-                          <p className="text-xs text-center text-muted-foreground pt-4">
-                            has successfully completed the requirements for this event.
-                          </p>
-
-                          {/* Verification Zone */}
-                          <div className="flex justify-end mt-4">
+                            {/* Attendee Name Zone */}
                             <div className="relative">
-                              <div className="border-2 border-dashed border-purple-400 bg-purple-50 dark:bg-purple-950/30 rounded-lg px-3 py-2 flex flex-col items-center gap-1">
-                                <div className="w-12 h-12 bg-purple-200 dark:bg-purple-800 rounded flex items-center justify-center">
-                                  <QrCode size={24} className="text-purple-600 dark:text-purple-400" />
-                                </div>
-                                <p className="text-[10px] text-purple-600 dark:text-purple-400">verification</p>
+                              <div className="border-2 border-dashed border-green-400 bg-green-500/10 rounded-lg px-4 py-3">
+                                <p className="text-xl font-bold text-center text-green-600 dark:text-green-400 font-serif">attendee_name</p>
                               </div>
-                              <div className="absolute -top-2 -right-2 bg-purple-500 text-white text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                              <div className="absolute -top-2 -right-2 bg-green-500 text-white text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-1">
                                 <Move size={10} />
+                                <Maximize2 size={10} />
+                              </div>
+                            </div>
+
+                            <p className="text-[11px] text-center text-amber-800/60 dark:text-amber-300/60 italic pt-2">
+                              has successfully completed the attendance requirements for this event.
+                            </p>
+
+                            {/* Footer with date line and verification */}
+                            <div className="flex items-end justify-between pt-4">
+                              <div className="text-center">
+                                <div className="w-20 h-px bg-amber-400/40 mb-1" />
+                                <p className="text-[9px] text-amber-700/50 dark:text-amber-400/50">Date Issued</p>
+                              </div>
+
+                              {/* Verification Zone */}
+                              <div className="relative">
+                                <div className="border-2 border-dashed border-purple-400 bg-purple-500/10 rounded-lg px-3 py-2 flex flex-col items-center gap-1">
+                                  <div className="w-10 h-10 bg-purple-200/50 dark:bg-purple-800/50 rounded flex items-center justify-center">
+                                    <QrCode size={20} className="text-purple-600 dark:text-purple-400" />
+                                  </div>
+                                  <p className="text-[9px] text-purple-600 dark:text-purple-400">verification</p>
+                                </div>
+                                <div className="absolute -top-2 -right-2 bg-purple-500 text-white text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                                  <Move size={10} />
+                                </div>
+                              </div>
+
+                              <div className="text-center">
+                                <div className="w-20 h-px bg-amber-400/40 mb-1" />
+                                <p className="text-[9px] text-amber-700/50 dark:text-amber-400/50">Signature</p>
                               </div>
                             </div>
                           </div>
