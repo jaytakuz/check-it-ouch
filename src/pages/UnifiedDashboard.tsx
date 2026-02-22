@@ -50,6 +50,7 @@ interface Event {
   event_tag: string | null;
   check_in_count?: number;
   user_checked_in?: boolean;
+  is_registered?: boolean;
 }
 
 const UnifiedDashboard = () => {
@@ -132,13 +133,23 @@ const UnifiedDashboard = () => {
       return;
     }
 
-    // Fetch user's check-ins
+    // Fetch user's check-ins for today
+    const today = format(new Date(), "yyyy-MM-dd");
     const { data: checkInsData } = await supabase
       .from("check_ins")
       .select("event_id, session_date")
+      .eq("user_id", user.id)
+      .eq("session_date", today);
+
+    const checkedInTodaySet = new Set(checkInsData?.map((c) => c.event_id) || []);
+
+    // Fetch user's event registrations (first-scan registrations)
+    const { data: registrationsData } = await supabase
+      .from("event_registrations")
+      .select("event_id")
       .eq("user_id", user.id);
 
-    const checkInEventIds = new Set(checkInsData?.map((c) => c.event_id) || []);
+    const registeredEventIds = new Set(registrationsData?.map((r: any) => r.event_id) || []);
 
     // Fetch check-in counts for hosted events
     const eventsWithDetails = await Promise.all(
@@ -154,7 +165,8 @@ const UnifiedDashboard = () => {
         
         return {
           ...event,
-          user_checked_in: checkInEventIds.has(event.id),
+          user_checked_in: checkedInTodaySet.has(event.id),
+          is_registered: registeredEventIds.has(event.id),
           check_in_count: checkInCount,
         };
       })
@@ -317,6 +329,12 @@ const UnifiedDashboard = () => {
           return;
         }
 
+        // Auto-register if not already registered
+        await supabase.from("event_registrations").upsert(
+          { event_id: event.id, user_id: user.id },
+          { onConflict: "event_id,user_id" }
+        );
+
         toast.success("Check-in successful! 🎉");
         fetchData();
       },
@@ -329,7 +347,9 @@ const UnifiedDashboard = () => {
 
   // Filter events based on view mode
   const hostingEvents = events.filter((e) => e.host_id === user?.id);
-  const participatingEvents = events.filter((e) => e.host_id !== user?.id);
+  const myRegisteredEvents = events.filter((e) => e.host_id !== user?.id && e.is_registered);
+  const discoverEvents = events.filter((e) => e.host_id !== user?.id && !e.is_registered);
+  const participatingEvents = viewMode === "attendee" ? [...myRegisteredEvents, ...discoverEvents] : [];
   
   // Get unique tags from events
   const allTags = [...new Set(events.filter(e => e.event_tag).map(e => e.event_tag as string))];
@@ -491,7 +511,7 @@ const UnifiedDashboard = () => {
         <div className="mb-4 space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-foreground">
-              {viewMode === "host" ? "Your Events" : "Available Events"}
+              {viewMode === "host" ? "Your Events" : myRegisteredEvents.length > 0 ? "My Events" : "Available Events"}
             </h2>
             {allTags.length > 0 && (
               <div className="relative">
@@ -610,6 +630,11 @@ const UnifiedDashboard = () => {
                             ✓ Checked in
                           </span>
                         )}
+                        {!isHost && event.is_registered && !event.user_checked_in && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                            Registered
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
@@ -705,7 +730,7 @@ const UnifiedDashboard = () => {
                           View Logs
                         </Button>
                       </>
-                    ) : status === "live" ? (
+                    ) : !isHost && (status === "live" || (event.is_registered && status === "upcoming")) ? (
                       <>
                         <Button 
                           variant="outline" 
@@ -718,17 +743,31 @@ const UnifiedDashboard = () => {
                           <QrCode size={16} className="mr-2" />
                           Scan QR
                         </Button>
-                        <Button 
-                          className="flex-1"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleQuickCheckIn(event);
-                          }}
-                          disabled={event.user_checked_in}
-                        >
-                          <MousePointerClick size={16} className="mr-2" />
-                          {event.user_checked_in ? "Done" : "Check-in"}
-                        </Button>
+                        {event.is_registered && status === "live" ? (
+                          <Button 
+                            className="flex-1"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleQuickCheckIn(event);
+                            }}
+                            disabled={event.user_checked_in}
+                          >
+                            <MousePointerClick size={16} className="mr-2" />
+                            {event.user_checked_in ? "Done" : "Check-in"}
+                          </Button>
+                        ) : status === "live" && !event.is_registered ? (
+                          <Button 
+                            variant="secondary"
+                            className="flex-1"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate("/scan");
+                            }}
+                          >
+                            <QrCode size={16} className="mr-2" />
+                            Join Event
+                          </Button>
+                        ) : null}
                       </>
                     ) : null}
                   </div>

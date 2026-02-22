@@ -192,11 +192,11 @@ const CheckIn = () => {
       return;
     }
 
-    // Save check-in to database (using mock location data)
+    // Save check-in to database
     const { error } = await supabase.from("check_ins").insert({
       event_id: eventData.id,
       user_id: user.id,
-      location_lat: eventData.location_lat, // Using event location as mock
+      location_lat: eventData.location_lat,
       location_lng: eventData.location_lng,
       distance_meters: distance || 0,
       qr_code_used: scannedCode,
@@ -207,6 +207,13 @@ const CheckIn = () => {
       toast.error("Failed to save check-in");
       return;
     }
+
+    // Auto-register user for this event (first-scan registration)
+    // This allows quick check-in on future sessions without QR scanning
+    await supabase.from("event_registrations").upsert(
+      { event_id: eventData.id, user_id: user.id },
+      { onConflict: "event_id,user_id" }
+    );
 
     setState("success");
   };

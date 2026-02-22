@@ -54,9 +54,9 @@ const Scan = () => {
     const eventId = parts[1];
     const qrTimestamp = parseInt(parts[3]);
 
-    // Check if QR code is expired (valid for 10 seconds)
+    // Check if QR code is expired (valid for 15 seconds to account for scan delay)
     const now = Date.now();
-    if (now - qrTimestamp > 10000) {
+    if (now - qrTimestamp > 15000) {
       toast.error("QR code has expired. Please scan a fresh code.");
       setProcessing(false);
       setShowScanner(false);
