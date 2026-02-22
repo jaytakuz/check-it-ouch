@@ -149,12 +149,15 @@ const GuestJoin = () => {
       tracking_mode: trackingMode,
     });
 
-    // Transition to next state based on tracking mode
+    // For full_tracking events, guests must login/register first
     if (trackingMode === "full_tracking") {
-      setState("register");
-    } else {
-      setState("ready");
+      toast.info("This event requires registration. Please log in or create an account.");
+      navigate(`/auth?redirect=${encodeURIComponent(`/checkin?code=${encodeURIComponent(code)}`)}`);
+      return;
     }
+    
+    // Count-only mode: proceed as guest
+    setState("ready");
   };
 
   const handleQRScan = (data: string) => {

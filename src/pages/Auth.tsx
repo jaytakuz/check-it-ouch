@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/ui/Logo";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Mail, Lock, User, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
@@ -20,6 +20,8 @@ const authSchema = z.object({
 
 const Auth = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get("redirect");
   const { user, loading: authLoading, signUp, signIn, getUserRoles } = useAuth();
   const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
   const [forgotLoading, setForgotLoading] = useState(false);
@@ -38,19 +40,22 @@ const Auth = () => {
   useEffect(() => {
     const checkAuthAndRedirect = async () => {
       if (!authLoading && user) {
+        // If there's a redirect URL, go there
+        if (redirectTo) {
+          navigate(redirectTo);
+          return;
+        }
         // Check if user has roles
         const { data: roles } = await getUserRoles();
         if (roles && roles.length > 0) {
-          // User has roles, go to dashboard
           navigate("/dashboard");
         } else {
-          // New user, go to role selection
           navigate("/role-select");
         }
       }
     };
     checkAuthAndRedirect();
-  }, [user, authLoading, navigate, getUserRoles]);
+  }, [user, authLoading, navigate, getUserRoles, redirectTo]);
 
   const validateForm = () => {
     try {
