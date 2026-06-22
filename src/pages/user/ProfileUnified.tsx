@@ -299,7 +299,10 @@ const ProfileUnified = () => {
           }
           return null;
         })}
+
+        {isOwner && <ActivityLogExport />}
       </div>
+
 
       {isOwner && (
         <PrivacySettingsModal
