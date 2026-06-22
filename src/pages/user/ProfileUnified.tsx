@@ -11,6 +11,7 @@ import ProfileIdentityHeader from "@/components/profile/ProfileIdentityHeader";
 import CompetencyRadar from "@/components/profile/CompetencyRadar";
 import SkillShowcase from "@/components/profile/SkillShowcase";
 import ActivityTimeline from "@/components/profile/ActivityTimeline";
+import ActivityLogExport from "@/components/profile/ActivityLogExport";
 import PrivacySettingsModal from "@/components/profile/PrivacySettingsModal";
 
 import {
@@ -298,7 +299,10 @@ const ProfileUnified = () => {
           }
           return null;
         })}
+
+        {isOwner && <ActivityLogExport />}
       </div>
+
 
       {isOwner && (
         <PrivacySettingsModal
