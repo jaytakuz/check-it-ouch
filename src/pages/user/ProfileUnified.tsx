@@ -144,7 +144,7 @@ const ProfileUnified = () => {
     if (!user) return;
     const { error } = await supabase
       .from("profiles")
-      .update(updates)
+      .update(updates as any)
       .eq("user_id", user.id);
     if (error) {
       console.error("Failed to save profile:", error);
