@@ -160,7 +160,12 @@ const escapeCSV = (val: string | number): string => {
 const buildCSV = (rows: ActivityRecord[]): string => {
   const headerLine = CSV_HEADERS.join(",");
   const bodyLines = rows.map((r) =>
-    CSV_HEADERS.map((h) => escapeCSV(r[h as keyof ActivityRecord] as string | number)).join(","),
+    CSV_HEADERS.map((h) => {
+      const value = r[h as keyof ActivityRecord] as string | number;
+      // Wrap Date in Excel text formula to prevent locale auto-translation (e.g., Thai)
+      if (h === "Date") return `="${String(value).replace(/"/g, '""')}"`;
+      return escapeCSV(value);
+    }).join(","),
   );
   // BOM ensures Excel reads UTF-8 cleanly
   return "\uFEFF" + [headerLine, ...bodyLines].join("\n");
@@ -305,7 +310,10 @@ const ActivityLogExport = ({ records = MOCK_RECORDS }: ActivityLogExportProps) =
                     <p className="text-sm font-semibold text-foreground truncate">
                       {r.Event_Name}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground truncate">
+                      {r.Full_Name}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
                       {r.Date} · {r.Time_In}
                     </p>
                   </div>
@@ -320,10 +328,6 @@ const ActivityLogExport = ({ records = MOCK_RECORDS }: ActivityLogExportProps) =
                   <span className="text-xs text-muted-foreground">
                     {r.Total_Hours}h
                   </span>
-                </div>
-                <div className="flex items-center gap-1.5 pt-1 border-t text-[10px] text-muted-foreground font-mono">
-                  <ShieldCheck size={11} />
-                  {r.Checksum_Hash}
                 </div>
               </div>
             ))}
@@ -340,19 +344,20 @@ const ActivityLogExport = ({ records = MOCK_RECORDS }: ActivityLogExportProps) =
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
                   <TableHead className="text-xs">Student ID</TableHead>
+                  <TableHead className="text-xs">Full Name</TableHead>
                   <TableHead className="text-xs">Event</TableHead>
                   <TableHead className="text-xs">Level</TableHead>
                   <TableHead className="text-xs">Date</TableHead>
                   <TableHead className="text-xs">Time In</TableHead>
                   <TableHead className="text-xs text-right">Hours</TableHead>
                   <TableHead className="text-xs">Status</TableHead>
-                  <TableHead className="text-xs">Hash</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {visibleRecords.map((r, i) => (
                   <TableRow key={`${r.Student_ID}-${r.Event_Name}-${i}`}>
                     <TableCell className="text-xs font-mono">{r.Student_ID}</TableCell>
+                    <TableCell className="text-sm">{r.Full_Name}</TableCell>
                     <TableCell className="text-sm font-medium">{r.Event_Name}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className={cn("text-[10px]", levelStyles[r.Activity_Level])}>
@@ -366,12 +371,6 @@ const ActivityLogExport = ({ records = MOCK_RECORDS }: ActivityLogExportProps) =
                       <Badge variant="outline" className={cn("text-[10px]", statusStyles[r.Status as "Present" | "Certified"])}>
                         {r.Status}
                       </Badge>
-                    </TableCell>
-                    <TableCell className="text-[11px] font-mono text-muted-foreground">
-                      <span className="inline-flex items-center gap-1">
-                        <ShieldCheck size={11} />
-                        {r.Checksum_Hash}
-                      </span>
                     </TableCell>
                   </TableRow>
                 ))}
