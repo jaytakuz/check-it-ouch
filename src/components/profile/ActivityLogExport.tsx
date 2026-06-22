@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, Loader2, Inbox } from "lucide-react";
+import { Download, Loader2, Inbox, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,88 +21,98 @@ import { cn } from "@/lib/utils";
 // Types
 // ─────────────────────────────────────────────────────────────
 type ActivityLevel = "Participation" | "Practice" | "Implementation";
-type ActivityStatus = "Present" | "Certified";
+type ActivityStatus = "Present" | "Certified" | "Absent" | "Upcoming";
 
 interface ActivityRecord {
   Student_ID: string;
   Full_Name: string;
   Event_Name: string;
   Activity_Level: ActivityLevel;
-  Location: string;
   Date: string; // DD-MMM-YYYY
   Time_In: string;
-  Time_Out: string;
   Total_Hours: number;
   Status: ActivityStatus;
-  Checksum_Hash: string; // hidden in UI, included in CSV
+  Checksum_Hash: string;
 }
 
 // ─────────────────────────────────────────────────────────────
-// Mock dataset (digital solutions, economics, system testing)
+// Mock dataset (the source of truth for this isolated component)
 // ─────────────────────────────────────────────────────────────
 const MOCK_RECORDS: ActivityRecord[] = [
   {
     Student_ID: "STD-66001",
     Full_Name: "Nattapong Sukjai",
-    Event_Name: "Data Science Pipeline Workshop",
-    Activity_Level: "Practice",
-    Location: "CAMT 218",
-    Date: "22-Jun-2026",
-    Time_In: "09:00",
-    Time_Out: "12:00",
+    Event_Name: "AI Ethics Symposium 2026",
+    Activity_Level: "Participation",
+    Date: "15-Jan-2026",
+    Time_In: "09:00 AM",
     Total_Hours: 3,
-    Status: "Certified",
+    Status: "Present",
     Checksum_Hash: "A7X9K2",
+  },
+  {
+    Student_ID: "STD-66001",
+    Full_Name: "Nattapong Sukjai",
+    Event_Name: "React Advanced Workshop",
+    Activity_Level: "Practice",
+    Date: "02-Feb-2026",
+    Time_In: "01:30 PM",
+    Total_Hours: 6,
+    Status: "Certified",
+    Checksum_Hash: "B3M8N1",
   },
   {
     Student_ID: "STD-66002",
     Full_Name: "Pim Chayanan",
-    Event_Name: "Digital Economy Forum 2026",
-    Activity_Level: "Participation",
-    Location: "CMU Convention Hall",
-    Date: "18-Jun-2026",
-    Time_In: "13:30",
-    Time_Out: "16:30",
-    Total_Hours: 3,
-    Status: "Present",
-    Checksum_Hash: "B3M8N1",
-  },
-  {
-    Student_ID: "STD-66003",
-    Full_Name: "Korn Aphisit",
-    Event_Name: "QA & System Testing Bootcamp",
+    Event_Name: "Open Source Hackathon",
     Activity_Level: "Implementation",
-    Location: "CAMT 305",
-    Date: "10-Jun-2026",
-    Time_In: "09:00",
-    Time_Out: "17:00",
-    Total_Hours: 8,
+    Date: "20-Feb-2026",
+    Time_In: "08:00 AM",
+    Total_Hours: 12,
     Status: "Certified",
     Checksum_Hash: "Q5T4R9",
   },
   {
-    Student_ID: "STD-66004",
-    Full_Name: "Mint Suphanan",
-    Event_Name: "FinTech & Behavioral Economics Seminar",
-    Activity_Level: "Participation",
-    Location: "Faculty of Economics R.402",
-    Date: "05-Jun-2026",
-    Time_In: "10:00",
-    Time_Out: "11:30",
-    Total_Hours: 1.5,
+    Student_ID: "STD-66003",
+    Full_Name: "Korn Aphisit",
+    Event_Name: "UX Research Bootcamp",
+    Activity_Level: "Practice",
+    Date: "05-Mar-2026",
+    Time_In: "10:15 AM",
+    Total_Hours: 4,
     Status: "Present",
     Checksum_Hash: "Z2L7P0",
   },
   {
+    Student_ID: "STD-66004",
+    Full_Name: "Mint Suphanan",
+    Event_Name: "Cloud Native Meetup",
+    Activity_Level: "Participation",
+    Date: "12-Mar-2026",
+    Time_In: "06:00 PM",
+    Total_Hours: 2,
+    Status: "Absent", // excluded
+    Checksum_Hash: "W1Y6F3",
+  },
+  {
     Student_ID: "STD-66005",
     Full_Name: "Earth Tanawat",
-    Event_Name: "Digital Solutions Hackathon",
+    Event_Name: "Startup Pitch Night",
     Activity_Level: "Implementation",
-    Location: "CAMT Innovation Lab",
-    Date: "01-Jun-2026",
-    Time_In: "08:30",
-    Time_Out: "18:30",
-    Total_Hours: 10,
+    Date: "28-Mar-2026",
+    Time_In: "07:00 PM",
+    Total_Hours: 5,
+    Status: "Upcoming", // excluded
+    Checksum_Hash: "H8C2V4",
+  },
+  {
+    Student_ID: "STD-66001",
+    Full_Name: "Nattapong Sukjai",
+    Event_Name: "Data Visualization Lab",
+    Activity_Level: "Implementation",
+    Date: "10-Apr-2026",
+    Time_In: "09:30 AM",
+    Total_Hours: 8,
     Status: "Certified",
     Checksum_Hash: "K9D5J7",
   },
@@ -121,7 +131,7 @@ const levelStyles: Record<ActivityLevel, string> = {
   Implementation: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400",
 };
 
-const statusStyles: Record<ActivityStatus, string> = {
+const statusStyles: Record<"Present" | "Certified", string> = {
   Present: "bg-sky-500/10 text-sky-700 border-sky-500/20 dark:text-sky-300",
   Certified: "bg-violet-500/10 text-violet-700 border-violet-500/20 dark:text-violet-300",
 };
@@ -129,40 +139,31 @@ const statusStyles: Record<ActivityStatus, string> = {
 // ─────────────────────────────────────────────────────────────
 // CSV helpers (native — no external libs)
 // ─────────────────────────────────────────────────────────────
-// NOTE: Status is intentionally excluded from CSV per spec.
 const CSV_HEADERS = [
   "Student_ID",
   "Full_Name",
   "Event_Name",
   "Activity_Level",
-  "Location",
   "Date",
   "Time_In",
-  "Time_Out",
   "Total_Hours",
   "Checksum_Hash",
 ] as const;
 
 const escapeCSV = (val: string | number): string => {
   const s = String(val ?? "");
+  // Wrap in quotes if value contains comma, quote, or newline
   if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
   return s;
 };
 
-// Excel-safe date cell: prevents auto-conversion to local language
-// by emitting a formula literal: ="22-Jun-2026"
-const excelSafeDate = (date: string): string => `="${date.replace(/"/g, '""')}"`;
-
 const buildCSV = (rows: ActivityRecord[]): string => {
   const headerLine = CSV_HEADERS.join(",");
   const bodyLines = rows.map((r) =>
-    CSV_HEADERS.map((h) => {
-      if (h === "Date") return excelSafeDate(r.Date);
-      return escapeCSV(r[h as keyof ActivityRecord] as string | number);
-    }).join(","),
+    CSV_HEADERS.map((h) => escapeCSV(r[h as keyof ActivityRecord] as string | number)).join(","),
   );
   // BOM ensures Excel reads UTF-8 cleanly
-  return "\uFEFF" + [headerLine, ...bodyLines].join("\r\n");
+  return "\uFEFF" + [headerLine, ...bodyLines].join("\n");
 };
 
 const downloadCSV = (filename: string, content: string) => {
@@ -189,7 +190,7 @@ const ActivityLogExport = ({ records = MOCK_RECORDS }: ActivityLogExportProps) =
   const [activeTab, setActiveTab] = useState<(typeof FILTER_TABS)[number]>("All");
   const [isExporting, setIsExporting] = useState(false);
 
-  // Only Present or Certified are visible/exportable
+  // Business rule: only Present or Certified are visible/exportable
   const completedRecords = useMemo(
     () => records.filter((r) => r.Status === "Present" || r.Status === "Certified"),
     [records],
@@ -206,7 +207,7 @@ const ActivityLogExport = ({ records = MOCK_RECORDS }: ActivityLogExportProps) =
     if (isExporting || isEmpty) return;
     setIsExporting(true);
 
-    // 1.5s debounce to simulate processing & prevent duplicate clicks
+    // 1500ms debounce to simulate processing & prevent duplicate clicks
     setTimeout(() => {
       const csv = buildCSV(visibleRecords);
       const stamp = new Date().toISOString().slice(0, 10);
@@ -304,14 +305,11 @@ const ActivityLogExport = ({ records = MOCK_RECORDS }: ActivityLogExportProps) =
                     <p className="text-sm font-semibold text-foreground truncate">
                       {r.Event_Name}
                     </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {r.Full_Name} · {r.Student_ID}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {r.Date} · {r.Time_In}–{r.Time_Out} · {r.Location}
+                    <p className="text-xs text-muted-foreground">
+                      {r.Date} · {r.Time_In}
                     </p>
                   </div>
-                  <Badge variant="outline" className={cn("shrink-0 text-[10px]", statusStyles[r.Status])}>
+                  <Badge variant="outline" className={cn("shrink-0 text-[10px]", statusStyles[r.Status as "Present" | "Certified"])}>
                     {r.Status}
                   </Badge>
                 </div>
@@ -322,6 +320,10 @@ const ActivityLogExport = ({ records = MOCK_RECORDS }: ActivityLogExportProps) =
                   <span className="text-xs text-muted-foreground">
                     {r.Total_Hours}h
                   </span>
+                </div>
+                <div className="flex items-center gap-1.5 pt-1 border-t text-[10px] text-muted-foreground font-mono">
+                  <ShieldCheck size={11} />
+                  {r.Checksum_Hash}
                 </div>
               </div>
             ))}
@@ -338,37 +340,38 @@ const ActivityLogExport = ({ records = MOCK_RECORDS }: ActivityLogExportProps) =
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
                   <TableHead className="text-xs">Student ID</TableHead>
-                  <TableHead className="text-xs">Full Name</TableHead>
                   <TableHead className="text-xs">Event</TableHead>
                   <TableHead className="text-xs">Level</TableHead>
-                  <TableHead className="text-xs">Location</TableHead>
-                  <TableHead className="text-xs whitespace-nowrap">Date</TableHead>
-                  <TableHead className="text-xs whitespace-nowrap">Time In</TableHead>
-                  <TableHead className="text-xs whitespace-nowrap">Time Out</TableHead>
+                  <TableHead className="text-xs">Date</TableHead>
+                  <TableHead className="text-xs">Time In</TableHead>
                   <TableHead className="text-xs text-right">Hours</TableHead>
                   <TableHead className="text-xs">Status</TableHead>
+                  <TableHead className="text-xs">Hash</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {visibleRecords.map((r, i) => (
                   <TableRow key={`${r.Student_ID}-${r.Event_Name}-${i}`}>
                     <TableCell className="text-xs font-mono">{r.Student_ID}</TableCell>
-                    <TableCell className="text-sm">{r.Full_Name}</TableCell>
                     <TableCell className="text-sm font-medium">{r.Event_Name}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className={cn("text-[10px]", levelStyles[r.Activity_Level])}>
                         {r.Activity_Level}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-xs whitespace-nowrap">{r.Location}</TableCell>
                     <TableCell className="text-xs whitespace-nowrap">{r.Date}</TableCell>
                     <TableCell className="text-xs whitespace-nowrap">{r.Time_In}</TableCell>
-                    <TableCell className="text-xs whitespace-nowrap">{r.Time_Out}</TableCell>
                     <TableCell className="text-xs text-right">{r.Total_Hours}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={cn("text-[10px]", statusStyles[r.Status])}>
+                      <Badge variant="outline" className={cn("text-[10px]", statusStyles[r.Status as "Present" | "Certified"])}>
                         {r.Status}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-[11px] font-mono text-muted-foreground">
+                      <span className="inline-flex items-center gap-1">
+                        <ShieldCheck size={11} />
+                        {r.Checksum_Hash}
+                      </span>
                     </TableCell>
                   </TableRow>
                 ))}
