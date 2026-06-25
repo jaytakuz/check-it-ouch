@@ -108,19 +108,20 @@ const CreateEvent = () => {
   const [filteredTags, setFilteredTags] = useState<string[]>([]);
   const tagInputRef = useRef<HTMLInputElement>(null);
 
-  // Filter tags based on input
-  useEffect(() => {
-    if (formData.eventTag.trim()) {
-      const filtered = EVENT_TAGS.filter(tag =>
-        tag.toLowerCase().includes(formData.eventTag.toLowerCase())
-      );
-      setFilteredTags(filtered);
-      setShowTagDropdown(filtered.length > 0);
-    } else {
-      setShowTagDropdown(false);
-      setFilteredTags([]);
-    }
-  }, [formData.eventTag]);
+  // Multi-select tag state
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prev) => {
+      if (prev.includes(tag)) return prev.filter((t) => t !== tag);
+      if (prev.length >= MAX_TAGS) {
+        toast.error(`You can select up to ${MAX_TAGS} tags.`);
+        return prev;
+      }
+      return [...prev, tag];
+    });
+  };
 
   const totalSteps = 5;
 
