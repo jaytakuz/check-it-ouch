@@ -103,9 +103,6 @@ const CreateEvent = () => {
     maxAttendees: "50",
   });
 
-  const [showTagDropdown, setShowTagDropdown] = useState(false);
-  const [filteredTags, setFilteredTags] = useState<string[]>([]);
-  const tagInputRef = useRef<HTMLInputElement>(null);
 
   // Multi-select tag state
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
