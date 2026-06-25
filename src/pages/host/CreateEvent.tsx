@@ -190,7 +190,7 @@ const CreateEvent = () => {
       host_id: user.id,
       name: formData.name,
       description: formData.description || null,
-      event_tag: formData.eventTag || null,
+      event_tag: selectedTags.length > 0 ? selectedTags.join(", ") : null,
       is_recurring: eventType === "recurring",
       recurring_days: eventType === "recurring" ? selectedDays : null,
       event_date: eventType === "recurring" ? null : formData.date,
