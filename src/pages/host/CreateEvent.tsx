@@ -6,7 +6,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, Clock, CalendarDays, Repeat, Users, UserCheck, ChevronRight, Check, Award, Plus, Trash2, Settings2, List, Tag } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, CalendarDays, Repeat, Users, UserCheck, ChevronRight, ChevronsUpDown, Check, Award, Plus, Trash2, Settings2, List, Tag, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -59,12 +62,30 @@ const CreateEvent = () => {
   const [radius, setRadius] = useState([50]);
   const [loading, setLoading] = useState(false);
   
-  // Predefined event tags
-  const EVENT_TAGS = [
-    "Workshop", "Seminar", "Conference", "Training", "Meeting",
-    "Class", "Lecture", "Webinar", "Networking", "Team Building",
-    "Hackathon", "Bootcamp", "Orientation", "Ceremony", "Exhibition",
+  // Standardized 5-Dimension Competency Framework tags (LinkedIn skills)
+  const TAG_CATEGORIES: { category: string; tags: string[] }[] = [
+    {
+      category: "Technology",
+      tags: ["Python", "React.js", "Machine Learning", "SQL", "Cloud Computing", "Data Visualization", "UI/UX Design", "Cybersecurity", "Artificial Intelligence", "Git/Version Control"],
+    },
+    {
+      category: "Cognitive",
+      tags: ["Problem Solving", "Critical Thinking", "Data Analysis", "Research Methodology", "Strategic Planning", "System Thinking", "Decision Making", "Statistical Analysis", "Creative Thinking", "Analytical Skills"],
+    },
+    {
+      category: "Social",
+      tags: ["Effective Communication", "Team Leadership", "Public Speaking", "Cross-functional Collaboration", "Negotiation", "Conflict Resolution", "Mentoring", "Presentation Skills", "Stakeholder Management", "Empathy"],
+    },
+    {
+      category: "Self-Efficacy",
+      tags: ["Adaptability", "Time Management", "Resilience", "Continuous Learning", "Stress Management", "Proactive Nature", "Self-Motivation", "Work Ethic", "Emotional Intelligence", "Goal Setting"],
+    },
+    {
+      category: "Domain",
+      tags: ["Business Analysis", "Financial Modeling", "Market Research", "Product Management", "Agile Methodologies", "Digital Marketing", "Risk Management", "Supply Chain Management", "E-commerce", "Project Management"],
+    },
   ];
+  const MAX_TAGS = 5;
 
   const TIER_OPTIONS: { value: EventTier; label: string; icon: React.ReactNode }[] = [
     { value: 1, label: "Participation", icon: <Users size={18} /> },
@@ -75,7 +96,6 @@ const CreateEvent = () => {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    eventTag: "",
     date: "",
     endRepeatDate: "",
     startTime: "09:00",
@@ -86,23 +106,21 @@ const CreateEvent = () => {
     maxAttendees: "50",
   });
 
-  const [showTagDropdown, setShowTagDropdown] = useState(false);
-  const [filteredTags, setFilteredTags] = useState<string[]>([]);
-  const tagInputRef = useRef<HTMLInputElement>(null);
 
-  // Filter tags based on input
-  useEffect(() => {
-    if (formData.eventTag.trim()) {
-      const filtered = EVENT_TAGS.filter(tag =>
-        tag.toLowerCase().includes(formData.eventTag.toLowerCase())
-      );
-      setFilteredTags(filtered);
-      setShowTagDropdown(filtered.length > 0);
-    } else {
-      setShowTagDropdown(false);
-      setFilteredTags([]);
-    }
-  }, [formData.eventTag]);
+  // Multi-select tag state
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prev) => {
+      if (prev.includes(tag)) return prev.filter((t) => t !== tag);
+      if (prev.length >= MAX_TAGS) {
+        toast.error(`You can select up to ${MAX_TAGS} tags.`);
+        return prev;
+      }
+      return [...prev, tag];
+    });
+  };
 
   const totalSteps = 5;
 
@@ -175,7 +193,7 @@ const CreateEvent = () => {
       host_id: user.id,
       name: formData.name,
       description: formData.description || null,
-      event_tag: formData.eventTag || null,
+      event_tag: selectedTags.length > 0 ? selectedTags.join(", ") : null,
       is_recurring: eventType === "recurring",
       recurring_days: eventType === "recurring" ? selectedDays : null,
       event_date: eventType === "recurring" ? null : formData.date,
@@ -616,50 +634,104 @@ const CreateEvent = () => {
                 />
               </div>
 
-              {/* Event Tag */}
-              <div className="space-y-2 relative">
-                <Label htmlFor="eventTag" className="flex items-center gap-2">
+              {/* Event Tags - Multi-Select from Competency Framework */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
                   <Tag size={14} />
-                  Event Tag
+                  Event Tags
+                  <span className="text-xs font-normal text-muted-foreground ml-auto">
+                    {selectedTags.length}/{MAX_TAGS} selected
+                  </span>
                 </Label>
-                <Input
-                  ref={tagInputRef}
-                  id="eventTag"
-                  placeholder="Start typing to select a tag (e.g., Workshop, Seminar...)"
-                  value={formData.eventTag}
-                  onChange={(e) => setFormData({ ...formData, eventTag: e.target.value })}
-                  onFocus={() => {
-                    if (formData.eventTag.trim()) {
-                      setShowTagDropdown(filteredTags.length > 0);
-                    }
-                  }}
-                  onBlur={() => {
-                    setTimeout(() => setShowTagDropdown(false), 150);
-                  }}
-                  autoComplete="off"
-                />
-                {showTagDropdown && (
-                  <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-lg shadow-lg overflow-hidden">
-                    <div className="max-h-48 overflow-y-auto">
-                      {filteredTags.map((tag) => (
+
+                {/* Selected tag badges */}
+                {selectedTags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 p-2 rounded-lg border border-border bg-muted/30">
+                    {selectedTags.map((tag) => (
+                      <Badge
+                        key={tag}
+                        variant="secondary"
+                        className="gap-1 pl-2 pr-1 py-0.5 text-xs"
+                      >
+                        {tag}
                         <button
-                          key={tag}
                           type="button"
-                          className="w-full px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground transition-colors flex items-center gap-2"
-                          onClick={() => {
-                            setFormData({ ...formData, eventTag: tag });
-                            setShowTagDropdown(false);
-                          }}
+                          onClick={() => toggleTag(tag)}
+                          className="ml-0.5 rounded-full hover:bg-background/60 p-0.5 transition-colors"
+                          aria-label={`Remove ${tag}`}
                         >
-                          <Tag size={14} className="text-muted-foreground" />
-                          {tag}
+                          <X size={12} />
                         </button>
-                      ))}
-                    </div>
+                      </Badge>
+                    ))}
                   </div>
                 )}
+
+                <Popover open={tagPopoverOpen} onOpenChange={setTagPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={tagPopoverOpen}
+                      className="w-full justify-between font-normal"
+                    >
+                      <span className="text-muted-foreground">
+                        {selectedTags.length === 0
+                          ? "Select competency tags..."
+                          : `Add more tags (${MAX_TAGS - selectedTags.length} remaining)`}
+                      </span>
+                      <ChevronsUpDown size={16} className="opacity-50 shrink-0" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-[--radix-popover-trigger-width] p-0"
+                    align="start"
+                  >
+                    <Command>
+                      <CommandInput placeholder="Search tags..." />
+                      <CommandList className="max-h-72">
+                        <CommandEmpty>No tag found.</CommandEmpty>
+                        {TAG_CATEGORIES.map((group) => (
+                          <CommandGroup key={group.category} heading={group.category}>
+                            {group.tags.map((tag) => {
+                              const selected = selectedTags.includes(tag);
+                              const disabled = !selected && selectedTags.length >= MAX_TAGS;
+                              return (
+                                <CommandItem
+                                  key={tag}
+                                  value={`${group.category} ${tag}`}
+                                  onSelect={() => !disabled && toggleTag(tag)}
+                                  className={cn(
+                                    "flex items-center gap-2",
+                                    disabled && "opacity-50 cursor-not-allowed"
+                                  )}
+                                >
+                                  <div
+                                    className={cn(
+                                      "w-4 h-4 rounded border flex items-center justify-center shrink-0",
+                                      selected
+                                        ? "bg-primary border-primary"
+                                        : "border-muted-foreground/40"
+                                    )}
+                                  >
+                                    {selected && (
+                                      <Check size={12} className="text-primary-foreground" />
+                                    )}
+                                  </div>
+                                  <span className="flex-1">{tag}</span>
+                                </CommandItem>
+                              );
+                            })}
+                          </CommandGroup>
+                        ))}
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+
                 <p className="text-xs text-muted-foreground">
-                  Select or type a tag to categorize your event
+                  Choose up to {MAX_TAGS} tags from the 5-Dimension Competency Framework.
                 </p>
               </div>
 
