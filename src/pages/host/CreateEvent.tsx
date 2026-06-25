@@ -59,12 +59,30 @@ const CreateEvent = () => {
   const [radius, setRadius] = useState([50]);
   const [loading, setLoading] = useState(false);
   
-  // Predefined event tags
-  const EVENT_TAGS = [
-    "Workshop", "Seminar", "Conference", "Training", "Meeting",
-    "Class", "Lecture", "Webinar", "Networking", "Team Building",
-    "Hackathon", "Bootcamp", "Orientation", "Ceremony", "Exhibition",
+  // Standardized 5-Dimension Competency Framework tags (LinkedIn skills)
+  const TAG_CATEGORIES: { category: string; tags: string[] }[] = [
+    {
+      category: "Technology",
+      tags: ["Python", "React.js", "Machine Learning", "SQL", "Cloud Computing", "Data Visualization", "UI/UX Design", "Cybersecurity", "Artificial Intelligence", "Git/Version Control"],
+    },
+    {
+      category: "Cognitive",
+      tags: ["Problem Solving", "Critical Thinking", "Data Analysis", "Research Methodology", "Strategic Planning", "System Thinking", "Decision Making", "Statistical Analysis", "Creative Thinking", "Analytical Skills"],
+    },
+    {
+      category: "Social",
+      tags: ["Effective Communication", "Team Leadership", "Public Speaking", "Cross-functional Collaboration", "Negotiation", "Conflict Resolution", "Mentoring", "Presentation Skills", "Stakeholder Management", "Empathy"],
+    },
+    {
+      category: "Self-Efficacy",
+      tags: ["Adaptability", "Time Management", "Resilience", "Continuous Learning", "Stress Management", "Proactive Nature", "Self-Motivation", "Work Ethic", "Emotional Intelligence", "Goal Setting"],
+    },
+    {
+      category: "Domain",
+      tags: ["Business Analysis", "Financial Modeling", "Market Research", "Product Management", "Agile Methodologies", "Digital Marketing", "Risk Management", "Supply Chain Management", "E-commerce", "Project Management"],
+    },
   ];
+  const MAX_TAGS = 5;
 
   const TIER_OPTIONS: { value: EventTier; label: string; icon: React.ReactNode }[] = [
     { value: 1, label: "Participation", icon: <Users size={18} /> },
