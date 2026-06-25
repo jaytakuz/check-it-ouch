@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, Clock, CalendarDays, Repeat, Users, UserCheck, ChevronRight, Check, Award, Plus, Trash2, Settings2, List, Tag } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, CalendarDays, Repeat, Users, UserCheck, ChevronRight, Check, Award, Plus, Trash2, Settings2, List, Tag, QrCode, ShieldCheck } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
