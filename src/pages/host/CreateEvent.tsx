@@ -40,6 +40,7 @@ const CreateEvent = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [eventType, setEventType] = useState<EventType | null>(null);
   const [trackingMode, setTrackingMode] = useState<TrackingMode | null>(null);
+  const [verificationLevel, setVerificationLevel] = useState<"basic" | "standard" | "strict">("standard");
   
   // eCertificate state
   const [enableCertificate, setEnableCertificate] = useState(false);
