@@ -93,7 +93,6 @@ const CreateEvent = () => {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    eventTag: "",
     date: "",
     endRepeatDate: "",
     startTime: "09:00",
