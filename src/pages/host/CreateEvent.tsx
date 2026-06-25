@@ -462,6 +462,71 @@ const CreateEvent = () => {
                 </button>
               </div>
 
+              {/* Conditional: Verification Strictness (Full Tracking only) */}
+              <AnimatePresence initial={false}>
+                {trackingMode === "full-tracking" && (
+                  <motion.div
+                    key="verification"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.25, ease: "easeOut" }}
+                    className="overflow-hidden"
+                  >
+                    <div className="pt-2 space-y-3">
+                      <div>
+                        <h3 className="text-base font-semibold text-foreground">Select Verification Strictness</h3>
+                        <p className="text-sm text-muted-foreground">Choose how rigorously to verify each check-in.</p>
+                      </div>
+
+                      {([
+                        {
+                          value: "basic" as const,
+                          title: "Level 1: Time Only",
+                          description: "Low strictness. Validates the check-in time window. High convenience with minimal friction.",
+                        },
+                        {
+                          value: "standard" as const,
+                          title: "Level 2: Time + Dynamic QR",
+                          description: "Medium strictness. Requires scanning a live refreshing QR code. Balances security with ease of use.",
+                        },
+                        {
+                          value: "strict" as const,
+                          title: "Level 3: Time + QR + GPS",
+                          description: "High strictness. Enforces location radius alongside QR and time limits. Prevents remote check-ins.",
+                        },
+                      ]).map((level) => {
+                        const selected = verificationLevel === level.value;
+                        return (
+                          <button
+                            key={level.value}
+                            type="button"
+                            onClick={() => setVerificationLevel(level.value)}
+                            className={cn(
+                              "w-full p-4 rounded-xl border-2 text-left transition-all flex items-start gap-3",
+                              selected
+                                ? "border-primary bg-primary/5"
+                                : "border-border bg-card hover:border-primary/50"
+                            )}
+                          >
+                            <div className={cn(
+                              "mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
+                              selected ? "border-primary bg-primary" : "border-muted-foreground/40"
+                            )}>
+                              {selected && <Check size={12} className="text-primary-foreground" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-foreground text-sm">{level.title}</h4>
+                              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{level.description}</p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               <Button
                 onClick={handleNextStep}
                 disabled={!canProceedToStep3}
