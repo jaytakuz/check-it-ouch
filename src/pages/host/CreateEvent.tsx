@@ -631,50 +631,104 @@ const CreateEvent = () => {
                 />
               </div>
 
-              {/* Event Tag */}
-              <div className="space-y-2 relative">
-                <Label htmlFor="eventTag" className="flex items-center gap-2">
+              {/* Event Tags - Multi-Select from Competency Framework */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
                   <Tag size={14} />
-                  Event Tag
+                  Event Tags
+                  <span className="text-xs font-normal text-muted-foreground ml-auto">
+                    {selectedTags.length}/{MAX_TAGS} selected
+                  </span>
                 </Label>
-                <Input
-                  ref={tagInputRef}
-                  id="eventTag"
-                  placeholder="Start typing to select a tag (e.g., Workshop, Seminar...)"
-                  value={formData.eventTag}
-                  onChange={(e) => setFormData({ ...formData, eventTag: e.target.value })}
-                  onFocus={() => {
-                    if (formData.eventTag.trim()) {
-                      setShowTagDropdown(filteredTags.length > 0);
-                    }
-                  }}
-                  onBlur={() => {
-                    setTimeout(() => setShowTagDropdown(false), 150);
-                  }}
-                  autoComplete="off"
-                />
-                {showTagDropdown && (
-                  <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-lg shadow-lg overflow-hidden">
-                    <div className="max-h-48 overflow-y-auto">
-                      {filteredTags.map((tag) => (
+
+                {/* Selected tag badges */}
+                {selectedTags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 p-2 rounded-lg border border-border bg-muted/30">
+                    {selectedTags.map((tag) => (
+                      <Badge
+                        key={tag}
+                        variant="secondary"
+                        className="gap-1 pl-2 pr-1 py-0.5 text-xs"
+                      >
+                        {tag}
                         <button
-                          key={tag}
                           type="button"
-                          className="w-full px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground transition-colors flex items-center gap-2"
-                          onClick={() => {
-                            setFormData({ ...formData, eventTag: tag });
-                            setShowTagDropdown(false);
-                          }}
+                          onClick={() => toggleTag(tag)}
+                          className="ml-0.5 rounded-full hover:bg-background/60 p-0.5 transition-colors"
+                          aria-label={`Remove ${tag}`}
                         >
-                          <Tag size={14} className="text-muted-foreground" />
-                          {tag}
+                          <X size={12} />
                         </button>
-                      ))}
-                    </div>
+                      </Badge>
+                    ))}
                   </div>
                 )}
+
+                <Popover open={tagPopoverOpen} onOpenChange={setTagPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={tagPopoverOpen}
+                      className="w-full justify-between font-normal"
+                    >
+                      <span className="text-muted-foreground">
+                        {selectedTags.length === 0
+                          ? "Select competency tags..."
+                          : `Add more tags (${MAX_TAGS - selectedTags.length} remaining)`}
+                      </span>
+                      <ChevronsUpDown size={16} className="opacity-50 shrink-0" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-[--radix-popover-trigger-width] p-0"
+                    align="start"
+                  >
+                    <Command>
+                      <CommandInput placeholder="Search tags..." />
+                      <CommandList className="max-h-72">
+                        <CommandEmpty>No tag found.</CommandEmpty>
+                        {TAG_CATEGORIES.map((group) => (
+                          <CommandGroup key={group.category} heading={group.category}>
+                            {group.tags.map((tag) => {
+                              const selected = selectedTags.includes(tag);
+                              const disabled = !selected && selectedTags.length >= MAX_TAGS;
+                              return (
+                                <CommandItem
+                                  key={tag}
+                                  value={`${group.category} ${tag}`}
+                                  onSelect={() => !disabled && toggleTag(tag)}
+                                  className={cn(
+                                    "flex items-center gap-2",
+                                    disabled && "opacity-50 cursor-not-allowed"
+                                  )}
+                                >
+                                  <div
+                                    className={cn(
+                                      "w-4 h-4 rounded border flex items-center justify-center shrink-0",
+                                      selected
+                                        ? "bg-primary border-primary"
+                                        : "border-muted-foreground/40"
+                                    )}
+                                  >
+                                    {selected && (
+                                      <Check size={12} className="text-primary-foreground" />
+                                    )}
+                                  </div>
+                                  <span className="flex-1">{tag}</span>
+                                </CommandItem>
+                              );
+                            })}
+                          </CommandGroup>
+                        ))}
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+
                 <p className="text-xs text-muted-foreground">
-                  Select or type a tag to categorize your event
+                  Choose up to {MAX_TAGS} tags from the 5-Dimension Competency Framework.
                 </p>
               </div>
 
