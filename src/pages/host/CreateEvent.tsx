@@ -384,83 +384,80 @@ const CreateEvent = () => {
               </div>
 
               <div className="space-y-3">
-                {/* Count Only Option */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTrackingMode("count-only");
-                    setEnableCertificate(false);
-                  }}
-                  className={cn(
-                    "w-full p-4 rounded-2xl border-2 text-left transition-all",
-                    "flex items-start gap-4",
-                    trackingMode === "count-only"
-                      ? "border-primary bg-primary/5"
-                      : "border-border bg-card hover:border-primary/50"
-                  )}
-                >
-                  <div className={cn(
-                    "w-12 h-12 rounded-xl flex items-center justify-center shrink-0",
-                    trackingMode === "count-only" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                  )}>
-                    <Users size={24} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-semibold text-foreground">Count Only</h3>
-                      {trackingMode === "count-only" && (
-                        <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                          <Check size={14} className="text-primary-foreground" />
-                        </div>
+                {[
+                  {
+                    value: "basic" as const,
+                    title: "Basic (Time Only)",
+                    description: "Validates check-in time. Suitable for general seminars or open events where strict physical presence is not critical.",
+                    icon: Clock,
+                  },
+                  {
+                    value: "standard" as const,
+                    title: "Standard (Time + Dynamic QR)",
+                    description: "Validates time and requires scanning a live QR code. Ensures physical presence in the room. Recommended for regular classes.",
+                    icon: QrCode,
+                    recommended: true,
+                  },
+                  {
+                    value: "strict" as const,
+                    title: "Strict (Time + QR + GPS)",
+                    description: "Maximum security. Requires time validation, live QR scan, and matching GPS radius. Ideal for examinations.",
+                    icon: ShieldCheck,
+                  },
+                ].map((opt) => {
+                  const Icon = opt.icon;
+                  const selected = verificationLevel === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => {
+                        setVerificationLevel(opt.value);
+                        if (opt.value === "basic") {
+                          setTrackingMode("count-only");
+                          setEnableCertificate(false);
+                        } else {
+                          setTrackingMode("full-tracking");
+                        }
+                      }}
+                      className={cn(
+                        "w-full p-4 rounded-2xl border-2 text-left transition-all flex items-start gap-4",
+                        selected
+                          ? "border-primary bg-primary/5 shadow-sm"
+                          : "border-border bg-card hover:border-primary/50"
                       )}
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Just track the total number of attendees. No login required for participants—quick and easy.
-                    </p>
-                    <div className="flex gap-2 mt-2">
-                      <span className="text-xs bg-muted px-2 py-1 rounded-full text-muted-foreground">Anonymous</span>
-                      <span className="text-xs bg-muted px-2 py-1 rounded-full text-muted-foreground">No sign-up</span>
-                    </div>
-                  </div>
-                </button>
-
-                {/* Full Tracking Option */}
-                <button
-                  type="button"
-                  onClick={() => setTrackingMode("full-tracking")}
-                  className={cn(
-                    "w-full p-4 rounded-2xl border-2 text-left transition-all",
-                    "flex items-start gap-4",
-                    trackingMode === "full-tracking"
-                      ? "border-primary bg-primary/5"
-                      : "border-border bg-card hover:border-primary/50"
-                  )}
-                >
-                  <div className={cn(
-                    "w-12 h-12 rounded-xl flex items-center justify-center shrink-0",
-                    trackingMode === "full-tracking" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                  )}>
-                    <UserCheck size={24} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-semibold text-foreground">Full Tracking</h3>
-                      {trackingMode === "full-tracking" && (
-                        <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                          <Check size={14} className="text-primary-foreground" />
+                    >
+                      <div className={cn(
+                        "w-12 h-12 rounded-xl flex items-center justify-center shrink-0",
+                        selected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                      )}>
+                        <Icon size={24} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="font-semibold text-foreground">{opt.title}</h3>
+                            {opt.recommended && (
+                              <span className="text-[10px] uppercase tracking-wide bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
+                                Recommended
+                              </span>
+                            )}
+                          </div>
+                          {selected && (
+                            <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center shrink-0">
+                              <Check size={14} className="text-primary-foreground" />
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Collect attendee information. Attendees must log in to check in—enables certificates & detailed reports.
-                    </p>
-                    <div className="flex gap-2 mt-2">
-                      <span className="text-xs bg-primary/10 px-2 py-1 rounded-full text-primary">eCertificates</span>
-                      <span className="text-xs bg-primary/10 px-2 py-1 rounded-full text-primary">Detailed logs</span>
-                    </div>
-                  </div>
-                </button>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {opt.description}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
+
 
               <Button
                 onClick={handleNextStep}
