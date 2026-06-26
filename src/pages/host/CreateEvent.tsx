@@ -122,7 +122,7 @@ const CreateEvent = () => {
     });
   };
 
-  const totalSteps = 5;
+  const totalSteps = 6;
 
   useEffect(() => {
     if (!authLoading && !user) {
