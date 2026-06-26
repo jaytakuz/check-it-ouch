@@ -165,6 +165,20 @@ const AttendanceLogs = () => {
     registeredTotal: 0,
     guestTotal: 0,
   });
+  const [manualOverrides, setManualOverrides] = useState<Set<string>>(new Set());
+
+  const handleManualOverride = (id: string, name: string) => {
+    setManualOverrides((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+    toast.success(`Manually verified ${name}`);
+  };
+
+  const resolveStatus = (id: string, distance: number): VerificationStatus =>
+    manualOverrides.has(id) ? "verified" : getVerificationStatus(id, distance);
+
 
   useEffect(() => {
     if (authLoading) return;
