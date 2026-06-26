@@ -122,7 +122,7 @@ const CreateEvent = () => {
     });
   };
 
-  const totalSteps = 5;
+  const totalSteps = 6;
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -227,12 +227,14 @@ const CreateEvent = () => {
   const canProceedToStep5 = eventType === "one-time"
     ? !!formData.date
     : selectedDays.length > 0;
+  const canProceedToStep6 = formData.location.trim() !== "";
 
   const handleNextStep = () => {
     if (currentStep === 1 && canProceedToStep2) setCurrentStep(2);
     else if (currentStep === 2 && canProceedToStep3) setCurrentStep(3);
     else if (currentStep === 3 && canProceedToStep4) setCurrentStep(4);
     else if (currentStep === 4 && canProceedToStep5) setCurrentStep(5);
+    else if (currentStep === 5 && canProceedToStep6) setCurrentStep(6);
   };
 
   const handleBack = () => {
@@ -1035,7 +1037,7 @@ const CreateEvent = () => {
 
               <SummaryBadges />
 
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-6">
                 {/* Location */}
                 <div className="bg-card rounded-2xl p-4 border border-border space-y-4">
                   <h3 className="font-medium text-foreground flex items-center gap-2">
@@ -1118,11 +1120,142 @@ const CreateEvent = () => {
                   </div>
                 )}
 
-                {/* Submit */}
-                <Button 
-                  type="submit" 
-                  className="w-full" 
-                  size="lg" 
+                <Button
+                  type="button"
+                  onClick={handleNextStep}
+                  disabled={!canProceedToStep6}
+                  className="w-full"
+                  size="lg"
+                >
+                  Next: Review Summary
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Step 6: Summary & Submit */}
+          {currentStep === 6 && (
+            <motion.div
+              key="step6"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+            >
+              <div className="text-center mb-6">
+                <h2 className="text-2xl font-bold text-foreground mb-2">Review & Confirm</h2>
+                <p className="text-muted-foreground">Double-check your event details before publishing</p>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
+                  {/* Header strip */}
+                  <div className="bg-primary/5 px-5 py-4 border-b border-border">
+                    <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium mb-1">Event Name</p>
+                    <h3 className="text-lg font-semibold text-foreground break-words">
+                      {formData.name || "Untitled Event"}
+                    </h3>
+                    {formData.description && (
+                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{formData.description}</p>
+                    )}
+                  </div>
+
+                  {/* Detail rows */}
+                  <dl className="divide-y divide-border">
+                    <div className="px-5 py-3 grid grid-cols-3 gap-3 items-start">
+                      <dt className="text-sm text-muted-foreground flex items-center gap-2 col-span-1">
+                        <MapPin size={14} /> Location
+                      </dt>
+                      <dd className="text-sm font-medium text-foreground col-span-2 break-words">
+                        {formData.location || <span className="text-muted-foreground italic">Not set</span>}
+                      </dd>
+                    </div>
+
+                    <div className="px-5 py-3 grid grid-cols-3 gap-3 items-start">
+                      <dt className="text-sm text-muted-foreground flex items-center gap-2 col-span-1">
+                        <CalendarDays size={14} /> Schedule
+                      </dt>
+                      <dd className="text-sm font-medium text-foreground col-span-2">
+                        {eventType === "one-time"
+                          ? (formData.date || "No date selected")
+                          : `Recurring · ${selectedDays.length} day${selectedDays.length === 1 ? "" : "s"}/week`}
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          {formData.startTime} – {formData.endTime}
+                        </div>
+                      </dd>
+                    </div>
+
+                    <div className="px-5 py-3 grid grid-cols-3 gap-3 items-start">
+                      <dt className="text-sm text-muted-foreground flex items-center gap-2 col-span-1">
+                        <UserCheck size={14} /> Verification
+                      </dt>
+                      <dd className="col-span-2">
+                        {trackingMode === "full-tracking" ? (
+                          <span className={`inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full ${
+                            verificationLevel === "strict"
+                              ? "bg-destructive/10 text-destructive"
+                              : verificationLevel === "standard"
+                                ? "bg-primary/10 text-primary"
+                                : "bg-muted text-muted-foreground"
+                          }`}>
+                            {verificationLevel === "basic" && "Level 1 · Basic"}
+                            {verificationLevel === "standard" && "Level 2 · Standard"}
+                            {verificationLevel === "strict" && "Level 3 · Strict"}
+                          </span>
+                        ) : (
+                          <span className="text-sm font-medium text-foreground">Count only</span>
+                        )}
+                      </dd>
+                    </div>
+
+                    <div className="px-5 py-3 grid grid-cols-3 gap-3 items-start">
+                      <dt className="text-sm text-muted-foreground col-span-1">Skill Tags</dt>
+                      <dd className="col-span-2 flex flex-wrap gap-1.5">
+                        {(selectedTags.length > 0
+                          ? selectedTags
+                          : ["Teamwork", "Communication", "Problem Solving"]
+                        ).slice(0, 5).map((tag) => (
+                          <span
+                            key={tag}
+                            className="text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </dd>
+                    </div>
+
+                    {formData.maxAttendees && (
+                      <div className="px-5 py-3 grid grid-cols-3 gap-3 items-start">
+                        <dt className="text-sm text-muted-foreground flex items-center gap-2 col-span-1">
+                          <Users size={14} /> Capacity
+                        </dt>
+                        <dd className="text-sm font-medium text-foreground col-span-2">
+                          {formData.maxAttendees} attendees
+                        </dd>
+                      </div>
+                    )}
+
+                    {trackingMode === "full-tracking" && (
+                      <div className="px-5 py-3 grid grid-cols-3 gap-3 items-start">
+                        <dt className="text-sm text-muted-foreground flex items-center gap-2 col-span-1">
+                          <Award size={14} /> eCertificate
+                        </dt>
+                        <dd className="text-sm font-medium text-foreground col-span-2">
+                          {enableCertificate ? "Enabled" : "Disabled"}
+                        </dd>
+                      </div>
+                    )}
+                  </dl>
+                </div>
+
+                <p className="text-xs text-center text-muted-foreground">
+                  You can edit any of these details later from the Event Details page.
+                </p>
+
+                <Button
+                  type="submit"
+                  className="w-full"
+                  size="lg"
                   disabled={loading}
                 >
                   {loading ? "Creating Event..." : "Create Event"}
