@@ -29,9 +29,81 @@ import {
   UsersRound,
   Mail,
   Download,
+  ShieldCheck,
+  AlertTriangle,
+  XCircle,
+  Check,
 } from "lucide-react";
 import { PageLoading } from "@/components/ui/PageLoading";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import * as XLSX from "xlsx";
+
+type VerificationStatus = "verified" | "warning" | "failed";
+
+/** Deterministic mock verification status derived from id + distance. */
+const getVerificationStatus = (id: string, distance: number): VerificationStatus => {
+  if (distance > 100) return "failed";
+  if (distance > 50) return "warning";
+  const hash = id.split("").reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % 10;
+  if (hash >= 9) return "failed";
+  if (hash >= 7) return "warning";
+  return "verified";
+};
+
+const StatusBadge = ({ status }: { status: VerificationStatus }) => {
+  if (status === "verified") {
+    return (
+      <Badge className="bg-success text-success-foreground hover:bg-success/90 gap-1 border-transparent">
+        <ShieldCheck size={12} /> Verified
+      </Badge>
+    );
+  }
+  if (status === "warning") {
+    return (
+      <Badge className="bg-warning text-warning-foreground hover:bg-warning/90 gap-1 border-transparent">
+        <AlertTriangle size={12} /> Warning
+      </Badge>
+    );
+  }
+  return (
+    <Badge className="bg-destructive text-destructive-foreground hover:bg-destructive/90 gap-1 border-transparent">
+      <XCircle size={12} /> Failed
+    </Badge>
+  );
+};
+
+const ManualCheckInButton = ({
+  status,
+  onClick,
+}: {
+  status: VerificationStatus;
+  onClick: () => void;
+}) => {
+  const disabled = status === "verified";
+  return (
+    <TooltipProvider delayDuration={150}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              disabled={disabled}
+              onClick={onClick}
+              aria-label="Manual check-in override"
+            >
+              <Check size={14} />
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="left">
+          {disabled ? "Already verified" : "Manual Check-in (override)"}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+};
 
 type TrackingMode = "count_only" | "full_tracking";
 
