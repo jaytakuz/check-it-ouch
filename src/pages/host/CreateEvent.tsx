@@ -227,12 +227,14 @@ const CreateEvent = () => {
   const canProceedToStep5 = eventType === "one-time"
     ? !!formData.date
     : selectedDays.length > 0;
+  const canProceedToStep6 = formData.location.trim() !== "";
 
   const handleNextStep = () => {
     if (currentStep === 1 && canProceedToStep2) setCurrentStep(2);
     else if (currentStep === 2 && canProceedToStep3) setCurrentStep(3);
     else if (currentStep === 3 && canProceedToStep4) setCurrentStep(4);
     else if (currentStep === 4 && canProceedToStep5) setCurrentStep(5);
+    else if (currentStep === 5 && canProceedToStep6) setCurrentStep(6);
   };
 
   const handleBack = () => {
