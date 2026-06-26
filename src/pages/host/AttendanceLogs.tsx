@@ -29,9 +29,81 @@ import {
   UsersRound,
   Mail,
   Download,
+  ShieldCheck,
+  AlertTriangle,
+  XCircle,
+  Check,
 } from "lucide-react";
 import { PageLoading } from "@/components/ui/PageLoading";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import * as XLSX from "xlsx";
+
+type VerificationStatus = "verified" | "warning" | "failed";
+
+/** Deterministic mock verification status derived from id + distance. */
+const getVerificationStatus = (id: string, distance: number): VerificationStatus => {
+  if (distance > 100) return "failed";
+  if (distance > 50) return "warning";
+  const hash = id.split("").reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % 10;
+  if (hash >= 9) return "failed";
+  if (hash >= 7) return "warning";
+  return "verified";
+};
+
+const StatusBadge = ({ status }: { status: VerificationStatus }) => {
+  if (status === "verified") {
+    return (
+      <Badge className="bg-success text-success-foreground hover:bg-success/90 gap-1 border-transparent">
+        <ShieldCheck size={12} /> Verified
+      </Badge>
+    );
+  }
+  if (status === "warning") {
+    return (
+      <Badge className="bg-warning text-warning-foreground hover:bg-warning/90 gap-1 border-transparent">
+        <AlertTriangle size={12} /> Warning
+      </Badge>
+    );
+  }
+  return (
+    <Badge className="bg-destructive text-destructive-foreground hover:bg-destructive/90 gap-1 border-transparent">
+      <XCircle size={12} /> Failed
+    </Badge>
+  );
+};
+
+const ManualCheckInButton = ({
+  status,
+  onClick,
+}: {
+  status: VerificationStatus;
+  onClick: () => void;
+}) => {
+  const disabled = status === "verified";
+  return (
+    <TooltipProvider delayDuration={150}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              disabled={disabled}
+              onClick={onClick}
+              aria-label="Manual check-in override"
+            >
+              <Check size={14} />
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="left">
+          {disabled ? "Already verified" : "Manual Check-in (override)"}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+};
 
 type TrackingMode = "count_only" | "full_tracking";
 
@@ -93,6 +165,20 @@ const AttendanceLogs = () => {
     registeredTotal: 0,
     guestTotal: 0,
   });
+  const [manualOverrides, setManualOverrides] = useState<Set<string>>(new Set());
+
+  const handleManualOverride = (id: string, name: string) => {
+    setManualOverrides((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+    toast.success(`Manually verified ${name}`);
+  };
+
+  const resolveStatus = (id: string, distance: number): VerificationStatus =>
+    manualOverrides.has(id) ? "verified" : getVerificationStatus(id, distance);
+
 
   useEffect(() => {
     if (authLoading) return;
@@ -487,37 +573,89 @@ const AttendanceLogs = () => {
                   <h4 className="font-medium text-foreground">Registered Attendees</h4>
                   <Badge variant="secondary" className="ml-auto">{session.registeredCount}</Badge>
                 </div>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Time</TableHead>
-                      <TableHead className="text-right">Distance</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {session.checkIns.map((checkIn, index) => (
-                      <TableRow key={checkIn.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                              <User size={14} className="text-primary" />
-                            </div>
-                            <span className="font-medium text-foreground">
-                              {checkIn.user_name || `Attendee ${index + 1}`}
+
+                {/* Desktop table */}
+                <div className="hidden md:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Time</TableHead>
+                        <TableHead>Distance</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {session.checkIns.map((checkIn, index) => {
+                        const status = resolveStatus(checkIn.id, checkIn.distance_meters);
+                        const name = checkIn.user_name || `Attendee ${index + 1}`;
+                        return (
+                          <TableRow key={checkIn.id}>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                  <User size={14} className="text-primary" />
+                                </div>
+                                <span className="font-medium text-foreground">{name}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {format(new Date(checkIn.checked_in_at), "h:mm a")}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {Math.round(checkIn.distance_meters)}m
+                            </TableCell>
+                            <TableCell>
+                              <StatusBadge status={status} />
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <ManualCheckInButton
+                                status={status}
+                                onClick={() => handleManualOverride(checkIn.id, name)}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile cards */}
+                <div className="md:hidden divide-y divide-border">
+                  {session.checkIns.map((checkIn, index) => {
+                    const status = resolveStatus(checkIn.id, checkIn.distance_meters);
+                    const name = checkIn.user_name || `Attendee ${index + 1}`;
+                    return (
+                      <div key={checkIn.id} className="p-4 flex items-start gap-3">
+                        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <User size={16} className="text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <span className="font-medium text-foreground truncate">{name}</span>
+                            <StatusBadge status={status} />
+                          </div>
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Clock size={12} />
+                              {format(new Date(checkIn.checked_in_at), "h:mm a")}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <MapPin size={12} />
+                              {Math.round(checkIn.distance_meters)}m
                             </span>
                           </div>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {format(new Date(checkIn.checked_in_at), "h:mm a")}
-                        </TableCell>
-                        <TableCell className="text-right text-muted-foreground">
-                          {Math.round(checkIn.distance_meters)}m
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                        </div>
+                        <ManualCheckInButton
+                          status={status}
+                          onClick={() => handleManualOverride(checkIn.id, name)}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
@@ -529,54 +667,101 @@ const AttendanceLogs = () => {
                   <h4 className="font-medium text-foreground">Guest Check-ins</h4>
                   <Badge variant="outline" className="ml-auto">{session.guestCount}</Badge>
                 </div>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      {event.tracking_mode === "full_tracking" && <TableHead>Email</TableHead>}
-                      <TableHead>Time</TableHead>
-                      <TableHead className="text-right">Type</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {session.guestCheckIns.map((guest, index) => (
-                      <TableRow key={guest.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                              <User size={14} className="text-muted-foreground" />
-                            </div>
-                            <span className="font-medium text-foreground">
-                              {guest.guestName}
-                            </span>
+
+                {/* Desktop table */}
+                <div className="hidden md:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        {event.tracking_mode === "full_tracking" && <TableHead>Email</TableHead>}
+                        <TableHead>Time</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {session.guestCheckIns.map((guest) => {
+                        const status = resolveStatus(guest.id, guest.distance);
+                        return (
+                          <TableRow key={guest.id}>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                                  <User size={14} className="text-muted-foreground" />
+                                </div>
+                                <span className="font-medium text-foreground">{guest.guestName}</span>
+                              </div>
+                            </TableCell>
+                            {event.tracking_mode === "full_tracking" && (
+                              <TableCell className="text-muted-foreground">
+                                {guest.guestEmail ? (
+                                  <span className="flex items-center gap-1">
+                                    <Mail size={12} />
+                                    {guest.guestEmail}
+                                  </span>
+                                ) : (
+                                  "-"
+                                )}
+                              </TableCell>
+                            )}
+                            <TableCell className="text-muted-foreground">
+                              {format(new Date(guest.checkedInAt), "h:mm a")}
+                            </TableCell>
+                            <TableCell>
+                              <StatusBadge status={status} />
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <ManualCheckInButton
+                                status={status}
+                                onClick={() => handleManualOverride(guest.id, guest.guestName)}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile cards */}
+                <div className="md:hidden divide-y divide-border">
+                  {session.guestCheckIns.map((guest) => {
+                    const status = resolveStatus(guest.id, guest.distance);
+                    return (
+                      <div key={guest.id} className="p-4 flex items-start gap-3">
+                        <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                          <User size={16} className="text-muted-foreground" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <span className="font-medium text-foreground truncate">{guest.guestName}</span>
+                            <StatusBadge status={status} />
                           </div>
-                        </TableCell>
-                        {event.tracking_mode === "full_tracking" && (
-                          <TableCell className="text-muted-foreground">
-                            {guest.guestEmail ? (
-                              <span className="flex items-center gap-1">
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Clock size={12} />
+                              {format(new Date(guest.checkedInAt), "h:mm a")}
+                            </span>
+                            {event.tracking_mode === "full_tracking" && guest.guestEmail && (
+                              <span className="flex items-center gap-1 truncate">
                                 <Mail size={12} />
                                 {guest.guestEmail}
                               </span>
-                            ) : (
-                              "-"
                             )}
-                          </TableCell>
-                        )}
-                        <TableCell className="text-muted-foreground">
-                          {format(new Date(guest.checkedInAt), "h:mm a")}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Badge variant={guest.trackingMode === "full_tracking" ? "default" : "outline"} className="text-xs">
-                            {guest.trackingMode === "full_tracking" ? "Registered" : "Anonymous"}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                          </div>
+                        </div>
+                        <ManualCheckInButton
+                          status={status}
+                          onClick={() => handleManualOverride(guest.id, guest.guestName)}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
+
 
             {/* Empty state for session */}
             {session.checkIns.length === 0 && session.guestCheckIns.length === 0 && (
