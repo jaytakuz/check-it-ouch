@@ -33,28 +33,39 @@ import {
   AlertTriangle,
   XCircle,
   Check,
+  X,
+  Shield,
 } from "lucide-react";
 import { PageLoading } from "@/components/ui/PageLoading";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import * as XLSX from "xlsx";
 
 type VerificationStatus = "verified" | "warning" | "failed";
+type EffectiveStatus = VerificationStatus | "verified-manual";
 
-/** Deterministic mock verification status derived from id + distance. */
-const getVerificationStatus = (id: string, distance: number): VerificationStatus => {
-  if (distance > 100) return "failed";
-  if (distance > 50) return "warning";
-  const hash = id.split("").reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % 10;
-  if (hash >= 9) return "failed";
-  if (hash >= 7) return "warning";
+const LATE_GRACE_MINUTES = 15;
+const RADIUS_METERS = 100;
+
+/** Derive raw verification status from objective signals. */
+const deriveStatus = (distance: number, isLate: boolean): VerificationStatus => {
+  if (distance > RADIUS_METERS) return "failed";
+  if (isLate) return "warning";
   return "verified";
 };
 
-const StatusBadge = ({ status }: { status: VerificationStatus }) => {
+const StatusBadge = ({ status }: { status: EffectiveStatus }) => {
   if (status === "verified") {
     return (
       <Badge className="bg-success text-success-foreground hover:bg-success/90 gap-1 border-transparent">
         <ShieldCheck size={12} /> Verified
+      </Badge>
+    );
+  }
+  if (status === "verified-manual") {
+    return (
+      <Badge className="bg-success/70 text-success-foreground hover:bg-success/60 gap-1 border border-success/40">
+        <Shield size={12} /> Verified (Manual)
       </Badge>
     );
   }
@@ -72,34 +83,41 @@ const StatusBadge = ({ status }: { status: VerificationStatus }) => {
   );
 };
 
-const ManualCheckInButton = ({
-  status,
-  onClick,
+const ActionButton = ({
+  effective,
+  onApprove,
+  onUndo,
 }: {
-  status: VerificationStatus;
-  onClick: () => void;
+  effective: EffectiveStatus;
+  onApprove: () => void;
+  onUndo: () => void;
 }) => {
-  const disabled = status === "verified";
+  if (effective === "verified") {
+    return <span className="text-xs text-muted-foreground">—</span>;
+  }
+  if (effective === "verified-manual") {
+    return (
+      <TooltipProvider delayDuration={150}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-8 gap-1 text-muted-foreground hover:text-destructive" onClick={onUndo}>
+              <X size={14} /> Undo
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="left">Revert manual override</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
   return (
     <TooltipProvider delayDuration={150}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <span>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              disabled={disabled}
-              onClick={onClick}
-              aria-label="Manual check-in override"
-            >
-              <Check size={14} />
-            </Button>
-          </span>
+          <Button variant="outline" size="sm" className="h-8 gap-1 border-success/40 text-success hover:bg-success/10 hover:text-success" onClick={onApprove}>
+            <Check size={14} /> Approve
+          </Button>
         </TooltipTrigger>
-        <TooltipContent side="left">
-          {disabled ? "Already verified" : "Manual Check-in (override)"}
-        </TooltipContent>
+        <TooltipContent side="left">Manually approve check-in</TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );
@@ -122,7 +140,9 @@ interface Event {
 
 interface SessionLog {
   date: string;
+  sessionLabel: string;
   attendees: number;
+  registeredExpected: number;
   registeredCount: number;
   guestCount: number;
   checkIns: CheckInRecord[];
@@ -132,6 +152,7 @@ interface SessionLog {
 interface CheckInRecord {
   id: string;
   user_id: string;
+  student_id: string;
   checked_in_at: string;
   distance_meters: number;
   user_name: string | null;
@@ -160,25 +181,56 @@ const AttendanceLogs = () => {
   const [overallStats, setOverallStats] = useState({
     totalSessions: 0,
     totalCheckIns: 0,
-    avgAttendance: 0,
+    avgAttendanceRate: 0,
     peakAttendance: 0,
     registeredTotal: 0,
     guestTotal: 0,
   });
-  const [manualOverrides, setManualOverrides] = useState<Set<string>>(new Set());
+  // Pre-seed mock-2 as a manual override so the UI demos the "Verified (Manual)" + Undo state.
+  const [manualOverrides, setManualOverrides] = useState<Set<string>>(new Set(["mock-2"]));
 
-  const handleManualOverride = (id: string, name: string) => {
+  const handleApprove = (id: string, name: string) => {
     setManualOverrides((prev) => {
       const next = new Set(prev);
       next.add(id);
       return next;
     });
-    toast.success(`Manually verified ${name}`);
+    toast.success(`Manually approved ${name}`);
   };
 
-  const resolveStatus = (id: string, distance: number): VerificationStatus =>
-    manualOverrides.has(id) ? "verified" : getVerificationStatus(id, distance);
+  const handleUndo = (id: string, name: string) => {
+    setManualOverrides((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+    toast.message(`Undid manual approval for ${name}`);
+  };
 
+  /** Returns true when a check-in's clock time is past the event start + grace window. */
+  const isCheckInLate = (checkedInIso: string): boolean => {
+    if (!event) return false;
+    const [h, m] = event.start_time.split(":").map((v) => parseInt(v, 10));
+    const t = new Date(checkedInIso);
+    const startMinutes = h * 60 + m + LATE_GRACE_MINUTES;
+    const checkinMinutes = t.getHours() * 60 + t.getMinutes();
+    return checkinMinutes > startMinutes;
+  };
+
+  const resolveEffectiveStatus = (id: string, distance: number, checkedInIso: string): EffectiveStatus => {
+    const raw = deriveStatus(distance, isCheckInLate(checkedInIso));
+    if (raw === "verified") return "verified";
+    if (manualOverrides.has(id)) return "verified-manual";
+    return raw;
+  };
+
+  /** Visualise the strictness rule attached to the event's tracking mode. */
+  const strictnessLabel = (): { level: string; rule: string } => {
+    if (!event) return { level: "Level 1", rule: "Time" };
+    return event.tracking_mode === "full_tracking"
+      ? { level: "Level 3", rule: "Time + QR + GPS" }
+      : { level: "Level 1", rule: "Time" };
+  };
 
   useEffect(() => {
     if (authLoading) return;
@@ -189,12 +241,12 @@ const AttendanceLogs = () => {
     if (eventId) {
       fetchEventAndLogs();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, authLoading, eventId]);
 
   const fetchEventAndLogs = async () => {
     if (!eventId || !user) return;
 
-    // Fetch event
     const { data: eventData, error: eventError } = await supabase
       .from("events")
       .select("*")
@@ -209,38 +261,27 @@ const AttendanceLogs = () => {
     }
 
     const trackingMode = (eventData.tracking_mode === "full_tracking" ? "full_tracking" : "count_only") as TrackingMode;
-    setEvent({ ...eventData, tracking_mode: trackingMode });
+    const evt: Event = { ...eventData, tracking_mode: trackingMode };
+    setEvent(evt);
 
-    // Fetch all check-ins for this event (registered users)
-    const { data: checkIns, error: checkInsError } = await supabase
+    const { data: checkIns } = await supabase
       .from("check_ins")
       .select("*")
       .eq("event_id", eventId)
       .order("session_date", { ascending: false });
 
-    if (checkInsError) {
-      console.error("Error fetching check-ins:", checkInsError);
-    }
-
-    // Fetch user profiles for names
     const userIds = [...new Set(checkIns?.map((c) => c.user_id) || [])];
     const { data: profiles } = await supabase
       .from("profiles")
       .select("user_id, full_name")
       .in("user_id", userIds.length > 0 ? userIds : ["00000000-0000-0000-0000-000000000000"]);
-
     const profileMap = new Map(profiles?.map((p) => [p.user_id, p.full_name]) || []);
 
-    // Fetch guest check-ins from database
-    const { data: guestCheckInsData, error: guestError } = await supabase
+    const { data: guestCheckInsData } = await supabase
       .from("guest_check_ins")
       .select("*")
       .eq("event_id", eventId)
       .order("session_date", { ascending: false });
-
-    if (guestError) {
-      console.error("Error fetching guest check-ins:", guestError);
-    }
 
     const guestCheckIns: GuestCheckInRecord[] = (guestCheckInsData || []).map((g) => ({
       id: g.id,
@@ -252,38 +293,33 @@ const AttendanceLogs = () => {
       trackingMode: g.tracking_mode || "count_only",
     }));
 
-    // Group all check-ins by date
     const sessionMap = new Map<string, { registered: CheckInRecord[]; guests: GuestCheckInRecord[] }>();
 
-    // Add registered check-ins
-    checkIns?.forEach((checkIn) => {
+    checkIns?.forEach((checkIn, idx) => {
       const date = checkIn.session_date;
-      if (!sessionMap.has(date)) {
-        sessionMap.set(date, { registered: [], guests: [] });
-      }
+      if (!sessionMap.has(date)) sessionMap.set(date, { registered: [], guests: [] });
       sessionMap.get(date)?.registered.push({
         id: checkIn.id,
         user_id: checkIn.user_id,
+        student_id: `STD-${66001 + idx}`,
         checked_in_at: checkIn.checked_in_at,
         distance_meters: checkIn.distance_meters,
         user_name: profileMap.get(checkIn.user_id) || null,
       });
     });
 
-    // Add guest check-ins
     guestCheckIns.forEach((guest) => {
       const date = guest.sessionDate || new Date(guest.checkedInAt).toISOString().split("T")[0];
-      if (!sessionMap.has(date)) {
-        sessionMap.set(date, { registered: [], guests: [] });
-      }
+      if (!sessionMap.has(date)) sessionMap.set(date, { registered: [], guests: [] });
       sessionMap.get(date)?.guests.push(guest);
     });
 
-    // Convert to array and sort
-    const logs: SessionLog[] = Array.from(sessionMap.entries())
-      .map(([date, data]) => ({
+    let logs: SessionLog[] = Array.from(sessionMap.entries())
+      .map(([date, data], idx) => ({
         date,
+        sessionLabel: `Session ${idx + 1}`,
         attendees: data.registered.length + data.guests.length,
+        registeredExpected: data.registered.length + data.guests.length,
         registeredCount: data.registered.length,
         guestCount: data.guests.length,
         checkIns: data.registered.sort(
@@ -295,59 +331,79 @@ const AttendanceLogs = () => {
       }))
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    // If no real data yet, inject mock data so hosts can preview the
-    // "System Proposes, Human Decides" UI with mixed verification states.
+    // Inject demo data covering every status. For recurring events seed 3 sessions.
     if (logs.length === 0) {
-      const today = new Date();
-      const dateStr = today.toISOString().split("T")[0];
-      const mkTime = (h: number, m: number) => {
-        const d = new Date(today);
-        d.setHours(h, m, 0, 0);
-        return d.toISOString();
-      };
-      // Distances chosen to hit each status: verified (<=50, low hash),
-      // warning (50-100), failed (>100).
-      const mockCheckIns: CheckInRecord[] = [
-        { id: "mock-1", user_id: "u1", checked_in_at: mkTime(9, 2),  distance_meters: 12,  user_name: "Nattapong Sukjai",   user_email: "nattapong@example.com" },
-        { id: "mock-2", user_id: "u2", checked_in_at: mkTime(9, 4),  distance_meters: 28,  user_name: "Pimchanok Wongthep", user_email: "pim@example.com" },
-        { id: "mock-3", user_id: "u3", checked_in_at: mkTime(9, 12), distance_meters: 72,  user_name: "Kittipong Aroon",    user_email: "kittipong@example.com" },
-        { id: "mock-4", user_id: "u4", checked_in_at: mkTime(9, 18), distance_meters: 134, user_name: "Suthida Phromma",    user_email: "suthida@example.com" },
-        { id: "mock-5", user_id: "u5", checked_in_at: mkTime(9, 21), distance_meters: 41,  user_name: "Anucha Boonmee",     user_email: "anucha@example.com" },
-        { id: "mock-6", user_id: "u6", checked_in_at: mkTime(9, 27), distance_meters: 88,  user_name: "Pattaranan Srisuk",  user_email: "pattaranan@example.com" },
-      ];
-      logs.push({
-        date: dateStr,
-        attendees: mockCheckIns.length,
-        registeredCount: mockCheckIns.length,
-        guestCount: 0,
-        checkIns: mockCheckIns,
-        guestCheckIns: [],
-      });
+      const sessionCount = evt.is_recurring ? 3 : 1;
+      const startHour = parseInt(evt.start_time.split(":")[0], 10) || 9;
+      const startMin = parseInt(evt.start_time.split(":")[1], 10) || 0;
+
+      logs = Array.from({ length: sessionCount }).map((_, sIdx) => {
+        const d = new Date();
+        d.setDate(d.getDate() - (sessionCount - 1 - sIdx) * 7);
+        const dateStr = d.toISOString().split("T")[0];
+
+        const mkTime = (h: number, m: number) => {
+          const dt = new Date(d);
+          dt.setHours(h, m, 0, 0);
+          return dt.toISOString();
+        };
+
+        // Most recent session shows the full mixed-state showcase.
+        const isLatest = sIdx === sessionCount - 1;
+        const mockCheckIns: CheckInRecord[] = isLatest
+          ? [
+              { id: "mock-1", user_id: "u1", student_id: "STD-66001", checked_in_at: mkTime(startHour, startMin + 2),  distance_meters: 18,  user_name: "Nattapong Sukjai",   user_email: "nattapong@example.com" },
+              { id: "mock-2", user_id: "u2", student_id: "STD-66002", checked_in_at: mkTime(startHour, startMin + 22), distance_meters: 32,  user_name: "Pimchanok Wongthep", user_email: "pim@example.com" },
+              { id: "mock-3", user_id: "u3", student_id: "STD-66003", checked_in_at: mkTime(startHour, startMin + 5),  distance_meters: 41,  user_name: "Kittipong Aroon",    user_email: "kittipong@example.com" },
+              { id: "mock-4", user_id: "u4", student_id: "STD-66004", checked_in_at: mkTime(startHour, startMin + 18), distance_meters: 47,  user_name: "Suthida Phromma",    user_email: "suthida@example.com" },
+              { id: "mock-5", user_id: "u5", student_id: "STD-66005", checked_in_at: mkTime(startHour, startMin + 9),  distance_meters: 134, user_name: "Anucha Boonmee",     user_email: "anucha@example.com" },
+              { id: "mock-6", user_id: "u6", student_id: "STD-66006", checked_in_at: mkTime(startHour, startMin + 7),  distance_meters: 26,  user_name: "Pattaranan Srisuk",  user_email: "pattaranan@example.com" },
+            ]
+          : [
+              { id: `mock-s${sIdx}-1`, user_id: "u1", student_id: "STD-66001", checked_in_at: mkTime(startHour, startMin + 3), distance_meters: 20, user_name: "Nattapong Sukjai",   user_email: "nattapong@example.com" },
+              { id: `mock-s${sIdx}-2`, user_id: "u2", student_id: "STD-66002", checked_in_at: mkTime(startHour, startMin + 6), distance_meters: 35, user_name: "Pimchanok Wongthep", user_email: "pim@example.com" },
+              { id: `mock-s${sIdx}-3`, user_id: "u3", student_id: "STD-66003", checked_in_at: mkTime(startHour, startMin + 8), distance_meters: 42, user_name: "Kittipong Aroon",    user_email: "kittipong@example.com" },
+              { id: `mock-s${sIdx}-4`, user_id: "u4", student_id: "STD-66004", checked_in_at: mkTime(startHour, startMin + 4), distance_meters: 28, user_name: "Suthida Phromma",    user_email: "suthida@example.com" },
+              { id: `mock-s${sIdx}-5`, user_id: "u5", student_id: "STD-66005", checked_in_at: mkTime(startHour, startMin + 11), distance_meters: 38, user_name: "Anucha Boonmee",    user_email: "anucha@example.com" },
+              { id: `mock-s${sIdx}-6`, user_id: "u6", student_id: "STD-66006", checked_in_at: mkTime(startHour, startMin + 5), distance_meters: 24, user_name: "Pattaranan Srisuk", user_email: "pattaranan@example.com" },
+            ];
+
+        return {
+          date: dateStr,
+          sessionLabel: `Session ${sIdx + 1}`,
+          attendees: mockCheckIns.length,
+          registeredExpected: mockCheckIns.length,
+          registeredCount: mockCheckIns.length,
+          guestCount: 0,
+          checkIns: mockCheckIns,
+          guestCheckIns: [],
+        };
+      }).reverse(); // latest first
     }
 
     setSessionLogs(logs);
 
-    // Calculate overall stats
     const totalSessions = logs.length;
     const totalCheckIns = logs.reduce((sum, log) => sum + log.attendees, 0);
     const registeredTotal = logs.reduce((sum, log) => sum + log.registeredCount, 0);
     const guestTotal = logs.reduce((sum, log) => sum + log.guestCount, 0);
-    const avgAttendance = totalSessions > 0 ? Math.round(totalCheckIns / totalSessions) : 0;
+    const avgAttendanceRate = totalSessions > 0
+      ? Math.round(
+          logs.reduce((sum, l) => sum + (l.registeredExpected > 0 ? (l.attendees / l.registeredExpected) * 100 : 0), 0) / totalSessions
+        )
+      : 0;
     const peakAttendance = logs.length > 0 ? Math.max(...logs.map((l) => l.attendees)) : 0;
 
     setOverallStats({
       totalSessions,
       totalCheckIns,
-      avgAttendance,
+      avgAttendanceRate,
       peakAttendance,
       registeredTotal,
       guestTotal,
     });
 
-    if (logs.length > 0) {
-      setSelectedSession(logs[0].date);
-    }
-
+    if (logs.length > 0) setSelectedSession(logs[0].date);
     setLoading(false);
   };
 
@@ -356,13 +412,12 @@ const AttendanceLogs = () => {
       toast.error("No data to export");
       return;
     }
-
     const rows: Record<string, string | number>[] = [];
-
     sessionLogs.forEach((session) => {
       session.checkIns.forEach((c) => {
         rows.push({
           Date: session.date,
+          "Student ID": c.student_id,
           Name: c.user_name || "Unknown",
           Email: c.user_email || "-",
           Type: "Registered",
@@ -373,6 +428,7 @@ const AttendanceLogs = () => {
       session.guestCheckIns.forEach((g) => {
         rows.push({
           Date: session.date,
+          "Student ID": "-",
           Name: g.guestName,
           Email: g.guestEmail || "-",
           Type: "Guest",
@@ -381,7 +437,6 @@ const AttendanceLogs = () => {
         });
       });
     });
-
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Attendance");
@@ -396,6 +451,8 @@ const AttendanceLogs = () => {
     return format(date, "EEE, MMM d, yyyy");
   };
 
+  const shortSessionDate = (dateStr: string): string => format(parseISO(dateStr), "MMM d");
+
   const formatTime = (time: string): string => {
     const [h, m] = time.split(":");
     const hour = parseInt(h);
@@ -404,14 +461,12 @@ const AttendanceLogs = () => {
     return `${hour12}:${m} ${ampm}`;
   };
 
-  const getAttendanceRate = (attendees: number): number => {
-    if (!event?.max_attendees) return 0;
-    return Math.round((attendees / event.max_attendees) * 100);
+  const sessionAttendanceRate = (s: SessionLog): number => {
+    if (s.registeredExpected <= 0) return 0;
+    return Math.round((s.attendees / s.registeredExpected) * 100);
   };
 
-  if (authLoading || loading) {
-    return <PageLoading />;
-  }
+  if (authLoading || loading) return <PageLoading />;
 
   if (!event) {
     return (
@@ -420,6 +475,8 @@ const AttendanceLogs = () => {
       </div>
     );
   }
+
+  const strict = strictnessLabel();
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -430,9 +487,9 @@ const AttendanceLogs = () => {
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft size={20} />
             </Button>
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <h1 className="font-semibold text-foreground">{event.name}</h1>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="font-semibold text-foreground truncate">{event.name}</h1>
                 <Badge variant={event.tracking_mode === "full_tracking" ? "default" : "secondary"} className="text-xs">
                   {event.tracking_mode === "full_tracking" ? (
                     <><UserCheck size={10} className="mr-1" /> Full Tracking</>
@@ -441,11 +498,17 @@ const AttendanceLogs = () => {
                   )}
                 </Badge>
               </div>
-              <p className="text-sm text-muted-foreground">Attendance Logs</p>
+              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                <p className="text-sm text-muted-foreground">Attendance Logs</p>
+                <Badge variant="outline" className="text-[10px] gap-1 font-normal">
+                  <Shield size={10} />
+                  Tracking Rule: {strict.level} ({strict.rule})
+                </Badge>
+              </div>
             </div>
             <Button variant="outline" size="sm" className="gap-2" onClick={exportToExcel}>
               <Download size={16} />
-              Export
+              <span className="hidden sm:inline">Export</span>
             </Button>
           </div>
         </div>
@@ -477,7 +540,7 @@ const AttendanceLogs = () => {
               <TrendingUp size={16} className="text-warning" />
               <span className="text-sm text-muted-foreground">Avg Attendance</span>
             </div>
-            <p className="text-2xl font-bold text-foreground">{overallStats.avgAttendance}</p>
+            <p className="text-2xl font-bold text-foreground">{overallStats.avgAttendanceRate}%</p>
           </div>
           <div className="bg-card rounded-xl p-4 border border-border">
             <div className="flex items-center gap-2 mb-2">
@@ -488,7 +551,6 @@ const AttendanceLogs = () => {
           </div>
         </div>
 
-        {/* Breakdown by type */}
         {(overallStats.registeredTotal > 0 || overallStats.guestTotal > 0) && (
           <div className="bg-card rounded-xl p-4 border border-border mb-6">
             <h3 className="font-medium text-foreground mb-3">Check-in Breakdown</h3>
@@ -515,7 +577,6 @@ const AttendanceLogs = () => {
           </div>
         )}
 
-        {/* Event Info */}
         <div className="bg-card rounded-xl p-4 border border-border mb-6">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -540,270 +601,310 @@ const AttendanceLogs = () => {
         </div>
       </motion.div>
 
-      {/* Session Tabs */}
+      {/* Session Selector */}
       <Tabs
         value={selectedSession || ""}
         onValueChange={setSelectedSession}
         className="max-w-2xl mx-auto px-4"
       >
-        <TabsList className="w-full flex overflow-x-auto gap-2 bg-transparent p-0 mb-4">
-          {sessionLogs.slice(0, 7).map((session) => (
-            <TabsTrigger
-              key={session.date}
-              value={session.date}
-              className="flex-shrink-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg px-4 py-2"
-            >
-              <div className="text-center">
-                <p className="text-xs font-medium">{formatSessionDate(session.date)}</p>
-                <p className="text-xs opacity-70">{session.attendees} attended</p>
-              </div>
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        {sessionLogs.length > 1 && (
+          <div className="mb-3">
+            <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">Select Session</p>
+            <TabsList className="w-full flex overflow-x-auto gap-2 bg-transparent p-0 h-auto justify-start">
+              {sessionLogs.slice().reverse().map((session, idx) => {
+                const isTodaySession = isToday(parseISO(session.date));
+                return (
+                  <TabsTrigger
+                    key={session.date}
+                    value={session.date}
+                    className="flex-shrink-0 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full border border-border px-4 py-2"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold">Session {idx + 1}</span>
+                      <span className="text-xs opacity-80">{shortSessionDate(session.date)}</span>
+                      {isTodaySession && (
+                        <Badge variant="secondary" className="h-4 px-1.5 text-[9px] font-bold">TODAY</Badge>
+                      )}
+                    </div>
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+          </div>
+        )}
 
-        {sessionLogs.map((session) => (
-          <TabsContent key={session.date} value={session.date} className="space-y-4">
-            {/* Session Summary */}
-            <div className="bg-card rounded-xl p-4 border border-border">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-foreground">
-                  {formatSessionDate(session.date)}
-                </h3>
-                <Badge
-                  variant={getAttendanceRate(session.attendees) >= 70 ? "default" : "secondary"}
-                >
-                  {getAttendanceRate(session.attendees)}% attendance
-                </Badge>
-              </div>
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <Users size={14} />
-                  {session.attendees} total
-                </span>
-                {session.registeredCount > 0 && (
+        {sessionLogs.map((session) => {
+          const rate = sessionAttendanceRate(session);
+          return (
+            <TabsContent key={session.date} value={session.date} className="space-y-4">
+              {/* Session Summary */}
+              <div className="bg-card rounded-xl p-4 border border-border">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-foreground">
+                    {formatSessionDate(session.date)}
+                  </h3>
+                  <Badge
+                    className={cn(
+                      "border-transparent",
+                      rate >= 90
+                        ? "bg-success text-success-foreground"
+                        : rate >= 70
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-warning text-warning-foreground"
+                    )}
+                  >
+                    {rate}% Attendance
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
                   <span className="flex items-center gap-1">
-                    <UserCheck size={14} className="text-primary" />
-                    {session.registeredCount} registered
+                    <Users size={14} />
+                    {session.attendees} / {session.registeredExpected} attended
                   </span>
-                )}
-                {session.guestCount > 0 && (
-                  <span className="flex items-center gap-1">
-                    <UsersRound size={14} />
-                    {session.guestCount} guests
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Registered Attendee List */}
-            {session.checkIns.length > 0 && (
-              <div className="bg-card rounded-xl border border-border overflow-hidden">
-                <div className="p-4 border-b border-border flex items-center gap-2">
-                  <UserCheck size={16} className="text-primary" />
-                  <h4 className="font-medium text-foreground">Registered Attendees</h4>
-                  <Badge variant="secondary" className="ml-auto">{session.registeredCount}</Badge>
-                </div>
-
-                {/* Desktop table */}
-                <div className="hidden md:block">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Time</TableHead>
-                        <TableHead>Distance</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {session.checkIns.map((checkIn, index) => {
-                        const status = resolveStatus(checkIn.id, checkIn.distance_meters);
-                        const name = checkIn.user_name || `Attendee ${index + 1}`;
-                        return (
-                          <TableRow key={checkIn.id}>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                                  <User size={14} className="text-primary" />
-                                </div>
-                                <span className="font-medium text-foreground">{name}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-muted-foreground">
-                              {format(new Date(checkIn.checked_in_at), "h:mm a")}
-                            </TableCell>
-                            <TableCell className="text-muted-foreground">
-                              {Math.round(checkIn.distance_meters)}m
-                            </TableCell>
-                            <TableCell>
-                              <StatusBadge status={status} />
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <ManualCheckInButton
-                                status={status}
-                                onClick={() => handleManualOverride(checkIn.id, name)}
-                              />
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-
-                {/* Mobile cards */}
-                <div className="md:hidden divide-y divide-border">
-                  {session.checkIns.map((checkIn, index) => {
-                    const status = resolveStatus(checkIn.id, checkIn.distance_meters);
-                    const name = checkIn.user_name || `Attendee ${index + 1}`;
-                    return (
-                      <div key={checkIn.id} className="p-4 flex items-start gap-3">
-                        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <User size={16} className="text-primary" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2 mb-1">
-                            <span className="font-medium text-foreground truncate">{name}</span>
-                            <StatusBadge status={status} />
-                          </div>
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <Clock size={12} />
-                              {format(new Date(checkIn.checked_in_at), "h:mm a")}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <MapPin size={12} />
-                              {Math.round(checkIn.distance_meters)}m
-                            </span>
-                          </div>
-                        </div>
-                        <ManualCheckInButton
-                          status={status}
-                          onClick={() => handleManualOverride(checkIn.id, name)}
-                        />
-                      </div>
-                    );
-                  })}
+                  {session.registeredCount > 0 && (
+                    <span className="flex items-center gap-1">
+                      <UserCheck size={14} className="text-primary" />
+                      {session.registeredCount} registered
+                    </span>
+                  )}
+                  {session.guestCount > 0 && (
+                    <span className="flex items-center gap-1">
+                      <UsersRound size={14} />
+                      {session.guestCount} guests
+                    </span>
+                  )}
                 </div>
               </div>
-            )}
 
-            {/* Guest Attendee List */}
-            {session.guestCheckIns.length > 0 && (
-              <div className="bg-card rounded-xl border border-border overflow-hidden">
-                <div className="p-4 border-b border-border flex items-center gap-2">
-                  <UsersRound size={16} className="text-muted-foreground" />
-                  <h4 className="font-medium text-foreground">Guest Check-ins</h4>
-                  <Badge variant="outline" className="ml-auto">{session.guestCount}</Badge>
-                </div>
+              {/* Registered Attendee List */}
+              {session.checkIns.length > 0 && (
+                <div className="bg-card rounded-xl border border-border overflow-hidden">
+                  <div className="p-4 border-b border-border flex items-center gap-2">
+                    <UserCheck size={16} className="text-primary" />
+                    <h4 className="font-medium text-foreground">Registered Attendees</h4>
+                    <Badge variant="secondary" className="ml-auto">{session.registeredCount}</Badge>
+                  </div>
 
-                {/* Desktop table */}
-                <div className="hidden md:block">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        {event.tracking_mode === "full_tracking" && <TableHead>Email</TableHead>}
-                        <TableHead>Time</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {session.guestCheckIns.map((guest) => {
-                        const status = resolveStatus(guest.id, guest.distance);
-                        return (
-                          <TableRow key={guest.id}>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                                  <User size={14} className="text-muted-foreground" />
-                                </div>
-                                <span className="font-medium text-foreground">{guest.guestName}</span>
-                              </div>
-                            </TableCell>
-                            {event.tracking_mode === "full_tracking" && (
-                              <TableCell className="text-muted-foreground">
-                                {guest.guestEmail ? (
-                                  <span className="flex items-center gap-1">
-                                    <Mail size={12} />
-                                    {guest.guestEmail}
-                                  </span>
-                                ) : (
-                                  "-"
-                                )}
+                  {/* Desktop table */}
+                  <div className="hidden md:block">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[120px]">Student ID</TableHead>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Time In</TableHead>
+                          <TableHead>Distance</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {session.checkIns.map((checkIn, index) => {
+                          const effective = resolveEffectiveStatus(checkIn.id, checkIn.distance_meters, checkIn.checked_in_at);
+                          const name = checkIn.user_name || `Attendee ${index + 1}`;
+                          const late = isCheckInLate(checkIn.checked_in_at);
+                          const tooFar = checkIn.distance_meters > RADIUS_METERS;
+                          return (
+                            <TableRow key={checkIn.id}>
+                              <TableCell className="font-mono text-xs text-muted-foreground">
+                                {checkIn.student_id}
                               </TableCell>
-                            )}
-                            <TableCell className="text-muted-foreground">
-                              {format(new Date(guest.checkedInAt), "h:mm a")}
-                            </TableCell>
-                            <TableCell>
-                              <StatusBadge status={status} />
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <ManualCheckInButton
-                                status={status}
-                                onClick={() => handleManualOverride(guest.id, guest.guestName)}
-                              />
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                    <User size={14} className="text-primary" />
+                                  </div>
+                                  <span className="font-medium text-foreground">{name}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell className={cn(late ? "text-warning font-semibold" : "text-muted-foreground")}>
+                                {format(new Date(checkIn.checked_in_at), "h:mm a")}
+                                {late && <span className="block text-[10px] font-normal opacity-80">Late</span>}
+                              </TableCell>
+                              <TableCell className={cn(tooFar ? "text-destructive font-semibold" : "text-muted-foreground")}>
+                                {Math.round(checkIn.distance_meters)}m
+                                {tooFar && <span className="block text-[10px] font-normal opacity-80">Outside radius</span>}
+                              </TableCell>
+                              <TableCell>
+                                <StatusBadge status={effective} />
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <ActionButton
+                                  effective={effective}
+                                  onApprove={() => handleApprove(checkIn.id, name)}
+                                  onUndo={() => handleUndo(checkIn.id, name)}
+                                />
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
 
-                {/* Mobile cards */}
-                <div className="md:hidden divide-y divide-border">
-                  {session.guestCheckIns.map((guest) => {
-                    const status = resolveStatus(guest.id, guest.distance);
-                    return (
-                      <div key={guest.id} className="p-4 flex items-start gap-3">
-                        <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                          <User size={16} className="text-muted-foreground" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2 mb-1">
-                            <span className="font-medium text-foreground truncate">{guest.guestName}</span>
-                            <StatusBadge status={status} />
+                  {/* Mobile cards */}
+                  <div className="md:hidden divide-y divide-border">
+                    {session.checkIns.map((checkIn, index) => {
+                      const effective = resolveEffectiveStatus(checkIn.id, checkIn.distance_meters, checkIn.checked_in_at);
+                      const name = checkIn.user_name || `Attendee ${index + 1}`;
+                      const late = isCheckInLate(checkIn.checked_in_at);
+                      const tooFar = checkIn.distance_meters > RADIUS_METERS;
+                      return (
+                        <div key={checkIn.id} className="p-4 flex items-start gap-3">
+                          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <User size={16} className="text-primary" />
                           </div>
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <Clock size={12} />
-                              {format(new Date(guest.checkedInAt), "h:mm a")}
-                            </span>
-                            {event.tracking_mode === "full_tracking" && guest.guestEmail && (
-                              <span className="flex items-center gap-1 truncate">
-                                <Mail size={12} />
-                                {guest.guestEmail}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <span className="font-medium text-foreground truncate">{name}</span>
+                              <StatusBadge status={effective} />
+                            </div>
+                            <p className="font-mono text-[10px] text-muted-foreground mb-1">{checkIn.student_id}</p>
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                              <span className={cn("flex items-center gap-1", late ? "text-warning font-semibold" : "text-muted-foreground")}>
+                                <Clock size={12} />
+                                {format(new Date(checkIn.checked_in_at), "h:mm a")}
+                                {late && " (Late)"}
                               </span>
-                            )}
+                              <span className={cn("flex items-center gap-1", tooFar ? "text-destructive font-semibold" : "text-muted-foreground")}>
+                                <MapPin size={12} />
+                                {Math.round(checkIn.distance_meters)}m
+                                {tooFar && " (Far)"}
+                              </span>
+                            </div>
+                            <div className="mt-2">
+                              <ActionButton
+                                effective={effective}
+                                onApprove={() => handleApprove(checkIn.id, name)}
+                                onUndo={() => handleUndo(checkIn.id, name)}
+                              />
+                            </div>
                           </div>
                         </div>
-                        <ManualCheckInButton
-                          status={status}
-                          onClick={() => handleManualOverride(guest.id, guest.guestName)}
-                        />
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
+              {/* Guest Attendee List */}
+              {session.guestCheckIns.length > 0 && (
+                <div className="bg-card rounded-xl border border-border overflow-hidden">
+                  <div className="p-4 border-b border-border flex items-center gap-2">
+                    <UsersRound size={16} className="text-muted-foreground" />
+                    <h4 className="font-medium text-foreground">Guest Check-ins</h4>
+                    <Badge variant="outline" className="ml-auto">{session.guestCount}</Badge>
+                  </div>
 
-            {/* Empty state for session */}
-            {session.checkIns.length === 0 && session.guestCheckIns.length === 0 && (
-              <div className="bg-card rounded-xl border border-border p-8 text-center text-muted-foreground">
-                No check-ins recorded for this session
-              </div>
-            )}
-          </TabsContent>
-        ))}
+                  <div className="hidden md:block">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          {event.tracking_mode === "full_tracking" && <TableHead>Email</TableHead>}
+                          <TableHead>Time In</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {session.guestCheckIns.map((guest) => {
+                          const effective = resolveEffectiveStatus(guest.id, guest.distance, guest.checkedInAt);
+                          const late = isCheckInLate(guest.checkedInAt);
+                          return (
+                            <TableRow key={guest.id}>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                                    <User size={14} className="text-muted-foreground" />
+                                  </div>
+                                  <span className="font-medium text-foreground">{guest.guestName}</span>
+                                </div>
+                              </TableCell>
+                              {event.tracking_mode === "full_tracking" && (
+                                <TableCell className="text-muted-foreground">
+                                  {guest.guestEmail ? (
+                                    <span className="flex items-center gap-1">
+                                      <Mail size={12} />
+                                      {guest.guestEmail}
+                                    </span>
+                                  ) : (
+                                    "-"
+                                  )}
+                                </TableCell>
+                              )}
+                              <TableCell className={cn(late ? "text-warning font-semibold" : "text-muted-foreground")}>
+                                {format(new Date(guest.checkedInAt), "h:mm a")}
+                              </TableCell>
+                              <TableCell>
+                                <StatusBadge status={effective} />
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <ActionButton
+                                  effective={effective}
+                                  onApprove={() => handleApprove(guest.id, guest.guestName)}
+                                  onUndo={() => handleUndo(guest.id, guest.guestName)}
+                                />
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  <div className="md:hidden divide-y divide-border">
+                    {session.guestCheckIns.map((guest) => {
+                      const effective = resolveEffectiveStatus(guest.id, guest.distance, guest.checkedInAt);
+                      const late = isCheckInLate(guest.checkedInAt);
+                      return (
+                        <div key={guest.id} className="p-4 flex items-start gap-3">
+                          <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                            <User size={16} className="text-muted-foreground" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <span className="font-medium text-foreground truncate">{guest.guestName}</span>
+                              <StatusBadge status={effective} />
+                            </div>
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                              <span className={cn("flex items-center gap-1", late && "text-warning font-semibold")}>
+                                <Clock size={12} />
+                                {format(new Date(guest.checkedInAt), "h:mm a")}
+                                {late && " (Late)"}
+                              </span>
+                              {event.tracking_mode === "full_tracking" && guest.guestEmail && (
+                                <span className="flex items-center gap-1 truncate">
+                                  <Mail size={12} />
+                                  {guest.guestEmail}
+                                </span>
+                              )}
+                            </div>
+                            <div className="mt-2">
+                              <ActionButton
+                                effective={effective}
+                                onApprove={() => handleApprove(guest.id, guest.guestName)}
+                                onUndo={() => handleUndo(guest.id, guest.guestName)}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {session.checkIns.length === 0 && session.guestCheckIns.length === 0 && (
+                <div className="bg-card rounded-xl border border-border p-8 text-center text-muted-foreground">
+                  No check-ins recorded for this session
+                </div>
+              )}
+            </TabsContent>
+          );
+        })}
       </Tabs>
 
-      {/* Empty State */}
       {sessionLogs.length === 0 && (
         <div className="px-4 py-12 text-center">
           <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
@@ -818,7 +919,6 @@ const AttendanceLogs = () => {
           </Button>
         </div>
       )}
-
     </div>
   );
 };
