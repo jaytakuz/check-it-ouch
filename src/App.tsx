@@ -61,6 +61,7 @@ const App = () => (
           <Route path="/event/:eventId" element={<EventDetails />} />
           <Route path="/checkin" element={<CheckIn />} />
           <Route path="/scan" element={<Scan />} />
+          <Route path="/checkin-success" element={<AnonymousSuccessPage />} />
           
           <Route path="*" element={<NotFound />} />
         </Routes>
