@@ -18,6 +18,7 @@ import EventDetails from "./pages/EventDetails";
 import Scan from "./pages/Scan";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
+import AnonymousSuccessPage from "./components/AnonymousSuccessPage";
 
 const queryClient = new QueryClient();
 
