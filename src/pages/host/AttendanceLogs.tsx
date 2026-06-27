@@ -295,6 +295,36 @@ const AttendanceLogs = () => {
       }))
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
+    // If no real data yet, inject mock data so hosts can preview the
+    // "System Proposes, Human Decides" UI with mixed verification states.
+    if (logs.length === 0) {
+      const today = new Date();
+      const dateStr = today.toISOString().split("T")[0];
+      const mkTime = (h: number, m: number) => {
+        const d = new Date(today);
+        d.setHours(h, m, 0, 0);
+        return d.toISOString();
+      };
+      // Distances chosen to hit each status: verified (<=50, low hash),
+      // warning (50-100), failed (>100).
+      const mockCheckIns: CheckInRecord[] = [
+        { id: "mock-1", user_id: "u1", checked_in_at: mkTime(9, 2),  distance_meters: 12,  user_name: "Nattapong Sukjai",   user_email: "nattapong@example.com" },
+        { id: "mock-2", user_id: "u2", checked_in_at: mkTime(9, 4),  distance_meters: 28,  user_name: "Pimchanok Wongthep", user_email: "pim@example.com" },
+        { id: "mock-3", user_id: "u3", checked_in_at: mkTime(9, 12), distance_meters: 72,  user_name: "Kittipong Aroon",    user_email: "kittipong@example.com" },
+        { id: "mock-4", user_id: "u4", checked_in_at: mkTime(9, 18), distance_meters: 134, user_name: "Suthida Phromma",    user_email: "suthida@example.com" },
+        { id: "mock-5", user_id: "u5", checked_in_at: mkTime(9, 21), distance_meters: 41,  user_name: "Anucha Boonmee",     user_email: "anucha@example.com" },
+        { id: "mock-6", user_id: "u6", checked_in_at: mkTime(9, 27), distance_meters: 88,  user_name: "Pattaranan Srisuk",  user_email: "pattaranan@example.com" },
+      ];
+      logs.push({
+        date: dateStr,
+        attendees: mockCheckIns.length,
+        registeredCount: mockCheckIns.length,
+        guestCount: 0,
+        checkIns: mockCheckIns,
+        guestCheckIns: [],
+      });
+    }
+
     setSessionLogs(logs);
 
     // Calculate overall stats
