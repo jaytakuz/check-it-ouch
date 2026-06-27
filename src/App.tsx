@@ -18,6 +18,7 @@ import EventDetails from "./pages/EventDetails";
 import Scan from "./pages/Scan";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
+import AnonymousSuccessPage from "./components/AnonymousSuccessPage";
 
 const queryClient = new QueryClient();
 
@@ -60,6 +61,7 @@ const App = () => (
           <Route path="/event/:eventId" element={<EventDetails />} />
           <Route path="/checkin" element={<CheckIn />} />
           <Route path="/scan" element={<Scan />} />
+          <Route path="/checkin-success" element={<AnonymousSuccessPage />} />
           
           <Route path="*" element={<NotFound />} />
         </Routes>
