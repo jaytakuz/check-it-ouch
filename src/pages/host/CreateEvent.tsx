@@ -10,6 +10,7 @@ import { ArrowLeft, MapPin, Clock, CalendarDays, Repeat, Users, UserCheck, Chevr
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -104,7 +105,9 @@ const CreateEvent = () => {
     locationLat: 0,
     locationLng: 0,
     maxAttendees: "50",
+    gracePeriod: "15",
   });
+
 
 
   // Multi-select tag state
@@ -837,7 +840,30 @@ const CreateEvent = () => {
                                 onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
                                 required
                               />
-                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="gracePeriodRecurring">Grace Period (Mark as Late After)</Label>
+                            <Select
+                              value={formData.gracePeriod}
+                              onValueChange={(value) => setFormData({ ...formData, gracePeriod: value })}
+                            >
+                              <SelectTrigger id="gracePeriodRecurring">
+                                <SelectValue placeholder="Select grace period" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="0">0 mins (Strict)</SelectItem>
+                                <SelectItem value="5">5 mins</SelectItem>
+                                <SelectItem value="10">10 mins</SelectItem>
+                                <SelectItem value="15">15 mins</SelectItem>
+                                <SelectItem value="30">30 mins</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">
+                              Students checking in after this time will be marked as 'Warning'.
+                            </p>
+                          </div>
+
                           </div>
                           
                           <div className="space-y-2">
@@ -911,7 +937,30 @@ const CreateEvent = () => {
                               />
                             </div>
                           </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="gracePeriodOneTime">Grace Period (Mark as Late After)</Label>
+                            <Select
+                              value={formData.gracePeriod}
+                              onValueChange={(value) => setFormData({ ...formData, gracePeriod: value })}
+                            >
+                              <SelectTrigger id="gracePeriodOneTime">
+                                <SelectValue placeholder="Select grace period" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="0">0 mins (Strict)</SelectItem>
+                                <SelectItem value="5">5 mins</SelectItem>
+                                <SelectItem value="10">10 mins</SelectItem>
+                                <SelectItem value="15">15 mins</SelectItem>
+                                <SelectItem value="30">30 mins</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">
+                              Students checking in after this time will be marked as 'Warning'.
+                            </p>
+                          </div>
                         </>
+
                       )}
                     </motion.div>
                   ) : (
