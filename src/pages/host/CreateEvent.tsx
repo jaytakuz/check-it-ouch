@@ -937,7 +937,30 @@ const CreateEvent = () => {
                               />
                             </div>
                           </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="gracePeriodOneTime">Grace Period (Mark as Late After)</Label>
+                            <Select
+                              value={formData.gracePeriod}
+                              onValueChange={(value) => setFormData({ ...formData, gracePeriod: value })}
+                            >
+                              <SelectTrigger id="gracePeriodOneTime">
+                                <SelectValue placeholder="Select grace period" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="0">0 mins (Strict)</SelectItem>
+                                <SelectItem value="5">5 mins</SelectItem>
+                                <SelectItem value="10">10 mins</SelectItem>
+                                <SelectItem value="15">15 mins</SelectItem>
+                                <SelectItem value="30">30 mins</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">
+                              Students checking in after this time will be marked as 'Warning'.
+                            </p>
+                          </div>
                         </>
+
                       )}
                     </motion.div>
                   ) : (
