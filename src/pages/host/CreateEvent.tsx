@@ -104,7 +104,9 @@ const CreateEvent = () => {
     locationLat: 0,
     locationLng: 0,
     maxAttendees: "50",
+    gracePeriod: "15",
   });
+
 
 
   // Multi-select tag state
